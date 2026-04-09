@@ -22,9 +22,9 @@ COPY . .
 # Generate Prisma client
 RUN cd packages/database && npx prisma generate
 # Build shared package first (API depends on it)
-RUN pnpm --filter @luka/shared build || true
+RUN pnpm --filter @luka/shared build
 # Build database package
-RUN pnpm --filter @luka/database build || true
+RUN pnpm --filter @luka/database build
 # Build API (uses SWC via nest-cli)
 RUN pnpm --filter @luka/api build
 
@@ -50,9 +50,12 @@ COPY --from=builder /app/packages/database/package.json ./node_modules/@luka/dat
 COPY --from=builder /app/packages/shared/dist ./node_modules/@luka/shared/dist
 COPY --from=builder /app/packages/shared/package.json ./node_modules/@luka/shared/package.json
 
+# Entrypoint runs migrations then starts the app
+COPY --from=builder /app/apps/api/docker-entrypoint.sh ./docker-entrypoint.sh
+
 USER nestjs
 EXPOSE 3001
 ENV NODE_ENV=production
 ENV API_PORT=3001
 
-CMD ["node", "dist/main.js"]
+ENTRYPOINT ["sh", "./docker-entrypoint.sh"]

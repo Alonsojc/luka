@@ -18,9 +18,12 @@ COPY --from=deps /app/apps/web/node_modules ./apps/web/node_modules
 COPY --from=deps /app/packages/shared/node_modules ./packages/shared/node_modules
 COPY . .
 # Build shared package first (web depends on it)
-RUN pnpm --filter @luka/shared build || true
+RUN pnpm --filter @luka/shared build
 # Build Next.js with standalone output
 ENV NEXT_TELEMETRY_DISABLED=1
+# API URL is baked at build time for Next.js client-side code
+ARG NEXT_PUBLIC_API_URL=/api
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 RUN pnpm --filter @luka/web build
 
 # Production

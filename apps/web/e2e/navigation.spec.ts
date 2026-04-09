@@ -1,5 +1,4 @@
-import { test, expect } from '@playwright/test';
-import { login } from './helpers/auth';
+import { test, expect } from './fixtures';
 
 // The sidebar sections and items defined in the dashboard layout
 const EXPECTED_SECTIONS = [
@@ -24,10 +23,6 @@ const EXPECTED_NAV_ITEMS = [
 ];
 
 test.describe('Navegacion', () => {
-  test.beforeEach(async ({ page }) => {
-    await login(page);
-  });
-
   test('sidebar muestra todas las secciones esperadas', async ({ page }) => {
     // The sidebar is the <aside> element
     const sidebar = page.locator('aside');

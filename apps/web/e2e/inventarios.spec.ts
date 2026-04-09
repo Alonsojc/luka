@@ -1,10 +1,8 @@
-import { test, expect } from '@playwright/test';
-import { login } from './helpers/auth';
+import { test, expect } from './fixtures';
 import { navigateTo, waitForApi } from './helpers/navigation';
 
 test.describe('Inventarios', () => {
   test.beforeEach(async ({ page }) => {
-    await login(page);
     await navigateTo(page, '/inventarios');
   });
 

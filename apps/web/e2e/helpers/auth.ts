@@ -3,9 +3,11 @@ import { type Page, expect } from '@playwright/test';
 export const TEST_USER = 'admin@lukapoke.com';
 export const TEST_PASSWORD = 'Admin123!';
 
+const API_URL = 'http://localhost:3001/api';
+
 /**
  * Fills email/password on the login page, submits, and waits for
- * the dashboard to load.
+ * the dashboard to load. Used by auth tests that don't have storage state.
  */
 export async function login(
   page: Page,
@@ -13,15 +15,33 @@ export async function login(
   password: string = TEST_PASSWORD,
 ) {
   await page.goto('/login');
-  await page.waitForSelector('#email');
+  await page.waitForSelector('#email', { timeout: 10000 });
 
   await page.fill('#email', email);
   await page.fill('#password', password);
   await page.click('button[type="submit"]');
 
-  // Wait for navigation to the dashboard after successful login
-  await page.waitForURL('**/dashboard', { timeout: 15000 });
-  await expect(page.locator('h1')).toBeVisible();
+  await page.waitForURL('**/dashboard', { timeout: 30000 });
+  await expect(page.locator('h1')).toBeVisible({ timeout: 15000 });
+}
+
+/**
+ * Fast login via API — sets tokens in localStorage without using the UI.
+ * Used by tests that need auth state but don't have global storage.
+ */
+export async function loginViaApi(page: Page) {
+  await page.goto('/login');
+  await page.evaluate(async (apiUrl) => {
+    const res = await fetch(`${apiUrl}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'admin@lukapoke.com', password: 'Admin123!' }),
+    });
+    const data = await res.json();
+    localStorage.setItem('luka_access_token', data.accessToken);
+    localStorage.setItem('luka_refresh_token', data.refreshToken);
+    localStorage.setItem('luka_user', JSON.stringify(data.user));
+  }, API_URL);
 }
 
 /**
@@ -29,6 +49,7 @@ export async function login(
  * redirect back to the login page.
  */
 export async function logout(page: Page) {
-  await page.click('button[title="Cerrar sesion"]');
-  await page.waitForURL('**/login', { timeout: 10000 });
+  const logoutBtn = page.locator('button').filter({ hasText: /cerrar sesion/i });
+  await logoutBtn.click();
+  await page.waitForURL('**/login', { timeout: 15000 });
 }
