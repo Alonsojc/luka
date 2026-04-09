@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#000000"/>
+  <text x="256" y="220" text-anchor="middle" fill="white" font-family="Helvetica,Arial,sans-serif" font-size="120" font-weight="bold" letter-spacing="20">LUKA</text>
+  <text x="256" y="320" text-anchor="middle" fill="rgba(255,255,255,0.5)" font-family="Helvetica,Arial,sans-serif" font-size="40" letter-spacing="10">SYSTEM</text>
+</svg>

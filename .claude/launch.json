@@ -1,0 +1,19 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "Next.js Frontend",
+      "runtimeExecutable": "/bin/zsh",
+      "runtimeArgs": ["-c", "export PATH=/opt/homebrew/bin:$PATH && cd '/Users/alonsojaneiroc/Luka System' && pnpm --filter @luka/web dev"],
+      "port": 3002,
+      "autoPort": false
+    },
+    {
+      "name": "NestJS API",
+      "runtimeExecutable": "/bin/zsh",
+      "runtimeArgs": ["-c", "export PATH=/opt/homebrew/bin:$PATH && export DATABASE_URL='postgresql://luka:luka_dev_2024@localhost:5432/luka_system?schema=public' && export JWT_SECRET='change-me-in-production' && export JWT_REFRESH_SECRET='change-me-in-production-refresh' && export JWT_EXPIRATION='15m' && export JWT_REFRESH_EXPIRATION='7d' && export API_PORT=3001 && export WEB_URL='http://localhost:3002' && cd '/Users/alonsojaneiroc/Luka System' && pnpm --filter @luka/api dev"],
+      "port": 3001,
+      "autoPort": false
+    }
+  ]
+}

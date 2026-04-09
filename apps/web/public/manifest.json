@@ -1,0 +1,22 @@
+{
+  "name": "Luka Poke House - Sistema de Gestion",
+  "short_name": "Luka System",
+  "description": "ERP para cadena de restaurantes Luka Poke House",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "/luka-logo.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ]
+}

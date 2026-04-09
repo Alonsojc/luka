@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__Claude_Preview__preview_start",
+      "Bash(/opt/homebrew/bin/node --version)",
+      "Bash(kill 29834)",
+      "Bash(export PATH=\"/opt/homebrew/bin:$PATH\")",
+      "Bash(export DATABASE_URL=\"postgresql://luka:luka_dev_2024@localhost:5432/luka_system?schema=public\")",
+      "Bash(npx tsx:*)",
+      "Bash(curl -s http://localhost:3001/api/auth/login -X POST -H \"Content-Type: application/json\" -d '{\"\"\"\"email\"\"\"\":\"\"\"\"admin@lukapoke.com\"\"\"\",\"\"\"\"password\"\"\"\":\"\"\"\"Admin123!\"\"\"\"}')",
+      "WebFetch(domain:www.lukapokes.com)"
+    ]
+  }
+}

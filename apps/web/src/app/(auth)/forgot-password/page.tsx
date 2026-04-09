@@ -1,0 +1,129 @@
+"use client";
+
+import { useState } from "react";
+import Link from "next/link";
+import { api } from "@/lib/api-client";
+
+export default function ForgotPasswordPage() {
+  const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [error, setError] = useState("");
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+
+    try {
+      await api.post("/auth/forgot-password", { email });
+      setSent(true);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Error al enviar instrucciones"
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-black">
+      {/* Subtle wave pattern overlay */}
+      <div className="absolute inset-0 opacity-5">
+        <div className="absolute bottom-0 left-0 right-0 h-32">
+          <svg viewBox="0 0 1440 120" className="w-full h-full fill-white">
+            <path d="M0,64L48,58.7C96,53,192,43,288,48C384,53,480,75,576,80C672,85,768,75,864,64C960,53,1056,43,1152,42.7C1248,43,1344,53,1392,58.7L1440,64L1440,120L0,120Z" />
+          </svg>
+        </div>
+      </div>
+
+      <div className="relative w-full max-w-md px-4">
+        {/* Logo */}
+        <div className="text-center mb-10">
+          <img
+            src="/luka-logo.png"
+            alt="Luka Poke House"
+            className="mx-auto h-32 w-auto"
+          />
+          <p className="mt-4 text-white/50 text-sm tracking-[0.3em] uppercase font-light">
+            Recuperar Contrasena
+          </p>
+        </div>
+
+        {/* Card */}
+        <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-8">
+          {sent ? (
+            <div className="text-center space-y-4">
+              <p className="text-white/70 text-sm">
+                Si el correo esta registrado, recibiras instrucciones para
+                restablecer tu contrasena.
+              </p>
+              <Link
+                href="/login"
+                className="inline-block w-full py-3 px-4 bg-white text-black rounded-lg font-medium tracking-wider uppercase text-sm hover:bg-white/90 transition-all text-center"
+              >
+                Volver al inicio de sesion
+              </Link>
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-5">
+              {error && (
+                <div className="p-3 rounded-lg bg-red-500/20 border border-red-500/30 text-red-300 text-sm">
+                  {error}
+                </div>
+              )}
+
+              <div>
+                <label
+                  htmlFor="email"
+                  className="block text-xs font-medium text-white/60 uppercase tracking-wider mb-2"
+                >
+                  Email
+                </label>
+                <input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-white/40 focus:border-transparent transition-all"
+                  placeholder="tu@email.com"
+                  required
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full py-3 px-4 bg-white text-black rounded-lg font-medium tracking-wider uppercase text-sm hover:bg-white/90 disabled:opacity-50 transition-all"
+              >
+                {loading ? "Enviando..." : "Enviar Instrucciones"}
+              </button>
+
+              <div className="text-center">
+                <Link
+                  href="/login"
+                  className="text-white/50 hover:text-white text-sm transition-colors"
+                >
+                  Volver al inicio de sesion
+                </Link>
+              </div>
+            </form>
+          )}
+        </div>
+
+        {/* Footer wave */}
+        <div className="mt-8 flex justify-center opacity-30">
+          <svg
+            width="60"
+            height="20"
+            viewBox="0 0 60 20"
+            className="fill-none stroke-white stroke-[1.5]"
+          >
+            <path d="M5,15 Q15,5 25,10 T45,10 Q50,10 55,8" />
+          </svg>
+        </div>
+      </div>
+    </div>
+  );
+}
