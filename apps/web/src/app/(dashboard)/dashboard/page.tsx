@@ -115,16 +115,16 @@ function KpiCard({
   trendLabel?: string;
 }) {
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-4 sm:p-5 shadow-sm">
+    <div className="rounded-xl border border-border bg-card p-4 sm:p-5 shadow-sm">
       <div className="flex items-center justify-between">
-        <p className="text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wide truncate mr-2">
+        <p className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wide truncate mr-2">
           {title}
         </p>
         <div className="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-lg bg-black shrink-0">
           <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-white" />
         </div>
       </div>
-      <p className="mt-2 sm:mt-3 text-xl sm:text-2xl font-bold text-gray-900 truncate">{value}</p>
+      <p className="mt-2 sm:mt-3 text-xl sm:text-2xl font-bold text-foreground truncate">{value}</p>
       {trend !== undefined && trend !== null && (
         <div className="mt-1 flex items-center gap-1">
           {trend >= 0 ? (
@@ -141,12 +141,12 @@ function KpiCard({
             {trend}%
           </span>
           {trendLabel && (
-            <span className="text-xs text-gray-400 ml-1">{trendLabel}</span>
+            <span className="text-xs text-muted-foreground ml-1">{trendLabel}</span>
           )}
         </div>
       )}
       {subtitle && !trend && (
-        <p className="mt-1 text-xs text-gray-400">{subtitle}</p>
+        <p className="mt-1 text-xs text-muted-foreground">{subtitle}</p>
       )}
     </div>
   );
@@ -160,8 +160,8 @@ function SectionCard({
   children: React.ReactNode;
 }) {
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-      <h2 className="text-sm font-semibold text-gray-900 uppercase tracking-wide mb-4">
+    <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
+      <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide mb-4">
         {title}
       </h2>
       {children}
@@ -181,7 +181,7 @@ function QuickAction({
   return (
     <a
       href={href}
-      className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-3 text-sm font-medium text-gray-700 shadow-sm hover:bg-black hover:text-white hover:border-black transition-colors"
+      className="flex items-center gap-3 rounded-lg border border-border bg-card px-4 py-3 text-sm font-medium text-foreground shadow-sm hover:bg-black hover:text-white hover:border-black transition-colors"
     >
       <Icon className="h-4 w-4" />
       {label}
@@ -191,7 +191,7 @@ function QuickAction({
 
 function EmptyState({ message }: { message: string }) {
   return (
-    <div className="flex h-40 items-center justify-center text-sm text-gray-400">
+    <div className="flex h-40 items-center justify-center text-sm text-muted-foreground">
       {message}
     </div>
   );
@@ -199,7 +199,7 @@ function EmptyState({ message }: { message: string }) {
 
 function LoadingState() {
   return (
-    <div className="flex h-40 items-center justify-center text-sm text-gray-400">
+    <div className="flex h-40 items-center justify-center text-sm text-muted-foreground">
       <RefreshCw className="h-4 w-4 animate-spin mr-2" />
       Cargando...
     </div>
@@ -226,7 +226,7 @@ function StoreDashboard({
   if (loading) {
     return (
       <div className="mt-6 flex items-center justify-center py-20">
-        <RefreshCw className="h-6 w-6 animate-spin text-gray-400" />
+        <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
       </div>
     );
   }
@@ -238,12 +238,12 @@ function StoreDashboard({
       {/* Branch selector */}
       {branches.length > 1 && (
         <div className="flex items-center gap-3">
-          <label className="text-sm font-medium text-gray-600">Sucursal:</label>
+          <label className="text-sm font-medium text-muted-foreground">Sucursal:</label>
           <div className="relative">
             <select
               value={selectedBranch}
               onChange={(e) => onBranchChange(e.target.value)}
-              className="appearance-none rounded-lg border border-gray-200 bg-white px-4 py-2 pr-8 text-sm font-medium text-gray-900 shadow-sm focus:border-black focus:outline-none focus:ring-1 focus:ring-black"
+              className="appearance-none rounded-lg border border-border bg-card px-4 py-2 pr-8 text-sm font-medium text-foreground shadow-sm focus:border-black focus:outline-none focus:ring-1 focus:ring-black"
             >
               {branches.map((b) => (
                 <option key={b.id} value={b.id}>
@@ -251,7 +251,7 @@ function StoreDashboard({
                 </option>
               ))}
             </select>
-            <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           </div>
         </div>
       )}
@@ -297,12 +297,12 @@ function StoreDashboard({
                       ? "border-red-200 bg-red-50"
                       : lot.daysUntilExpiry <= 4
                         ? "border-yellow-200 bg-yellow-50"
-                        : "border-gray-100 bg-gray-50"
+                        : "border-border bg-muted"
                   }`}
                 >
                   <div>
-                    <p className="font-medium text-gray-900">{lot.product}</p>
-                    <p className="text-xs text-gray-500">
+                    <p className="font-medium text-foreground">{lot.product}</p>
+                    <p className="text-xs text-muted-foreground">
                       Lote {lot.lotNumber} - {lot.quantity} unidades
                     </p>
                   </div>
@@ -312,7 +312,7 @@ function StoreDashboard({
                         ? "text-red-600"
                         : lot.daysUntilExpiry <= 4
                           ? "text-yellow-600"
-                          : "text-gray-600"
+                          : "text-muted-foreground"
                     }`}
                   >
                     {lot.daysUntilExpiry === 0
@@ -335,7 +335,7 @@ function StoreDashboard({
               {data.recentTransfers.map((t: any) => (
                 <div
                   key={t.id}
-                  className="flex items-center justify-between rounded-lg border border-gray-100 bg-gray-50 px-3 py-2 text-sm"
+                  className="flex items-center justify-between rounded-lg border border-border bg-muted px-3 py-2 text-sm"
                 >
                   <div className="flex items-center gap-2">
                     {t.direction === "INCOMING" ? (
@@ -344,10 +344,10 @@ function StoreDashboard({
                       <ArrowUpRight className="h-4 w-4 text-blue-500" />
                     )}
                     <div>
-                      <p className="font-medium text-gray-900">
+                      <p className="font-medium text-foreground">
                         {t.direction === "INCOMING" ? `De ${t.from}` : `A ${t.to}`}
                       </p>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-muted-foreground">
                         {new Date(t.createdAt).toLocaleDateString("es-MX")}
                       </p>
                     </div>
@@ -403,6 +403,7 @@ function StoreDashboard({
                       borderRadius: 8,
                       border: "1px solid #e5e5e5",
                       fontSize: 12,
+                      backgroundColor: "var(--color-card, #fff)",
                     }}
                   />
                   <Bar
@@ -422,21 +423,21 @@ function StoreDashboard({
           {/* Waste summary */}
           <SectionCard title="Merma Semanal">
             <div className="grid grid-cols-2 gap-4">
-              <div className="rounded-lg border border-gray-100 bg-gray-50 p-3 text-center">
-                <p className="text-xs text-gray-500 uppercase">Esta semana</p>
-                <p className="mt-1 text-lg font-bold text-gray-900">
+              <div className="rounded-lg border border-border bg-muted p-3 text-center">
+                <p className="text-xs text-muted-foreground uppercase">Esta semana</p>
+                <p className="mt-1 text-lg font-bold text-foreground">
                   {fmt(data.waste?.thisWeek || 0)}
                 </p>
-                <p className="text-xs text-gray-400">
+                <p className="text-xs text-muted-foreground">
                   {data.waste?.thisWeekCount || 0} registros
                 </p>
               </div>
-              <div className="rounded-lg border border-gray-100 bg-gray-50 p-3 text-center">
-                <p className="text-xs text-gray-500 uppercase">Semana pasada</p>
-                <p className="mt-1 text-lg font-bold text-gray-900">
+              <div className="rounded-lg border border-border bg-muted p-3 text-center">
+                <p className="text-xs text-muted-foreground uppercase">Semana pasada</p>
+                <p className="mt-1 text-lg font-bold text-foreground">
                   {fmt(data.waste?.lastWeek || 0)}
                 </p>
-                <p className="text-xs text-gray-400">
+                <p className="text-xs text-muted-foreground">
                   {data.waste?.lastWeekCount || 0} registros
                 </p>
               </div>
@@ -445,7 +446,7 @@ function StoreDashboard({
 
           {/* Quick actions */}
           <div>
-            <h2 className="text-sm font-semibold text-gray-900 uppercase tracking-wide mb-3">
+            <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide mb-3">
               Acciones Rapidas
             </h2>
             <div className="grid grid-cols-2 gap-3">
@@ -491,7 +492,7 @@ function CedisDashboard({
   if (loading) {
     return (
       <div className="mt-6 flex items-center justify-center py-20">
-        <RefreshCw className="h-6 w-6 animate-spin text-gray-400" />
+        <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
       </div>
     );
   }
@@ -547,8 +548,8 @@ function CedisDashboard({
                   }`}
                 >
                   <div>
-                    <p className="font-medium text-gray-900">{r.branch}</p>
-                    <p className="text-xs text-gray-500">
+                    <p className="font-medium text-foreground">{r.branch}</p>
+                    <p className="text-xs text-muted-foreground">
                       {r.itemCount} productos -{" "}
                       {new Date(r.createdAt).toLocaleDateString("es-MX")}
                     </p>
@@ -574,14 +575,14 @@ function CedisDashboard({
           {data.topRequestedProducts?.length > 0 ? (
             <table className="w-full">
               <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="pb-2 text-left text-xs font-semibold text-gray-500 uppercase">
+                <tr className="border-b border-border">
+                  <th className="pb-2 text-left text-xs font-semibold text-muted-foreground uppercase">
                     Producto
                   </th>
-                  <th className="pb-2 text-right text-xs font-semibold text-gray-500 uppercase">
+                  <th className="pb-2 text-right text-xs font-semibold text-muted-foreground uppercase">
                     Solicitudes
                   </th>
-                  <th className="pb-2 text-right text-xs font-semibold text-gray-500 uppercase">
+                  <th className="pb-2 text-right text-xs font-semibold text-muted-foreground uppercase">
                     Cantidad
                   </th>
                 </tr>
@@ -590,15 +591,15 @@ function CedisDashboard({
                 {data.topRequestedProducts.map((p: any, i: number) => (
                   <tr
                     key={i}
-                    className="border-b border-gray-50 last:border-0"
+                    className="border-b border-border/50 last:border-0"
                   >
-                    <td className="py-2.5 text-sm font-medium text-gray-900">
+                    <td className="py-2.5 text-sm font-medium text-foreground">
                       {p.name}
                     </td>
-                    <td className="py-2.5 text-sm text-right text-gray-600">
+                    <td className="py-2.5 text-sm text-right text-muted-foreground">
                       {p.count}
                     </td>
-                    <td className="py-2.5 text-sm text-right text-gray-600">
+                    <td className="py-2.5 text-sm text-right text-muted-foreground">
                       {fmtNum(Math.round(p.totalQty))}
                     </td>
                   </tr>
@@ -645,8 +646,8 @@ function CedisDashboard({
                   }`}
                 >
                   <div>
-                    <p className="font-medium text-gray-900">{lot.product}</p>
-                    <p className="text-xs text-gray-500">
+                    <p className="font-medium text-foreground">{lot.product}</p>
+                    <p className="text-xs text-muted-foreground">
                       {lot.branch} - Lote {lot.lotNumber}
                     </p>
                   </div>
@@ -668,7 +669,7 @@ function CedisDashboard({
 
       {/* Quick actions */}
       <div>
-        <h2 className="text-sm font-semibold text-gray-900 uppercase tracking-wide mb-3">
+        <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide mb-3">
           Acciones Rapidas
         </h2>
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -700,7 +701,7 @@ function InvestorDashboard({
   if (loading) {
     return (
       <div className="mt-6 flex items-center justify-center py-20">
-        <RefreshCw className="h-6 w-6 animate-spin text-gray-400" />
+        <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
       </div>
     );
   }
@@ -788,6 +789,7 @@ function InvestorDashboard({
                       borderRadius: 8,
                       border: "1px solid #e5e5e5",
                       fontSize: 12,
+                      backgroundColor: "var(--color-card, #fff)",
                     }}
                   />
                   <Legend
@@ -854,6 +856,7 @@ function InvestorDashboard({
                         borderRadius: 8,
                         border: "1px solid #e5e5e5",
                         fontSize: 12,
+                        backgroundColor: "var(--color-card, #fff)",
                       }}
                     />
                     <Bar
@@ -870,7 +873,7 @@ function InvestorDashboard({
                 </ResponsiveContainer>
               </div>
               {onDrillDown && (
-                <p className="text-[10px] text-gray-400 text-center mt-2">
+                <p className="text-[10px] text-muted-foreground text-center mt-2">
                   Haz clic en una sucursal para ver detalle
                 </p>
               )}
@@ -904,7 +907,7 @@ function InvestorDashboard({
                   </Pie>
                   <Tooltip
                     formatter={(value: number) => fmt(value)}
-                    contentStyle={{ borderRadius: 8, border: "1px solid #e5e5e5", fontSize: 12 }}
+                    contentStyle={{ borderRadius: 8, border: "1px solid #e5e5e5", fontSize: 12, backgroundColor: "var(--color-card, #fff)" }}
                   />
                 </PieChart>
               </ResponsiveContainer>
@@ -914,15 +917,15 @@ function InvestorDashboard({
           )}
         </SectionCard>
 
-        <div className="rounded-xl border border-gray-200 bg-white p-4 sm:p-5 shadow-sm flex flex-col justify-center">
-          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+        <div className="rounded-xl border border-border bg-card p-4 sm:p-5 shadow-sm flex flex-col justify-center">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
             Food Cost
           </p>
-          <p className="mt-2 text-2xl sm:text-3xl font-bold text-gray-900">
+          <p className="mt-2 text-2xl sm:text-3xl font-bold text-foreground">
             {data.foodCostPct || 0}%
           </p>
-          <p className="mt-1 text-xs text-gray-400">costo de insumos / ingresos</p>
-          <div className="mt-3 h-2 rounded-full bg-gray-100 overflow-hidden">
+          <p className="mt-1 text-xs text-muted-foreground">costo de insumos / ingresos</p>
+          <div className="mt-3 h-2 rounded-full bg-muted overflow-hidden">
             <div
               className="h-full rounded-full bg-black transition-all"
               style={{ width: `${Math.min(100, data.foodCostPct || 0)}%` }}
@@ -930,18 +933,18 @@ function InvestorDashboard({
           </div>
         </div>
 
-        <div className="rounded-xl border border-gray-200 bg-white p-4 sm:p-5 shadow-sm flex flex-col justify-center">
-          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+        <div className="rounded-xl border border-border bg-card p-4 sm:p-5 shadow-sm flex flex-col justify-center">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
             Utilidad Bruta
           </p>
-          <p className="mt-2 text-2xl sm:text-3xl font-bold text-gray-900">
+          <p className="mt-2 text-2xl sm:text-3xl font-bold text-foreground">
             {fmtCompact((data.revenue?.thisMonth || 0) - (data.expenses || 0))}
           </p>
-          <p className="mt-1 text-xs text-gray-400">ingresos - gastos</p>
-          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mt-4">
+          <p className="mt-1 text-xs text-muted-foreground">ingresos - gastos</p>
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mt-4">
             Costo Nomina
           </p>
-          <p className="mt-1 text-lg font-bold text-gray-900">
+          <p className="mt-1 text-lg font-bold text-foreground">
             {fmt(data.payrollCost || 0)}
           </p>
         </div>
@@ -949,7 +952,7 @@ function InvestorDashboard({
 
       {/* Quick actions */}
       <div>
-        <h2 className="text-sm font-semibold text-gray-900 uppercase tracking-wide mb-3">
+        <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide mb-3">
           Acciones Rapidas
         </h2>
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -977,7 +980,7 @@ function AccountantDashboard({
   if (loading) {
     return (
       <div className="mt-6 flex items-center justify-center py-20">
-        <RefreshCw className="h-6 w-6 animate-spin text-gray-400" />
+        <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
       </div>
     );
   }
@@ -1019,7 +1022,7 @@ function AccountantDashboard({
         <SectionCard title="Periodo Fiscal Actual">
           {data.openPeriod ? (
             <div className="text-center py-4">
-              <p className="text-3xl font-bold text-gray-900">
+              <p className="text-3xl font-bold text-foreground">
                 {String(data.openPeriod.month).padStart(2, "0")} / {data.openPeriod.year}
               </p>
               <span className="mt-2 inline-block rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-700">
@@ -1028,31 +1031,31 @@ function AccountantDashboard({
             </div>
           ) : (
             <div className="text-center py-4">
-              <p className="text-sm text-gray-400">Sin periodo fiscal abierto</p>
+              <p className="text-sm text-muted-foreground">Sin periodo fiscal abierto</p>
             </div>
           )}
         </SectionCard>
 
         <SectionCard title="CFDI Pendientes">
           <div className="text-center py-4">
-            <p className="text-3xl font-bold text-gray-900">
+            <p className="text-3xl font-bold text-foreground">
               {data.pendingCfdi || 0}
             </p>
-            <p className="mt-1 text-xs text-gray-400">facturas en borrador</p>
+            <p className="mt-1 text-xs text-muted-foreground">facturas en borrador</p>
           </div>
         </SectionCard>
 
         <SectionCard title="Estimado Provisionales">
           <div className="grid grid-cols-2 gap-4 py-2">
             <div className="text-center">
-              <p className="text-xs text-gray-500 uppercase">ISR</p>
-              <p className="mt-1 text-lg font-bold text-gray-900">
+              <p className="text-xs text-muted-foreground uppercase">ISR</p>
+              <p className="mt-1 text-lg font-bold text-foreground">
                 {fmt(data.taxEstimates?.isrProvisional || 0)}
               </p>
             </div>
             <div className="text-center">
-              <p className="text-xs text-gray-500 uppercase">IVA</p>
-              <p className="mt-1 text-lg font-bold text-gray-900">
+              <p className="text-xs text-muted-foreground uppercase">IVA</p>
+              <p className="mt-1 text-lg font-bold text-foreground">
                 {fmt(data.taxEstimates?.ivaProvisional || 0)}
               </p>
             </div>
@@ -1065,13 +1068,13 @@ function AccountantDashboard({
         <SectionCard title="Cuentas por Pagar Vencidas">
           <div className="grid grid-cols-2 gap-4">
             <div className="rounded-lg border border-red-100 bg-red-50 p-4 text-center">
-              <p className="text-xs text-gray-500 uppercase">Cantidad</p>
+              <p className="text-xs text-muted-foreground uppercase">Cantidad</p>
               <p className="mt-1 text-2xl font-bold text-red-600">
                 {data.cxpOverdue?.count || 0}
               </p>
             </div>
             <div className="rounded-lg border border-red-100 bg-red-50 p-4 text-center">
-              <p className="text-xs text-gray-500 uppercase">Monto</p>
+              <p className="text-xs text-muted-foreground uppercase">Monto</p>
               <p className="mt-1 text-2xl font-bold text-red-600">
                 {fmtCompact(data.cxpOverdue?.amount || 0)}
               </p>
@@ -1082,13 +1085,13 @@ function AccountantDashboard({
         <SectionCard title="Cuentas por Cobrar Vencidas">
           <div className="grid grid-cols-2 gap-4">
             <div className="rounded-lg border border-orange-100 bg-orange-50 p-4 text-center">
-              <p className="text-xs text-gray-500 uppercase">Cantidad</p>
+              <p className="text-xs text-muted-foreground uppercase">Cantidad</p>
               <p className="mt-1 text-2xl font-bold text-orange-600">
                 {data.cxcOverdue?.count || 0}
               </p>
             </div>
             <div className="rounded-lg border border-orange-100 bg-orange-50 p-4 text-center">
-              <p className="text-xs text-gray-500 uppercase">Monto</p>
+              <p className="text-xs text-muted-foreground uppercase">Monto</p>
               <p className="mt-1 text-2xl font-bold text-orange-600">
                 {fmtCompact(data.cxcOverdue?.amount || 0)}
               </p>
@@ -1099,7 +1102,7 @@ function AccountantDashboard({
 
       {/* Quick actions */}
       <div>
-        <h2 className="text-sm font-semibold text-gray-900 uppercase tracking-wide mb-3">
+        <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide mb-3">
           Acciones Rapidas
         </h2>
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -1251,26 +1254,26 @@ export default function DashboardPage() {
               <div className="flex items-center gap-2">
                 <button
                   onClick={handleBackFromDrillDown}
-                  className="flex items-center gap-1 rounded-lg px-2 py-1 text-sm font-medium text-gray-600 hover:bg-gray-100 transition-colors"
+                  className="flex items-center gap-1 rounded-lg px-2 py-1 text-sm font-medium text-muted-foreground hover:bg-muted transition-colors"
                 >
                   <ArrowLeft className="h-4 w-4" />
                   Volver
                 </button>
                 <div>
-                  <h1 className="text-xl sm:text-2xl font-bold text-gray-900 truncate">
+                  <h1 className="text-xl sm:text-2xl font-bold text-foreground truncate">
                     {drillDownBranchName || "Sucursal"}
                   </h1>
-                  <p className="text-xs sm:text-sm text-gray-500">
+                  <p className="text-xs sm:text-sm text-muted-foreground">
                     Detalle de sucursal - Drill-down desde vista inversionista
                   </p>
                 </div>
               </div>
             ) : (
               <>
-                <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
+                <h1 className="text-xl sm:text-2xl font-bold text-foreground">
                   Bienvenido{user ? `, ${user.firstName}` : ""}
                 </h1>
-                <p className="mt-0.5 text-xs sm:text-sm text-gray-500">
+                <p className="mt-0.5 text-xs sm:text-sm text-muted-foreground">
                   {viewSubtitles[currentView]}
                 </p>
               </>
@@ -1282,7 +1285,7 @@ export default function DashboardPage() {
 
         {/* Row 2: View switcher */}
         {showSwitcher && !drillDownBranch && (
-          <div className="flex rounded-lg border border-gray-200 bg-white shadow-sm overflow-x-auto flex-nowrap -mx-1 sm:mx-0">
+          <div className="flex rounded-lg border border-border bg-card shadow-sm overflow-x-auto flex-nowrap -mx-1 sm:mx-0">
             {(Object.keys(VIEW_LABELS) as DashboardView[]).map((view) => (
               <button
                 key={view}
@@ -1290,7 +1293,7 @@ export default function DashboardPage() {
                 className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap min-w-0 ${
                   currentView === view
                     ? "bg-black text-white"
-                    : "text-gray-600 hover:bg-gray-50"
+                    : "text-muted-foreground hover:bg-muted"
                 }`}
               >
                 {VIEW_LABELS[view]}

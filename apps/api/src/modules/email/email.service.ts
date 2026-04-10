@@ -5,6 +5,9 @@ import {
   welcomeTemplate,
   lowStockTemplate,
   overduePayableTemplate,
+  invoiceEmailTemplate,
+  requisitionAlertTemplate,
+  expiringLotsAlertTemplate,
 } from "./templates";
 
 @Injectable()
@@ -92,6 +95,60 @@ export class EmailService {
     await this.sendEmail(
       email,
       "Cuentas por Pagar Vencidas - Luka System",
+      html,
+    );
+  }
+
+  async sendInvoice(
+    to: string,
+    data: {
+      recipientName: string;
+      invoiceNumber: string;
+      total: string;
+      currency: string;
+      cfdiType: string;
+      date: string;
+      uuid?: string;
+    },
+  ): Promise<void> {
+    const html = invoiceEmailTemplate(data);
+    await this.sendEmail(
+      to,
+      `Factura ${data.invoiceNumber} - Luka Poke House`,
+      html,
+    );
+  }
+
+  async sendRequisitionAlert(
+    email: string,
+    data: {
+      branchName: string;
+      priority: string;
+      itemCount: number;
+      requestedBy: string;
+    },
+  ): Promise<void> {
+    const html = requisitionAlertTemplate(data);
+    await this.sendEmail(
+      email,
+      `Nueva Requisicion - ${data.branchName} (${data.priority}) - Luka System`,
+      html,
+    );
+  }
+
+  async sendExpiringLotsAlert(
+    email: string,
+    lots: {
+      product: string;
+      branch: string;
+      daysLeft: number;
+      quantity: number;
+    }[],
+  ): Promise<void> {
+    const html = expiringLotsAlertTemplate(lots);
+    await this.sendEmail(
+      email,
+      `Alerta: ${lots.length} Lote${lots.length !== 1 ? "s" : ""} por Vencer - Luka System`,
       html,
     );
   }

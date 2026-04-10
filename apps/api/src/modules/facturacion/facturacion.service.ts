@@ -14,6 +14,7 @@ import {
   PaymentComplementDoctoRelacionado,
 } from "./cfdi/cfdi-xml-builder";
 import { AuditService } from "../audit/audit.service";
+import { PacService } from "./pac/pac.service";
 
 /** Maps Prisma CFDIType enum values to SAT TipoDeComprobante claves. */
 const CFDI_TYPE_MAP: Record<string, string> = {
@@ -29,6 +30,7 @@ export class FacturacionService {
   constructor(
     private prisma: PrismaService,
     private auditService: AuditService,
+    private pacService: PacService,
   ) {}
 
   // -------------------------------------------------------
@@ -246,16 +248,16 @@ export class FacturacionService {
     const cfdiData = this.buildCfdiDataFromInvoice(invoice);
     const xml = buildCfdiXml(cfdiData);
 
-    // TODO: Send to PAC (Finkok/SW Sapien) for timbrado
-    // The PAC will return: UUID, sello, cadenaOriginal, noCertificadoSAT, etc.
-    // Those values should be stored in the CFDI record once timbrado is implemented.
+    // Send to PAC for timbrado
+    const pacResult = await this.pacService.stamp(xml, cfdiData.emisorRfc);
 
     const updated = await this.prisma.cFDI.update({
       where: { id },
       data: {
-        xmlContent: xml,
+        uuid: pacResult.uuid,
+        xmlContent: pacResult.xmlTimbrado,
         status: "STAMPED",
-        stampedAt: new Date(),
+        stampedAt: new Date(pacResult.fechaTimbrado),
       },
       include: { branch: true, concepts: true },
     });
@@ -308,25 +310,57 @@ export class FacturacionService {
       );
     }
 
-    // TODO: Send cancellation request to PAC (Finkok/SW Sapien)
-    // For stamped invoices, the PAC handles the cancellation with SAT.
-    // The response may be immediate or pending (CANCELLATION_PENDING).
+    // For stamped invoices, send cancellation request to PAC
+    let cancelled;
+    if (invoice.status === "STAMPED" && invoice.uuid) {
+      const pacResult = await this.pacService.cancel(
+        invoice.uuid,
+        invoice.issuerRfc,
+        motivo,
+        folioSustitucion,
+      );
 
-    const newStatus =
-      invoice.status === "STAMPED" ? "CANCELLATION_PENDING" : "CANCELLED";
-
-    const cancelled = await this.prisma.cFDI.update({
-      where: { id },
-      data: {
-        status: newStatus as any,
-        cancellationReason: motivo,
-        cancelledAt: new Date(),
-        ...(folioSustitucion
-          ? { substituteCfdiId: folioSustitucion }
-          : {}),
-      },
-      include: { branch: true, concepts: true },
-    });
+      if (pacResult.success) {
+        cancelled = await this.prisma.cFDI.update({
+          where: { id },
+          data: {
+            status: "CANCELLED",
+            cancellationReason: motivo,
+            cancelledAt: new Date(pacResult.fechaCancelacion),
+            ...(folioSustitucion
+              ? { substituteCfdiId: folioSustitucion }
+              : {}),
+          },
+          include: { branch: true, concepts: true },
+        });
+      } else {
+        cancelled = await this.prisma.cFDI.update({
+          where: { id },
+          data: {
+            status: "CANCELLATION_PENDING" as any,
+            cancellationReason: motivo,
+            ...(folioSustitucion
+              ? { substituteCfdiId: folioSustitucion }
+              : {}),
+          },
+          include: { branch: true, concepts: true },
+        });
+      }
+    } else {
+      // DRAFT invoices can be cancelled directly without PAC
+      cancelled = await this.prisma.cFDI.update({
+        where: { id },
+        data: {
+          status: "CANCELLED",
+          cancellationReason: motivo,
+          cancelledAt: new Date(),
+          ...(folioSustitucion
+            ? { substituteCfdiId: folioSustitucion }
+            : {}),
+        },
+        include: { branch: true, concepts: true },
+      });
+    }
 
     await this.auditService.log({
       organizationId,

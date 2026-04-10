@@ -182,6 +182,208 @@ export function lowStockTemplate(
   `);
 }
 
+export function invoiceEmailTemplate(data: {
+  recipientName: string;
+  invoiceNumber: string;
+  total: string;
+  currency: string;
+  cfdiType: string;
+  date: string;
+  uuid?: string;
+}): string {
+  const uuidRow = data.uuid
+    ? `
+      <tr>
+        <td style="padding:10px 12px; border-bottom:1px solid #eee; color:#666; font-size:13px; font-weight:600;">
+          UUID
+        </td>
+        <td style="padding:10px 12px; border-bottom:1px solid #eee; color:#333; font-size:14px; font-family:monospace;">
+          ${data.uuid}
+        </td>
+      </tr>`
+    : "";
+
+  return baseTemplate(`
+    <h2 style="color:#333; margin:0 0 16px; font-size:22px; font-weight:600;">
+      Factura ${data.invoiceNumber}
+    </h2>
+    <p style="color:#555; font-size:15px; line-height:1.6; margin:0 0 24px;">
+      Hola ${data.recipientName}, adjunto encontraras tu comprobante fiscal digital.
+    </p>
+    <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #eee; border-radius:4px; margin-bottom:24px;">
+      <tbody>
+        <tr>
+          <td style="padding:10px 12px; border-bottom:1px solid #eee; color:#666; font-size:13px; font-weight:600;">
+            Folio
+          </td>
+          <td style="padding:10px 12px; border-bottom:1px solid #eee; color:#333; font-size:14px;">
+            ${data.invoiceNumber}
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:10px 12px; border-bottom:1px solid #eee; color:#666; font-size:13px; font-weight:600;">
+            Tipo
+          </td>
+          <td style="padding:10px 12px; border-bottom:1px solid #eee; color:#333; font-size:14px;">
+            ${data.cfdiType}
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:10px 12px; border-bottom:1px solid #eee; color:#666; font-size:13px; font-weight:600;">
+            Fecha
+          </td>
+          <td style="padding:10px 12px; border-bottom:1px solid #eee; color:#333; font-size:14px;">
+            ${data.date}
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:10px 12px; border-bottom:1px solid #eee; color:#666; font-size:13px; font-weight:600;">
+            Total
+          </td>
+          <td style="padding:10px 12px; border-bottom:1px solid #eee; color:#333; font-size:16px; font-weight:600;">
+            $${data.total} ${data.currency}
+          </td>
+        </tr>
+        ${uuidRow}
+      </tbody>
+    </table>
+    <p style="color:#555; font-size:14px; line-height:1.6; margin:0 0 16px;">
+      Adjunto encontraras tu CFDI en formato XML y PDF.
+    </p>
+    <p style="color:#888; font-size:12px; line-height:1.5; margin:0; padding-top:16px; border-top:1px solid #eee;">
+      Este documento es una representacion impresa de un CFDI. La validez fiscal del comprobante
+      se puede verificar en el portal del SAT: <a href="https://verificacfdi.facturaelectronica.sat.gob.mx/"
+      style="color:#555;">verificacfdi.facturaelectronica.sat.gob.mx</a>
+    </p>
+  `);
+}
+
+export function requisitionAlertTemplate(data: {
+  branchName: string;
+  priority: string;
+  itemCount: number;
+  requestedBy: string;
+}): string {
+  const priorityColor =
+    data.priority === "URGENT"
+      ? "#dc2626"
+      : data.priority === "HIGH"
+        ? "#ea580c"
+        : "#333";
+
+  return baseTemplate(`
+    <h2 style="color:#333; margin:0 0 16px; font-size:22px; font-weight:600;">
+      Nueva Requisicion
+    </h2>
+    <p style="color:#555; font-size:15px; line-height:1.6; margin:0 0 24px;">
+      Se ha generado una nueva requisicion que requiere atencion:
+    </p>
+    <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #eee; border-radius:4px; margin-bottom:24px;">
+      <tbody>
+        <tr>
+          <td style="padding:10px 12px; border-bottom:1px solid #eee; color:#666; font-size:13px; font-weight:600;">
+            Sucursal
+          </td>
+          <td style="padding:10px 12px; border-bottom:1px solid #eee; color:#333; font-size:14px;">
+            ${data.branchName}
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:10px 12px; border-bottom:1px solid #eee; color:#666; font-size:13px; font-weight:600;">
+            Prioridad
+          </td>
+          <td style="padding:10px 12px; border-bottom:1px solid #eee; font-size:14px; font-weight:600; color:${priorityColor};">
+            ${data.priority}
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:10px 12px; border-bottom:1px solid #eee; color:#666; font-size:13px; font-weight:600;">
+            Productos
+          </td>
+          <td style="padding:10px 12px; border-bottom:1px solid #eee; color:#333; font-size:14px;">
+            ${data.itemCount} articulo${data.itemCount !== 1 ? "s" : ""}
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:10px 12px; border-bottom:1px solid #eee; color:#666; font-size:13px; font-weight:600;">
+            Solicitado por
+          </td>
+          <td style="padding:10px 12px; border-bottom:1px solid #eee; color:#333; font-size:14px;">
+            ${data.requestedBy}
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <p style="color:#888; font-size:13px; line-height:1.5; margin:0;">
+      Ingresa al sistema para revisar y autorizar la requisicion.
+    </p>
+  `);
+}
+
+export function expiringLotsAlertTemplate(
+  lots: {
+    product: string;
+    branch: string;
+    daysLeft: number;
+    quantity: number;
+  }[],
+): string {
+  const rows = lots
+    .map(
+      (lot) => `
+      <tr>
+        <td style="padding:10px 12px; border-bottom:1px solid #eee; color:#333; font-size:14px;">
+          ${lot.product}
+        </td>
+        <td style="padding:10px 12px; border-bottom:1px solid #eee; color:#333; font-size:14px;">
+          ${lot.branch}
+        </td>
+        <td style="padding:10px 12px; border-bottom:1px solid #eee; font-size:14px; font-weight:600;
+                    color:${lot.daysLeft <= 3 ? "#dc2626" : lot.daysLeft <= 7 ? "#ea580c" : "#333"};">
+          ${lot.daysLeft} dia${lot.daysLeft !== 1 ? "s" : ""}
+        </td>
+        <td style="padding:10px 12px; border-bottom:1px solid #eee; color:#333; font-size:14px;">
+          ${lot.quantity}
+        </td>
+      </tr>`,
+    )
+    .join("");
+
+  return baseTemplate(`
+    <h2 style="color:#333; margin:0 0 16px; font-size:22px; font-weight:600;">
+      Alerta de Lotes por Vencer
+    </h2>
+    <p style="color:#555; font-size:15px; line-height:1.6; margin:0 0 24px;">
+      Los siguientes lotes estan proximos a su fecha de vencimiento:
+    </p>
+    <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #eee; border-radius:4px;">
+      <thead>
+        <tr style="background-color:#f9f9f9;">
+          <th style="padding:10px 12px; text-align:left; font-size:12px; font-weight:600; color:#666;
+                     text-transform:uppercase; letter-spacing:0.05em; border-bottom:2px solid #eee;">
+            Producto
+          </th>
+          <th style="padding:10px 12px; text-align:left; font-size:12px; font-weight:600; color:#666;
+                     text-transform:uppercase; letter-spacing:0.05em; border-bottom:2px solid #eee;">
+            Sucursal
+          </th>
+          <th style="padding:10px 12px; text-align:left; font-size:12px; font-weight:600; color:#666;
+                     text-transform:uppercase; letter-spacing:0.05em; border-bottom:2px solid #eee;">
+            Dias Restantes
+          </th>
+          <th style="padding:10px 12px; text-align:left; font-size:12px; font-weight:600; color:#666;
+                     text-transform:uppercase; letter-spacing:0.05em; border-bottom:2px solid #eee;">
+            Cantidad
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        ${rows}
+      </tbody>
+    </table>
+  `);
+}
+
 export function overduePayableTemplate(
   payables: { supplier: string; amount: number; dueDate: string }[],
 ): string {
