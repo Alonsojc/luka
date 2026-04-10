@@ -64,3 +64,51 @@
   letter-spacing: 0.15em;
   text-transform: uppercase;
 }
+
+/* Safe area padding for devices with notch/home indicator */
+.safe-area-pb {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Touch-friendly tap targets (minimum 44px for WCAG) */
+@layer utilities {
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* Smooth animations for slide-in */
+@keyframes slideInFromBottom {
+  from { transform: translateY(16px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.animate-in {
+  animation: slideInFromBottom 0.3s ease-out;
+}
+
+.slide-in-from-bottom-4 {
+  animation: slideInFromBottom 0.3s ease-out;
+}
+
+/* Improve scrolling on touch devices */
+@layer base {
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .overflow-y-auto, .overflow-x-auto {
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Recharts responsive overrides */
+@media (max-width: 640px) {
+  .recharts-legend-wrapper {
+    font-size: 11px !important;
+  }
+  .recharts-tooltip-wrapper {
+    font-size: 11px !important;
+  }
+}

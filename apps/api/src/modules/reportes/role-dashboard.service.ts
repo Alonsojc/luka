@@ -12,10 +12,11 @@ export class RoleDashboardService {
     organizationId: string,
     branchId: string,
     userId: string,
+    dateRange?: { start: Date; end: Date },
   ) {
     const now = new Date();
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+    const todayStart = dateRange?.start ?? new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const todayEnd = dateRange?.end ?? new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
     const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     const twoWeeksAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
     const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
@@ -101,29 +102,89 @@ export class RoleDashboardService {
       }),
     ]);
 
-    // --- Sales last 7 days for chart ---
+    // --- Sales chart (by day or by week depending on range) ---
     const salesByDay: { date: string; total: number; count: number }[] = [];
-    for (let i = 6; i >= 0; i--) {
-      const dayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
-      const dayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i, 23, 59, 59, 999);
-      const [cAgg, pAgg] = await Promise.all([
-        this.prisma.corntechSale.aggregate({
-          where: { branchId, saleDate: { gte: dayStart, lte: dayEnd } },
-          _sum: { total: true },
-          _count: { id: true },
-        }),
-        this.prisma.posSale.aggregate({
-          where: { branchId, saleDate: { gte: dayStart, lte: dayEnd } },
-          _sum: { total: true },
-          _count: { id: true },
-        }),
-      ]);
-      const dayNames = ["Dom", "Lun", "Mar", "Mie", "Jue", "Vie", "Sab"];
-      salesByDay.push({
-        date: dayNames[dayStart.getDay()],
-        total: Math.round((Number(cAgg._sum.total || 0) + Number(pAgg._sum.total || 0)) * 100) / 100,
-        count: (cAgg._count.id || 0) + (pAgg._count.id || 0),
-      });
+    if (dateRange) {
+      const rangeDays = Math.ceil((dateRange.end.getTime() - dateRange.start.getTime()) / (1000 * 60 * 60 * 24));
+      const groupByWeek = rangeDays > 30;
+
+      if (groupByWeek) {
+        // Group by week
+        const cursor = new Date(dateRange.start);
+        while (cursor < dateRange.end) {
+          const bucketStart = new Date(cursor);
+          const bucketEnd = new Date(Math.min(cursor.getTime() + 7 * 24 * 60 * 60 * 1000 - 1, dateRange.end.getTime()));
+          const [cAgg, pAgg] = await Promise.all([
+            this.prisma.corntechSale.aggregate({
+              where: { branchId, saleDate: { gte: bucketStart, lte: bucketEnd } },
+              _sum: { total: true },
+              _count: { id: true },
+            }),
+            this.prisma.posSale.aggregate({
+              where: { branchId, saleDate: { gte: bucketStart, lte: bucketEnd } },
+              _sum: { total: true },
+              _count: { id: true },
+            }),
+          ]);
+          const label = `${bucketStart.getDate()}/${bucketStart.getMonth() + 1}`;
+          salesByDay.push({
+            date: label,
+            total: Math.round((Number(cAgg._sum.total || 0) + Number(pAgg._sum.total || 0)) * 100) / 100,
+            count: (cAgg._count.id || 0) + (pAgg._count.id || 0),
+          });
+          cursor.setDate(cursor.getDate() + 7);
+        }
+      } else {
+        // Group by day
+        const cursor = new Date(dateRange.start);
+        const dayNames = ["Dom", "Lun", "Mar", "Mie", "Jue", "Vie", "Sab"];
+        while (cursor <= dateRange.end) {
+          const dayStart = new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate());
+          const dayEnd = new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate(), 23, 59, 59, 999);
+          const [cAgg, pAgg] = await Promise.all([
+            this.prisma.corntechSale.aggregate({
+              where: { branchId, saleDate: { gte: dayStart, lte: dayEnd } },
+              _sum: { total: true },
+              _count: { id: true },
+            }),
+            this.prisma.posSale.aggregate({
+              where: { branchId, saleDate: { gte: dayStart, lte: dayEnd } },
+              _sum: { total: true },
+              _count: { id: true },
+            }),
+          ]);
+          salesByDay.push({
+            date: dayNames[dayStart.getDay()],
+            total: Math.round((Number(cAgg._sum.total || 0) + Number(pAgg._sum.total || 0)) * 100) / 100,
+            count: (cAgg._count.id || 0) + (pAgg._count.id || 0),
+          });
+          cursor.setDate(cursor.getDate() + 1);
+        }
+      }
+    } else {
+      // Default: last 7 days
+      for (let i = 6; i >= 0; i--) {
+        const dayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
+        const dayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i, 23, 59, 59, 999);
+        const [cAgg, pAgg] = await Promise.all([
+          this.prisma.corntechSale.aggregate({
+            where: { branchId, saleDate: { gte: dayStart, lte: dayEnd } },
+            _sum: { total: true },
+            _count: { id: true },
+          }),
+          this.prisma.posSale.aggregate({
+            where: { branchId, saleDate: { gte: dayStart, lte: dayEnd } },
+            _sum: { total: true },
+            _count: { id: true },
+          }),
+        ]);
+        const dayNames = ["Dom", "Lun", "Mar", "Mie", "Jue", "Vie", "Sab"];
+        salesByDay.push({
+          date: dayNames[dayStart.getDay()],
+          total: Math.round((Number(cAgg._sum.total || 0) + Number(pAgg._sum.total || 0)) * 100) / 100,
+          count: (cAgg._count.id || 0) + (pAgg._count.id || 0),
+        });
+      }
     }
 
     return {
@@ -175,11 +236,11 @@ export class RoleDashboardService {
   // =========================================================================
   // CEDIS / WAREHOUSE MANAGER DASHBOARD
   // =========================================================================
-  async getCedisDashboard(organizationId: string) {
+  async getCedisDashboard(organizationId: string, dateRange?: { start: Date; end: Date }) {
     const now = new Date();
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
-    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const todayStart = dateRange?.start ?? new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const todayEnd = dateRange?.end ?? new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+    const weekAgo = dateRange?.start ?? new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 
     const branches = await this.prisma.branch.findMany({
@@ -320,10 +381,10 @@ export class RoleDashboardService {
   // =========================================================================
   // INVESTOR DASHBOARD
   // =========================================================================
-  async getInvestorDashboard(organizationId: string) {
+  async getInvestorDashboard(organizationId: string, dateRange?: { start: Date; end: Date }) {
     const now = new Date();
-    const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    const currentMonthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+    const currentMonthStart = dateRange?.start ?? new Date(now.getFullYear(), now.getMonth(), 1);
+    const currentMonthEnd = dateRange?.end ?? new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
     const prevMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     const prevMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
 
@@ -478,7 +539,7 @@ export class RoleDashboardService {
   // =========================================================================
   // ACCOUNTANT DASHBOARD
   // =========================================================================
-  async getAccountantDashboard(organizationId: string) {
+  async getAccountantDashboard(organizationId: string, dateRange?: { start: Date; end: Date }) {
     const now = new Date();
 
     // --- Pending polizas (journal entries in DRAFT) ---
@@ -533,9 +594,9 @@ export class RoleDashboardService {
       where: { organizationId, status: "DRAFT" },
     });
 
-    // --- ISR/IVA provisional (sum from revenue CFDIs this month) ---
-    const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    const currentMonthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+    // --- ISR/IVA provisional (sum from revenue CFDIs this month or dateRange) ---
+    const currentMonthStart = dateRange?.start ?? new Date(now.getFullYear(), now.getMonth(), 1);
+    const currentMonthEnd = dateRange?.end ?? new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
 
     const revenueCfdis = await this.prisma.cFDI.findMany({
       where: {
@@ -582,6 +643,7 @@ export class RoleDashboardService {
     organizationId: string,
     userId: string,
     roles: Array<{ branchId: string | null; roleName: string }>,
+    dateRange?: { start: Date; end: Date },
   ) {
     // Priority order for role selection
     const rolePriority = [
@@ -609,13 +671,13 @@ export class RoleDashboardService {
       case "owner":
       case "admin":
       case "investor":
-        return this.getInvestorDashboard(organizationId);
+        return this.getInvestorDashboard(organizationId, dateRange);
 
       case "accountant":
-        return this.getAccountantDashboard(organizationId);
+        return this.getAccountantDashboard(organizationId, dateRange);
 
       case "cedis_manager":
-        return this.getCedisDashboard(organizationId);
+        return this.getCedisDashboard(organizationId, dateRange);
 
       case "zone_manager":
       case "branch_manager":
@@ -624,7 +686,7 @@ export class RoleDashboardService {
         // Find the first branch the user is assigned to
         const branchRole = roles.find((r) => r.branchId);
         if (branchRole?.branchId) {
-          return this.getStoreDashboard(organizationId, branchRole.branchId, userId);
+          return this.getStoreDashboard(organizationId, branchRole.branchId, userId, dateRange);
         }
         // If no specific branch, get first org branch
         const firstBranch = await this.prisma.branch.findFirst({
@@ -632,7 +694,7 @@ export class RoleDashboardService {
           select: { id: true },
         });
         if (firstBranch) {
-          return this.getStoreDashboard(organizationId, firstBranch.id, userId);
+          return this.getStoreDashboard(organizationId, firstBranch.id, userId, dateRange);
         }
         return { type: "store" as const, error: "No branch found" };
       }

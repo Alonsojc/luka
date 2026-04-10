@@ -7,6 +7,8 @@ import { canAccessRoute } from "@/lib/permissions";
 import { useRouteGuard } from "@/hooks/use-route-guard";
 import { api } from "@/lib/api-client";
 import { PWAInstallPrompt } from "@/components/pwa-install-prompt";
+import { PushNotificationManager, PushToggle } from "@/components/notifications/push-manager";
+import { BottomNav } from "@/components/layout/bottom-nav";
 import {
   Package,
   ShoppingCart,
@@ -389,14 +391,8 @@ export default function DashboardLayout({
       </aside>
 
       <div className="flex flex-1 flex-col lg:pl-64">
-        <header className="sticky top-0 z-20 flex h-14 items-center justify-between border-b border-border bg-card px-3 sm:px-4 lg:px-6 overflow-x-auto">
+        <header className="sticky top-0 z-20 flex h-12 sm:h-14 items-center justify-between border-b border-border bg-card px-3 sm:px-4 lg:px-6 overflow-x-auto">
           <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-            <button
-              onClick={() => setSidebarOpen(true)}
-              className="text-muted-foreground hover:text-foreground transition-colors lg:hidden shrink-0"
-            >
-              <Menu className="h-6 w-6" />
-            </button>
             <div className="relative min-w-0">
               <button
                 onClick={() => {
@@ -446,6 +442,7 @@ export default function DashboardLayout({
                 <Moon className="h-5 w-5" />
               )}
             </button>
+            <PushToggle />
             <div ref={notificationsRef} className="relative">
               <button
                 onClick={() => {
@@ -533,9 +530,11 @@ export default function DashboardLayout({
             Luka Poke House
           </div>
         </header>
-        <main className="flex-1 overflow-y-auto p-4 lg:p-6">{children}</main>
+        <main className="flex-1 overflow-y-auto p-3 sm:p-4 lg:p-6 pb-20 lg:pb-6">{children}</main>
       </div>
+      <BottomNav onMenuClick={() => setSidebarOpen(true)} />
       <PWAInstallPrompt />
+      <PushNotificationManager />
     </div>
   );
 }

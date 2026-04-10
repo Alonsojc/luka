@@ -1,4 +1,4 @@
-const CACHE_NAME = "luka-system-v1";
+const CACHE_NAME = "luka-system-v2";
 const STATIC_ASSETS = [
   "/dashboard",
   "/login",
@@ -43,5 +43,57 @@ self.addEventListener("fetch", (event) => {
         return response;
       })
       .catch(() => caches.match(event.request))
+  );
+});
+
+// Push notification handler
+self.addEventListener("push", (event) => {
+  let data = { title: "Luka System", body: "Nueva notificacion", link: "/dashboard" };
+
+  if (event.data) {
+    try {
+      data = { ...data, ...event.data.json() };
+    } catch {
+      data.body = event.data.text();
+    }
+  }
+
+  const options = {
+    body: data.body,
+    icon: "/luka-logo.png",
+    badge: "/luka-logo.png",
+    tag: "luka-" + Date.now(),
+    renotify: true,
+    data: { link: data.link || "/dashboard" },
+    actions: [
+      { action: "open", title: "Abrir" },
+      { action: "dismiss", title: "Cerrar" },
+    ],
+  };
+
+  event.waitUntil(self.registration.showNotification(data.title, options));
+});
+
+// Notification click handler
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+
+  if (event.action === "dismiss") return;
+
+  const link = event.notification.data?.link || "/dashboard";
+
+  event.waitUntil(
+    clients.matchAll({ type: "window", includeUncontrolled: true }).then((windowClients) => {
+      // Focus existing window if available
+      for (const client of windowClients) {
+        if (client.url.includes(self.location.origin) && "focus" in client) {
+          client.focus();
+          client.navigate(link);
+          return;
+        }
+      }
+      // Open new window
+      return clients.openWindow(link);
+    })
   );
 });

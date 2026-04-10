@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Param,
+  Query,
   UseGuards,
 } from "@nestjs/common";
 import { ApiTags, ApiBearerAuth } from "@nestjs/swagger";
@@ -26,39 +27,74 @@ export class RoleDashboardController {
   getStoreDashboard(
     @CurrentUser() user: JwtPayload,
     @Param("branchId") branchId: string,
+    @Query("startDate") startDate?: string,
+    @Query("endDate") endDate?: string,
   ) {
+    const dateRange = startDate && endDate
+      ? { start: new Date(startDate), end: new Date(endDate) }
+      : undefined;
     return this.roleDashboardService.getStoreDashboard(
       user.organizationId,
       branchId,
       user.sub,
+      dateRange,
     );
   }
 
   @Get("cedis")
   @Permissions("reportes:view")
-  getCedisDashboard(@CurrentUser() user: JwtPayload) {
-    return this.roleDashboardService.getCedisDashboard(user.organizationId);
+  getCedisDashboard(
+    @CurrentUser() user: JwtPayload,
+    @Query("startDate") startDate?: string,
+    @Query("endDate") endDate?: string,
+  ) {
+    const dateRange = startDate && endDate
+      ? { start: new Date(startDate), end: new Date(endDate) }
+      : undefined;
+    return this.roleDashboardService.getCedisDashboard(user.organizationId, dateRange);
   }
 
   @Get("investor")
   @Permissions("reportes:view")
-  getInvestorDashboard(@CurrentUser() user: JwtPayload) {
-    return this.roleDashboardService.getInvestorDashboard(user.organizationId);
+  getInvestorDashboard(
+    @CurrentUser() user: JwtPayload,
+    @Query("startDate") startDate?: string,
+    @Query("endDate") endDate?: string,
+  ) {
+    const dateRange = startDate && endDate
+      ? { start: new Date(startDate), end: new Date(endDate) }
+      : undefined;
+    return this.roleDashboardService.getInvestorDashboard(user.organizationId, dateRange);
   }
 
   @Get("accountant")
   @Permissions("reportes:view")
-  getAccountantDashboard(@CurrentUser() user: JwtPayload) {
-    return this.roleDashboardService.getAccountantDashboard(user.organizationId);
+  getAccountantDashboard(
+    @CurrentUser() user: JwtPayload,
+    @Query("startDate") startDate?: string,
+    @Query("endDate") endDate?: string,
+  ) {
+    const dateRange = startDate && endDate
+      ? { start: new Date(startDate), end: new Date(endDate) }
+      : undefined;
+    return this.roleDashboardService.getAccountantDashboard(user.organizationId, dateRange);
   }
 
   @Get("my")
   @Permissions("reportes:view")
-  getMyDashboard(@CurrentUser() user: JwtPayload) {
+  getMyDashboard(
+    @CurrentUser() user: JwtPayload,
+    @Query("startDate") startDate?: string,
+    @Query("endDate") endDate?: string,
+  ) {
+    const dateRange = startDate && endDate
+      ? { start: new Date(startDate), end: new Date(endDate) }
+      : undefined;
     return this.roleDashboardService.getMyDashboard(
       user.organizationId,
       user.sub,
       user.roles,
+      dateRange,
     );
   }
 }

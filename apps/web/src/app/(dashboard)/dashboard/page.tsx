@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { hasRole } from "@/lib/auth";
+import { DateRangePicker, type DateRange } from "@/components/dashboard/date-range-picker";
 import {
   Building2,
   Package,
@@ -26,6 +27,7 @@ import {
   Warehouse,
   PieChart as PieChartIcon,
   Users,
+  ArrowLeft,
 } from "lucide-react";
 import {
   BarChart,
@@ -38,6 +40,11 @@ import {
   LineChart,
   Line,
   Legend,
+  PieChart,
+  Pie,
+  Cell,
+  AreaChart,
+  Area,
 } from "recharts";
 
 // =============================================================================
@@ -250,29 +257,29 @@ function StoreDashboard({
       )}
 
       {/* KPI Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <KpiCard
           title="Stock Total"
           value={fmtNum(data.stock?.totalProducts || 0)}
-          subtitle="productos en inventario"
+          subtitle="en inventario"
           icon={Package}
         />
         <KpiCard
           title="Bajo Minimo"
           value={data.stock?.lowStockCount || 0}
-          subtitle="productos por debajo"
+          subtitle="por debajo"
           icon={AlertTriangle}
         />
         <KpiCard
           title="Ventas Hoy"
           value={fmt(data.salesToday?.total || 0)}
-          subtitle={`${data.salesToday?.count || 0} transacciones`}
+          subtitle={`${data.salesToday?.count || 0} txns`}
           icon={DollarSign}
         />
         <KpiCard
-          title="Requisiciones Pendientes"
+          title="Requisiciones"
           value={data.pendingRequisitions || 0}
-          subtitle="por atender"
+          subtitle="pendientes"
           icon={ClipboardList}
         />
       </div>
@@ -377,23 +384,25 @@ function StoreDashboard({
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <SectionCard title="Ventas Ultimos 7 Dias">
           {data.salesByDay?.some((d: any) => d.total > 0) ? (
-            <div className="h-64">
+            <div className="h-52 sm:h-64">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
                   data={data.salesByDay}
-                  margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
+                  margin={{ top: 5, right: 10, left: 0, bottom: 5 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                  <XAxis dataKey="date" tick={{ fontSize: 11, fill: "#888" }} />
+                  <XAxis dataKey="date" tick={{ fontSize: 10, fill: "#888" }} />
                   <YAxis
-                    tick={{ fontSize: 11, fill: "#888" }}
+                    tick={{ fontSize: 10, fill: "#888" }}
                     tickFormatter={(v: number) => fmtCompact(v)}
+                    width={45}
                   />
                   <Tooltip
                     formatter={(value: number) => [fmt(value), "Ventas"]}
                     contentStyle={{
                       borderRadius: 8,
                       border: "1px solid #e5e5e5",
+                      fontSize: 12,
                     }}
                   />
                   <Bar
@@ -492,33 +501,33 @@ function CedisDashboard({
   return (
     <div className="mt-6 space-y-6">
       {/* KPI Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <KpiCard
-          title="Requisiciones Pendientes"
+          title="Requisiciones"
           value={data.requisitions?.total || 0}
           subtitle={
             data.requisitions?.URGENT
               ? `${data.requisitions.URGENT} urgentes`
-              : undefined
+              : "pendientes"
           }
           icon={ClipboardList}
         />
         <KpiCard
-          title="Transferencias Activas"
+          title="Transferencias"
           value={data.activeTransfers || 0}
           subtitle="en transito"
           icon={Truck}
         />
         <KpiCard
-          title="Alertas Reabastecimiento"
+          title="Reabastecimiento"
           value={data.reorderAlerts || 0}
-          subtitle="productos bajo minimo"
+          subtitle="bajo minimo"
           icon={AlertTriangle}
         />
         <KpiCard
           title="Despachos Hoy"
           value={data.todaysDispatches || 0}
-          subtitle="transferencias enviadas"
+          subtitle="enviadas"
           icon={ShoppingCart}
         />
       </div>
@@ -677,12 +686,16 @@ function CedisDashboard({
 // INVESTOR DASHBOARD
 // =============================================================================
 
+const CHART_COLORS = ["#000000", "#374151", "#6b7280", "#9ca3af", "#d1d5db", "#e5e7eb"];
+
 function InvestorDashboard({
   data,
   loading,
+  onDrillDown,
 }: {
   data: any;
   loading: boolean;
+  onDrillDown?: (branchId: string) => void;
 }) {
   if (loading) {
     return (
@@ -694,19 +707,29 @@ function InvestorDashboard({
 
   if (!data) return <EmptyState message="No se pudo cargar el dashboard" />;
 
+  // Prepare pie data for expense breakdown
+  const pieData = [
+    { name: "Food Cost", value: data.expenses || 0 },
+    { name: "Nomina", value: data.payrollCost || 0 },
+    {
+      name: "Utilidad",
+      value: Math.max(0, (data.revenue?.thisMonth || 0) - (data.expenses || 0) - (data.payrollCost || 0)),
+    },
+  ].filter((d) => d.value > 0);
+
   return (
     <div className="mt-6 space-y-6">
       {/* KPI Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <KpiCard
-          title="Ingresos del Mes"
+          title="Ingresos"
           value={fmtCompact(data.revenue?.thisMonth || 0)}
           trend={data.revenue?.change}
-          trendLabel="vs mes anterior"
+          trendLabel="vs anterior"
           icon={TrendingUp}
         />
         <KpiCard
-          title="Gastos del Mes"
+          title="Gastos"
           value={fmtCompact(data.expenses || 0)}
           subtitle="compras y costos"
           icon={TrendingDown}
@@ -718,31 +741,43 @@ function InvestorDashboard({
           icon={PieChartIcon}
         />
         <KpiCard
-          title="Posicion de Caja"
+          title="Caja"
           value={fmtCompact(data.cashPosition || 0)}
           subtitle="saldo en bancos"
           icon={Landmark}
         />
       </div>
 
-      {/* Row 2: Revenue trend + Revenue by branch */}
+      {/* Row 2: Revenue trend (Area) + Revenue by branch (clickable) */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <SectionCard title="Tendencia de Ingresos (12 Meses)">
           {data.monthlyTrend?.some((m: any) => m.revenue > 0) ? (
-            <div className="h-72">
+            <div className="h-64 sm:h-72">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart
+                <AreaChart
                   data={data.monthlyTrend}
-                  margin={{ top: 5, right: 20, left: 10, bottom: 5 }}
+                  margin={{ top: 5, right: 10, left: 0, bottom: 5 }}
                 >
+                  <defs>
+                    <linearGradient id="revGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#000000" stopOpacity={0.15} />
+                      <stop offset="95%" stopColor="#000000" stopOpacity={0} />
+                    </linearGradient>
+                    <linearGradient id="expGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#9ca3af" stopOpacity={0.15} />
+                      <stop offset="95%" stopColor="#9ca3af" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                   <XAxis
                     dataKey="month"
-                    tick={{ fontSize: 11, fill: "#888" }}
+                    tick={{ fontSize: 10, fill: "#888" }}
+                    interval="preserveStartEnd"
                   />
                   <YAxis
-                    tick={{ fontSize: 11, fill: "#888" }}
+                    tick={{ fontSize: 10, fill: "#888" }}
                     tickFormatter={(v: number) => fmtCompact(v)}
+                    width={50}
                   />
                   <Tooltip
                     formatter={(value: number, name: string) => [
@@ -752,31 +787,34 @@ function InvestorDashboard({
                     contentStyle={{
                       borderRadius: 8,
                       border: "1px solid #e5e5e5",
+                      fontSize: 12,
                     }}
                   />
                   <Legend
                     formatter={(value: string) =>
                       value === "revenue" ? "Ingresos" : "Gastos"
                     }
-                    wrapperStyle={{ paddingTop: 10 }}
+                    wrapperStyle={{ paddingTop: 10, fontSize: 12 }}
                   />
-                  <Line
+                  <Area
                     type="monotone"
                     dataKey="revenue"
                     stroke="#000000"
                     strokeWidth={2}
+                    fill="url(#revGrad)"
                     dot={{ r: 3, fill: "#000000" }}
-                    activeDot={{ r: 5 }}
+                    activeDot={{ r: 6, strokeWidth: 2 }}
                   />
-                  <Line
+                  <Area
                     type="monotone"
                     dataKey="expenses"
                     stroke="#9ca3af"
                     strokeWidth={2}
+                    fill="url(#expGrad)"
                     dot={{ r: 3, fill: "#9ca3af" }}
-                    activeDot={{ r: 5 }}
+                    activeDot={{ r: 6, strokeWidth: 2 }}
                   />
-                </LineChart>
+                </AreaChart>
               </ResponsiveContainer>
             </div>
           ) : (
@@ -786,83 +824,126 @@ function InvestorDashboard({
 
         <SectionCard title="Ingresos por Sucursal">
           {data.topBranches?.length > 0 ? (
-            <div className="h-72">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={data.topBranches.map((b: any) => ({
-                    name: b.name.replace("Luka ", ""),
-                    revenue: b.revenue,
-                  }))}
-                  layout="vertical"
-                  margin={{ top: 5, right: 30, left: 80, bottom: 5 }}
-                >
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    stroke="#f0f0f0"
-                  />
-                  <XAxis
-                    type="number"
-                    tick={{ fontSize: 11, fill: "#888" }}
-                    tickFormatter={(v: number) => fmtCompact(v)}
-                  />
-                  <YAxis
-                    type="category"
-                    dataKey="name"
-                    tick={{ fontSize: 11, fill: "#888" }}
-                    width={75}
-                  />
-                  <Tooltip
-                    formatter={(value: number) => [fmt(value), "Ingresos"]}
-                    contentStyle={{
-                      borderRadius: 8,
-                      border: "1px solid #e5e5e5",
-                    }}
-                  />
-                  <Bar
-                    dataKey="revenue"
-                    fill="#000000"
-                    radius={[0, 4, 4, 0]}
-                    barSize={18}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
+            <>
+              <div className="h-56 sm:h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={data.topBranches.map((b: any) => ({
+                      name: b.name.replace("Luka ", ""),
+                      revenue: b.revenue,
+                      id: b.id,
+                    }))}
+                    layout="vertical"
+                    margin={{ top: 5, right: 20, left: 60, bottom: 5 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <XAxis
+                      type="number"
+                      tick={{ fontSize: 10, fill: "#888" }}
+                      tickFormatter={(v: number) => fmtCompact(v)}
+                    />
+                    <YAxis
+                      type="category"
+                      dataKey="name"
+                      tick={{ fontSize: 10, fill: "#888" }}
+                      width={55}
+                    />
+                    <Tooltip
+                      formatter={(value: number) => [fmt(value), "Ingresos"]}
+                      contentStyle={{
+                        borderRadius: 8,
+                        border: "1px solid #e5e5e5",
+                        fontSize: 12,
+                      }}
+                    />
+                    <Bar
+                      dataKey="revenue"
+                      fill="#000000"
+                      radius={[0, 4, 4, 0]}
+                      barSize={18}
+                      cursor="pointer"
+                      onClick={(entry: any) => {
+                        if (onDrillDown && entry?.id) onDrillDown(entry.id);
+                      }}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+              {onDrillDown && (
+                <p className="text-[10px] text-gray-400 text-center mt-2">
+                  Haz clic en una sucursal para ver detalle
+                </p>
+              )}
+            </>
           ) : (
             <EmptyState message="Sin datos de sucursales" />
           )}
         </SectionCard>
       </div>
 
-      {/* Row 3: P&L summary cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm text-center">
+      {/* Row 3: P&L Pie + Summary cards */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <SectionCard title="Distribucion de Costos">
+          {pieData.length > 0 ? (
+            <div className="h-48 sm:h-56">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={pieData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={40}
+                    outerRadius={70}
+                    paddingAngle={3}
+                    dataKey="value"
+                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  >
+                    {pieData.map((_, i) => (
+                      <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    formatter={(value: number) => fmt(value)}
+                    contentStyle={{ borderRadius: 8, border: "1px solid #e5e5e5", fontSize: 12 }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <EmptyState message="Sin datos" />
+          )}
+        </SectionCard>
+
+        <div className="rounded-xl border border-gray-200 bg-white p-4 sm:p-5 shadow-sm flex flex-col justify-center">
           <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
             Food Cost
           </p>
-          <p className="mt-3 text-3xl font-bold text-gray-900">
+          <p className="mt-2 text-2xl sm:text-3xl font-bold text-gray-900">
             {data.foodCostPct || 0}%
           </p>
           <p className="mt-1 text-xs text-gray-400">costo de insumos / ingresos</p>
+          <div className="mt-3 h-2 rounded-full bg-gray-100 overflow-hidden">
+            <div
+              className="h-full rounded-full bg-black transition-all"
+              style={{ width: `${Math.min(100, data.foodCostPct || 0)}%` }}
+            />
+          </div>
         </div>
-        <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm text-center">
-          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-            Costo Nomina
-          </p>
-          <p className="mt-3 text-3xl font-bold text-gray-900">
-            {fmt(data.payrollCost || 0)}
-          </p>
-          <p className="mt-1 text-xs text-gray-400">este periodo</p>
-        </div>
-        <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm text-center">
+
+        <div className="rounded-xl border border-gray-200 bg-white p-4 sm:p-5 shadow-sm flex flex-col justify-center">
           <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">
             Utilidad Bruta
           </p>
-          <p className="mt-3 text-3xl font-bold text-gray-900">
-            {fmtCompact(
-              (data.revenue?.thisMonth || 0) - (data.expenses || 0),
-            )}
+          <p className="mt-2 text-2xl sm:text-3xl font-bold text-gray-900">
+            {fmtCompact((data.revenue?.thisMonth || 0) - (data.expenses || 0))}
           </p>
           <p className="mt-1 text-xs text-gray-400">ingresos - gastos</p>
+          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mt-4">
+            Costo Nomina
+          </p>
+          <p className="mt-1 text-lg font-bold text-gray-900">
+            {fmt(data.payrollCost || 0)}
+          </p>
         </div>
       </div>
 
@@ -906,17 +987,17 @@ function AccountantDashboard({
   return (
     <div className="mt-6 space-y-6">
       {/* KPI Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <KpiCard
-          title="Polizas Pendientes"
+          title="Polizas"
           value={data.pendingPolizas || 0}
-          subtitle="por contabilizar"
+          subtitle="pendientes"
           icon={FileText}
         />
         <KpiCard
           title="Sin Conciliar"
           value={data.unreconciledTxns || 0}
-          subtitle="transacciones bancarias"
+          subtitle="txns bancarias"
           icon={Receipt}
         />
         <KpiCard
@@ -1036,6 +1117,17 @@ function AccountantDashboard({
 // MAIN DASHBOARD PAGE
 // =============================================================================
 
+// Default date range: this month
+function getDefaultDateRange(): DateRange {
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth(), 1);
+  return {
+    startDate: start.toISOString().split("T")[0],
+    endDate: now.toISOString().split("T")[0],
+    label: "Este mes",
+  };
+}
+
 export default function DashboardPage() {
   const { user, authFetch, loading: authLoading } = useAuth();
 
@@ -1043,6 +1135,10 @@ export default function DashboardPage() {
   const [showSwitcher, setShowSwitcher] = useState(false);
   const [dashboardData, setDashboardData] = useState<any>(null);
   const [dashboardLoading, setDashboardLoading] = useState(true);
+  const [dateRange, setDateRange] = useState<DateRange>(getDefaultDateRange);
+
+  // Drill-down state: when user clicks a branch in investor view
+  const [drillDownBranch, setDrillDownBranch] = useState<string | null>(null);
 
   // Branch selector state (for store view)
   const [branches, setBranches] = useState<Array<{ id: string; name: string }>>([]);
@@ -1063,7 +1159,6 @@ export default function DashboardPage() {
       .then((data) => {
         setBranches(data || []);
         if (data?.length > 0 && !selectedBranch) {
-          // Try to use the user's assigned branch first
           const assignedBranch = user.roles.find((r) => r.branchId)?.branchId;
           if (assignedBranch && data.some((b) => b.id === assignedBranch)) {
             setSelectedBranch(assignedBranch);
@@ -1075,9 +1170,9 @@ export default function DashboardPage() {
       .catch(() => {});
   }, [authLoading, user, authFetch]);
 
-  // Fetch dashboard data
+  // Fetch dashboard data with date range
   const fetchDashboard = useCallback(
-    async (view: DashboardView, branchId?: string) => {
+    async (view: DashboardView, branchId?: string, range?: DateRange) => {
       setDashboardLoading(true);
       try {
         let endpoint = "";
@@ -1096,6 +1191,10 @@ export default function DashboardPage() {
             endpoint = "/reportes/dashboard/accountant";
             break;
         }
+        // Append date range query params
+        if (range) {
+          endpoint += `?startDate=${range.startDate}&endDate=${range.endDate}`;
+        }
         const data = await authFetch<any>("get", endpoint);
         setDashboardData(data);
       } catch {
@@ -1107,12 +1206,26 @@ export default function DashboardPage() {
     [authFetch],
   );
 
-  // Refetch when view changes
+  // Refetch when view, branch, or date range changes
   useEffect(() => {
     if (authLoading || !user) return;
-    if (currentView === "store" && !selectedBranch) return;
-    fetchDashboard(currentView, selectedBranch);
-  }, [currentView, selectedBranch, authLoading, user, fetchDashboard]);
+    const effectiveView = drillDownBranch ? "store" : currentView;
+    const effectiveBranch = drillDownBranch || selectedBranch;
+    if (effectiveView === "store" && !effectiveBranch) return;
+    fetchDashboard(effectiveView, effectiveBranch, dateRange);
+  }, [currentView, selectedBranch, drillDownBranch, dateRange, authLoading, user, fetchDashboard]);
+
+  // Handle drill-down from investor branch chart
+  const handleDrillDown = useCallback(
+    (branchId: string) => {
+      setDrillDownBranch(branchId);
+    },
+    [],
+  );
+
+  const handleBackFromDrillDown = useCallback(() => {
+    setDrillDownBranch(null);
+  }, []);
 
   if (authLoading) return null;
 
@@ -1123,27 +1236,58 @@ export default function DashboardPage() {
     accountant: "Vista contable - Polizas, conciliacion y obligaciones fiscales",
   };
 
+  const drillDownBranchName = drillDownBranch
+    ? branches.find((b) => b.id === drillDownBranch)?.name
+    : null;
+
   return (
     <div>
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            Bienvenido{user ? `, ${user.firstName}` : ""}
-          </h1>
-          <p className="mt-1 text-sm text-gray-500">
-            {viewSubtitles[currentView]}
-          </p>
+      <div className="flex flex-col gap-3 sm:gap-4">
+        {/* Row 1: Welcome + Date picker */}
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            {drillDownBranch ? (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleBackFromDrillDown}
+                  className="flex items-center gap-1 rounded-lg px-2 py-1 text-sm font-medium text-gray-600 hover:bg-gray-100 transition-colors"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  Volver
+                </button>
+                <div>
+                  <h1 className="text-xl sm:text-2xl font-bold text-gray-900 truncate">
+                    {drillDownBranchName || "Sucursal"}
+                  </h1>
+                  <p className="text-xs sm:text-sm text-gray-500">
+                    Detalle de sucursal - Drill-down desde vista inversionista
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <>
+                <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
+                  Bienvenido{user ? `, ${user.firstName}` : ""}
+                </h1>
+                <p className="mt-0.5 text-xs sm:text-sm text-gray-500">
+                  {viewSubtitles[currentView]}
+                </p>
+              </>
+            )}
+          </div>
+
+          <DateRangePicker value={dateRange} onChange={setDateRange} />
         </div>
 
-        {/* View switcher (only for owner/admin) */}
-        {showSwitcher && (
-          <div className="flex rounded-lg border border-gray-200 bg-white shadow-sm overflow-x-auto flex-nowrap">
+        {/* Row 2: View switcher */}
+        {showSwitcher && !drillDownBranch && (
+          <div className="flex rounded-lg border border-gray-200 bg-white shadow-sm overflow-x-auto flex-nowrap -mx-1 sm:mx-0">
             {(Object.keys(VIEW_LABELS) as DashboardView[]).map((view) => (
               <button
                 key={view}
                 onClick={() => setCurrentView(view)}
-                className={`px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${
+                className={`flex-1 sm:flex-none px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium transition-colors whitespace-nowrap min-w-0 ${
                   currentView === view
                     ? "bg-black text-white"
                     : "text-gray-600 hover:bg-gray-50"
@@ -1157,23 +1301,39 @@ export default function DashboardPage() {
       </div>
 
       {/* Dashboard content */}
-      {currentView === "store" && (
+      {drillDownBranch ? (
         <StoreDashboard
           data={dashboardData}
           loading={dashboardLoading}
           branches={branches}
-          selectedBranch={selectedBranch}
-          onBranchChange={setSelectedBranch}
+          selectedBranch={drillDownBranch}
+          onBranchChange={(id) => setDrillDownBranch(id)}
         />
-      )}
-      {currentView === "cedis" && (
-        <CedisDashboard data={dashboardData} loading={dashboardLoading} />
-      )}
-      {currentView === "investor" && (
-        <InvestorDashboard data={dashboardData} loading={dashboardLoading} />
-      )}
-      {currentView === "accountant" && (
-        <AccountantDashboard data={dashboardData} loading={dashboardLoading} />
+      ) : (
+        <>
+          {currentView === "store" && (
+            <StoreDashboard
+              data={dashboardData}
+              loading={dashboardLoading}
+              branches={branches}
+              selectedBranch={selectedBranch}
+              onBranchChange={setSelectedBranch}
+            />
+          )}
+          {currentView === "cedis" && (
+            <CedisDashboard data={dashboardData} loading={dashboardLoading} />
+          )}
+          {currentView === "investor" && (
+            <InvestorDashboard
+              data={dashboardData}
+              loading={dashboardLoading}
+              onDrillDown={handleDrillDown}
+            />
+          )}
+          {currentView === "accountant" && (
+            <AccountantDashboard data={dashboardData} loading={dashboardLoading} />
+          )}
+        </>
       )}
     </div>
   );
