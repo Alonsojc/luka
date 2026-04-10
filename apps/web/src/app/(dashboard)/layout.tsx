@@ -23,6 +23,7 @@ import {
   Settings,
   LogOut,
   ChevronDown,
+  ChevronRight,
   LayoutDashboard,
   Menu,
   X,
@@ -150,6 +151,7 @@ export default function DashboardLayout({
   const [selectedBranch, setSelectedBranch] = useState("all");
   const [branchOpen, setBranchOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -230,6 +232,24 @@ export default function DashboardLayout({
       items: section.items.filter((item) => canAccessRoute(user, item.href)),
     })).filter((section) => section.items.length > 0);
   }, [user]);
+
+  const toggleSection = useCallback((label: string) => {
+    setExpandedSections((prev) => ({ ...prev, [label]: !prev[label] }));
+  }, []);
+
+  // Auto-expand the section that contains the current route
+  useEffect(() => {
+    if (!pathname) return;
+    for (const section of NAV_SECTIONS) {
+      const hasActive = section.items.some((item) => pathname.startsWith(item.href));
+      if (hasActive) {
+        setExpandedSections((prev) => {
+          if (!prev[section.label]) return { ...prev, [section.label]: true };
+          return prev;
+        });
+      }
+    }
+  }, [pathname]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -339,32 +359,56 @@ export default function DashboardLayout({
             Dashboard
           </a>
 
-          {visibleSections.map((section) => (
-            <div key={section.label} className="mb-4">
-              <p className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-[0.2em] text-white/30">
-                {section.label}
-              </p>
-              {section.items.map((item) => {
-                const Icon = item.icon;
-                const isActive = pathname.startsWith(item.href);
-                return (
-                  <a
-                    key={item.href}
-                    href={item.href}
-                    onClick={() => setSidebarOpen(false)}
-                    className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                      isActive
-                        ? "bg-white/15 text-white"
-                        : "text-white/60 hover:bg-white/10 hover:text-white"
+          {visibleSections.map((section) => {
+            const isCollapsed = !expandedSections[section.label];
+            const hasActiveItem = section.items.some((item) => pathname.startsWith(item.href));
+            return (
+              <div key={section.label} className="mb-2">
+                <button
+                  onClick={() => toggleSection(section.label)}
+                  className="flex w-full items-center justify-between rounded-md px-3 py-1.5 group transition-colors hover:bg-white/5"
+                >
+                  <span className={`text-[10px] font-semibold uppercase tracking-[0.2em] ${
+                    hasActiveItem ? "text-white/50" : "text-white/30"
+                  } group-hover:text-white/50 transition-colors`}>
+                    {section.label}
+                  </span>
+                  <ChevronDown
+                    className={`h-3 w-3 text-white/30 group-hover:text-white/50 transition-transform duration-200 ${
+                      isCollapsed ? "-rotate-90" : ""
                     }`}
-                  >
-                    <Icon className="h-5 w-5" />
-                    {item.name}
-                  </a>
-                );
-              })}
-            </div>
-          ))}
+                  />
+                </button>
+                <div
+                  className={`overflow-hidden transition-all duration-200 ease-in-out ${
+                    isCollapsed ? "max-h-0 opacity-0" : "max-h-[600px] opacity-100"
+                  }`}
+                >
+                  <div className="mt-0.5">
+                    {section.items.map((item) => {
+                      const Icon = item.icon;
+                      const isActive = pathname.startsWith(item.href);
+                      return (
+                        <a
+                          key={item.href}
+                          href={item.href}
+                          onClick={() => setSidebarOpen(false)}
+                          className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                            isActive
+                              ? "bg-white/15 text-white"
+                              : "text-white/60 hover:bg-white/10 hover:text-white"
+                          }`}
+                        >
+                          <Icon className="h-5 w-5" />
+                          {item.name}
+                        </a>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </nav>
 
         <div className="border-t border-white/10 p-4">
