@@ -9,6 +9,8 @@ import { DiotController } from "./diot.controller";
 import { DiotService } from "./diot.service";
 import { DeclarationsController } from "./declarations.controller";
 import { DeclarationsService } from "./declarations.service";
+import { SatXmlController } from "./sat-xml.controller";
+import { SatXmlService } from "./sat-xml.service";
 
 @Module({
   controllers: [
@@ -17,6 +19,7 @@ import { DeclarationsService } from "./declarations.service";
     AutoPolizasController,
     DiotController,
     DeclarationsController,
+    SatXmlController,
   ],
   providers: [
     AccountCatalogService,
@@ -24,6 +27,7 @@ import { DeclarationsService } from "./declarations.service";
     AutoPolizasService,
     DiotService,
     DeclarationsService,
+    SatXmlService,
   ],
   exports: [
     AccountCatalogService,
@@ -31,6 +35,7 @@ import { DeclarationsService } from "./declarations.service";
     AutoPolizasService,
     DiotService,
     DeclarationsService,
+    SatXmlService,
   ],
 })
 export class ContabilidadModule {}

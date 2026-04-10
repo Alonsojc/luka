@@ -1,0 +1,102 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: luka
+          POSTGRES_PASSWORD: luka_test
+          POSTGRES_DB: luka_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm --filter @luka/database prisma generate
+
+      - name: Run migrations
+        run: pnpm --filter @luka/database prisma migrate deploy
+        env:
+          DATABASE_URL: postgresql://luka:luka_test@localhost:5432/luka_test?schema=public
+
+      - name: Run API tests
+        run: pnpm --filter @luka/api test
+        env:
+          DATABASE_URL: postgresql://luka:luka_test@localhost:5432/luka_test?schema=public
+          JWT_SECRET: test-secret
+          JWT_REFRESH_SECRET: test-refresh-secret
+
+      - name: Type check frontend
+        run: pnpm --filter @luka/web exec tsc --noEmit
+
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm --filter @luka/database prisma generate
+
+      - name: Build API
+        run: pnpm --filter @luka/api build
+
+      - name: Build Web
+        run: pnpm --filter @luka/web build
+        env:
+          NEXT_PUBLIC_API_URL: /api
+
+  docker:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker images
+        run: |
+          docker compose -f docker-compose.prod.yml build api web

@@ -88,6 +88,27 @@ services:
       web:
         condition: service_started
 
+  backup:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${DB_USER:-luka}:${DB_PASSWORD}@postgres:5432/${DB_NAME:-luka_system}
+      BACKUP_DIR: /backups
+      BACKUP_CRON: "${BACKUP_CRON:-0 2 * * *}"
+    volumes:
+      - backups:/backups
+      - ./scripts/backup.sh:/usr/local/bin/backup.sh:ro
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        echo "$$BACKUP_CRON /usr/local/bin/backup.sh" > /etc/crontabs/root
+        echo "Backup service started. Schedule: $$BACKUP_CRON"
+        crond -f -l 2
+
 volumes:
   postgres_data:
   redis_data:
+  backups:

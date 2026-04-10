@@ -1,6 +1,11 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { Test, TestingModule } from "@nestjs/testing";
 import { HealthController } from "./health.controller";
+import { PrismaService } from "../../common/prisma/prisma.service";
+
+const mockPrisma = {
+  $queryRaw: async () => [{ "?column?": 1 }],
+};
 
 describe("HealthController", () => {
   let controller: HealthController;
@@ -8,6 +13,9 @@ describe("HealthController", () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [HealthController],
+      providers: [
+        { provide: PrismaService, useValue: mockPrisma },
+      ],
     }).compile();
 
     controller = module.get<HealthController>(HealthController);
@@ -17,17 +25,19 @@ describe("HealthController", () => {
     expect(controller).toBeDefined();
   });
 
-  it("should return ok status with timestamp", () => {
-    const result = controller.check();
+  it("should return ok status with timestamp", async () => {
+    const result = await controller.check();
 
     expect(result).toEqual({
       status: "ok",
       timestamp: expect.any(String),
+      uptime: expect.any(Number),
+      version: expect.any(String),
     });
   });
 
-  it("should return a valid ISO date string in timestamp", () => {
-    const result = controller.check();
+  it("should return a valid ISO date string in timestamp", async () => {
+    const result = await controller.check();
 
     const parsed = new Date(result.timestamp);
     expect(parsed.toISOString()).toBe(result.timestamp);

@@ -10,17 +10,24 @@ async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
   // Security headers
-  app.use(helmet());
+  app.use(
+    helmet({
+      contentSecurityPolicy: false, // Next.js handles CSP
+      crossOriginEmbedderPolicy: false, // Allow loading resources
+    })
+  );
 
   // Serve uploaded files statically
   app.useStaticAssets(join(__dirname, "..", "uploads"), { prefix: "/uploads/" });
 
   app.setGlobalPrefix("api");
+  const webUrl = process.env.WEB_URL || "http://localhost:3002";
   app.enableCors({
-    origin: process.env.WEB_URL || "http://localhost:3002",
-    methods: ["GET", "POST", "PATCH", "PUT", "DELETE"],
+    origin: [webUrl, "http://localhost:3002"],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
-    maxAge: 86400,
+    maxAge: 3600,
   });
 
   app.useGlobalPipes(
