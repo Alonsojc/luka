@@ -5,15 +5,18 @@ import { SwaggerModule, DocumentBuilder } from "@nestjs/swagger";
 import helmet from "helmet";
 import { join } from "path";
 import { AppModule } from "./app.module";
+import { validateEnvironment } from "./common/config/env.validation";
 
 async function bootstrap() {
+  validateEnvironment();
+
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
   // Security headers
   app.use(
     helmet({
-      contentSecurityPolicy: false, // Next.js handles CSP
-      crossOriginEmbedderPolicy: false, // Allow loading resources
+      contentSecurityPolicy: false, // Next.js handles CSP via meta tags
+      crossOriginEmbedderPolicy: false, // Allow loading resources cross-origin
     })
   );
 
@@ -21,9 +24,16 @@ async function bootstrap() {
   app.useStaticAssets(join(__dirname, "..", "uploads"), { prefix: "/uploads/" });
 
   app.setGlobalPrefix("api");
+
+  // CORS — environment-specific origins only
+  const isProduction = process.env.NODE_ENV === "production";
   const webUrl = process.env.WEB_URL || "http://localhost:3002";
+  const corsOrigins = isProduction
+    ? [webUrl]
+    : [webUrl, "http://localhost:3002"];
+
   app.enableCors({
-    origin: [webUrl, "http://localhost:3002"],
+    origin: corsOrigins,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,

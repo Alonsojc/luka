@@ -59,7 +59,7 @@ export class AuthService {
 
     const accessToken = this.jwtService.sign(payload as any);
     const refreshToken = this.jwtService.sign(payload as any, {
-      secret: process.env.JWT_REFRESH_SECRET || "dev-refresh-secret",
+      secret: process.env.JWT_REFRESH_SECRET,
       expiresIn: (process.env.JWT_REFRESH_EXPIRATION || "7d") as any,
     });
 
@@ -96,7 +96,7 @@ export class AuthService {
     let decoded: JwtPayload;
     try {
       decoded = this.jwtService.verify(refreshToken, {
-        secret: process.env.JWT_REFRESH_SECRET || "dev-refresh-secret",
+        secret: process.env.JWT_REFRESH_SECRET,
       });
     } catch {
       throw new UnauthorizedException("Token de refresco inválido");
