@@ -10,16 +10,40 @@ import { PurchaseOrderStatus } from "@luka/database";
 export class PurchaseOrdersService {
   constructor(private prisma: PrismaService) {}
 
-  async findAll(organizationId: string) {
-    return this.prisma.purchaseOrder.findMany({
-      where: { organizationId },
-      include: {
-        supplier: true,
-        branch: true,
-        items: { include: { product: true } },
-      },
-      orderBy: { createdAt: "desc" },
-    });
+  async findAll(
+    organizationId: string,
+    filters?: {
+      status?: string;
+      branchId?: string;
+      supplierId?: string;
+      page?: number;
+      limit?: number;
+    },
+  ) {
+    const page = filters?.page || 1;
+    const limit = Math.min(filters?.limit || 50, 200);
+    const where: any = { organizationId };
+
+    if (filters?.status) where.status = filters.status;
+    if (filters?.branchId) where.branchId = filters.branchId;
+    if (filters?.supplierId) where.supplierId = filters.supplierId;
+
+    const [data, total] = await Promise.all([
+      this.prisma.purchaseOrder.findMany({
+        where,
+        include: {
+          supplier: true,
+          branch: true,
+          items: { include: { product: true } },
+        },
+        orderBy: { createdAt: "desc" },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      this.prisma.purchaseOrder.count({ where }),
+    ]);
+
+    return { data, total, page, totalPages: Math.ceil(total / limit) };
   }
 
   async findOne(organizationId: string, id: string) {

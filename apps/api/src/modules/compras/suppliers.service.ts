@@ -5,9 +5,12 @@ import { PrismaService } from "../../common/prisma/prisma.service";
 export class SuppliersService {
   constructor(private prisma: PrismaService) {}
 
-  async findAll(organizationId: string) {
+  async findAll(organizationId: string, includeInactive = false) {
     return this.prisma.supplier.findMany({
-      where: { organizationId },
+      where: {
+        organizationId,
+        ...(!includeInactive && { isActive: true }),
+      },
       orderBy: { name: "asc" },
     });
   }

@@ -14,13 +14,44 @@ export class ProductsService {
     private auditService: AuditService,
   ) {}
 
-  async findAll(organizationId: string) {
+  async findAll(
+    organizationId: string,
+    filters?: {
+      search?: string;
+      categoryId?: string;
+      includeInactive?: boolean;
+      page?: number;
+      limit?: number;
+    },
+  ) {
+    // Use cache only for unfiltered requests (default listing)
+    const isUnfiltered = !filters?.search && !filters?.categoryId && !filters?.includeInactive && !filters?.page;
     const cacheKey = `products:${organizationId}`;
-    const cached = await this.cache.get<any[]>(cacheKey);
-    if (cached) return cached;
+
+    if (isUnfiltered) {
+      const cached = await this.cache.get<any[]>(cacheKey);
+      if (cached) return cached;
+    }
+
+    const page = filters?.page || 1;
+    const limit = Math.min(filters?.limit || 100, 500);
+    const where: any = {
+      organizationId,
+      ...(!filters?.includeInactive && { isActive: true }),
+    };
+
+    if (filters?.search) {
+      where.OR = [
+        { name: { contains: filters.search, mode: "insensitive" } },
+        { sku: { contains: filters.search, mode: "insensitive" } },
+      ];
+    }
+    if (filters?.categoryId) {
+      where.categoryId = filters.categoryId;
+    }
 
     const products = await this.prisma.product.findMany({
-      where: { organizationId },
+      where,
       include: {
         category: true,
         presentations: {
@@ -29,9 +60,14 @@ export class ProductsService {
         },
       },
       orderBy: { name: "asc" },
+      skip: (page - 1) * limit,
+      take: limit,
     });
 
-    await this.cache.set(cacheKey, products, PRODUCTS_TTL);
+    if (isUnfiltered) {
+      await this.cache.set(cacheKey, products, PRODUCTS_TTL);
+    }
+
     return products;
   }
 

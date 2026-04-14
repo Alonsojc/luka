@@ -5,12 +5,40 @@ import { PrismaService } from "../../common/prisma/prisma.service";
 export class BankTransactionsService {
   constructor(private prisma: PrismaService) {}
 
-  async findByAccount(bankAccountId: string) {
-    return this.prisma.bankTransaction.findMany({
-      where: { bankAccountId },
-      orderBy: { transactionDate: "desc" },
-      take: 200,
-    });
+  async findByAccount(
+    bankAccountId: string,
+    filters?: {
+      page?: number;
+      limit?: number;
+      startDate?: string;
+      endDate?: string;
+      isReconciled?: boolean;
+    },
+  ) {
+    const page = filters?.page || 1;
+    const limit = Math.min(filters?.limit || 50, 200);
+    const where: any = { bankAccountId };
+
+    if (filters?.startDate || filters?.endDate) {
+      where.transactionDate = {};
+      if (filters.startDate) where.transactionDate.gte = new Date(filters.startDate);
+      if (filters.endDate) where.transactionDate.lte = new Date(filters.endDate);
+    }
+    if (filters?.isReconciled !== undefined) {
+      where.isReconciled = filters.isReconciled;
+    }
+
+    const [data, total] = await Promise.all([
+      this.prisma.bankTransaction.findMany({
+        where,
+        orderBy: { transactionDate: "desc" },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      this.prisma.bankTransaction.count({ where }),
+    ]);
+
+    return { data, total, page, totalPages: Math.ceil(total / limit) };
   }
 
   async findOne(id: string) {

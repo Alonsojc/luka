@@ -5,12 +5,36 @@ import { PrismaService } from "../../common/prisma/prisma.service";
 export class AccountsReceivableService {
   constructor(private prisma: PrismaService) {}
 
-  async findAll(organizationId: string) {
-    return this.prisma.accountReceivable.findMany({
-      where: { organizationId },
-      include: { customer: true, branch: true },
-      orderBy: { dueDate: "asc" },
-    });
+  async findAll(
+    organizationId: string,
+    filters?: {
+      status?: string;
+      customerId?: string;
+      branchId?: string;
+      page?: number;
+      limit?: number;
+    },
+  ) {
+    const page = filters?.page || 1;
+    const limit = Math.min(filters?.limit || 50, 200);
+    const where: any = { organizationId };
+
+    if (filters?.status) where.status = filters.status;
+    if (filters?.customerId) where.customerId = filters.customerId;
+    if (filters?.branchId) where.branchId = filters.branchId;
+
+    const [data, total] = await Promise.all([
+      this.prisma.accountReceivable.findMany({
+        where,
+        include: { customer: true, branch: true },
+        orderBy: { dueDate: "asc" },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      this.prisma.accountReceivable.count({ where }),
+    ]);
+
+    return { data, total, page, totalPages: Math.ceil(total / limit) };
   }
 
   async findOne(organizationId: string, id: string) {

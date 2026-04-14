@@ -5,9 +5,12 @@ import { PrismaService } from "../../common/prisma/prisma.service";
 export class BankAccountsService {
   constructor(private prisma: PrismaService) {}
 
-  async findAll(organizationId: string) {
+  async findAll(organizationId: string, includeInactive = false) {
     return this.prisma.bankAccount.findMany({
-      where: { organizationId },
+      where: {
+        organizationId,
+        ...(!includeInactive && { isActive: true }),
+      },
       include: { branch: true },
       orderBy: { bankName: "asc" },
     });
