@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [main]
 
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ghcr.io/${{ github.repository_owner }}/luka
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -24,6 +28,16 @@ jobs:
           --health-retries 5
         ports:
           - 5432:5432
+
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
 
     steps:
       - uses: actions/checkout@v4
@@ -51,11 +65,16 @@ jobs:
         run: pnpm --filter @luka/api test
         env:
           DATABASE_URL: postgresql://luka:luka_test@localhost:5432/luka_test?schema=public
-          JWT_SECRET: test-secret
-          JWT_REFRESH_SECRET: test-refresh-secret
+          JWT_SECRET: test-secret-minimum-32-characters-long
+          JWT_REFRESH_SECRET: test-refresh-secret-minimum-32-chars
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
 
       - name: Type check frontend
         run: pnpm --filter @luka/web exec tsc --noEmit
+
+      - name: Security audit
+        run: pnpm audit --audit-level=high || true
 
   build:
     needs: test
@@ -91,12 +110,42 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      packages: write
 
     steps:
       - uses: actions/checkout@v4
 
       - uses: docker/setup-buildx-action@v3
 
-      - name: Build Docker images
-        run: |
-          docker compose -f docker-compose.prod.yml build api web
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push API image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: apps/api/Dockerfile
+          push: true
+          tags: |
+            ${{ env.IMAGE_PREFIX }}-api:latest
+            ${{ env.IMAGE_PREFIX }}-api:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and push Web image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: apps/web/Dockerfile
+          push: true
+          tags: |
+            ${{ env.IMAGE_PREFIX }}-web:latest
+            ${{ env.IMAGE_PREFIX }}-web:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
