@@ -31,6 +31,7 @@ import { WhatsAppModule } from "./modules/whatsapp/whatsapp.module";
 import { ConfiguracionModule } from "./modules/configuracion/configuracion.module";
 import { QueuesModule } from "./common/queues/queues.module";
 import { AuditInterceptor } from "./common/interceptors/audit-log.interceptor";
+import { TenantInterceptor } from "./common/interceptors/tenant.interceptor";
 import { CsrfGuard } from "./common/guards/csrf.guard";
 
 @Module({
@@ -74,6 +75,7 @@ import { CsrfGuard } from "./common/guards/csrf.guard";
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: CsrfGuard },
+    { provide: APP_INTERCEPTOR, useClass: TenantInterceptor },
     { provide: APP_INTERCEPTOR, useClass: AuditInterceptor },
   ],
 })
