@@ -11,6 +11,7 @@ import {
 import { ApiTags, ApiBearerAuth } from "@nestjs/swagger";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
+import { BranchAccessGuard } from "../../common/guards/branch-access.guard";
 import { Permissions } from "../../common/decorators/roles.decorator";
 import {
   CurrentUser,
@@ -22,7 +23,7 @@ import { UpdateLotDto } from "./dto/update-lot.dto";
 
 @ApiTags("Inventarios - Lotes")
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, BranchAccessGuard)
 @Controller("inventarios/lots")
 export class LotsController {
   constructor(private lotsService: LotsService) {}

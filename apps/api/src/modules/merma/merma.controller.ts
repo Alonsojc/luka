@@ -12,6 +12,7 @@ import {
 import { ApiTags, ApiBearerAuth } from "@nestjs/swagger";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
+import { BranchAccessGuard } from "../../common/guards/branch-access.guard";
 import { Permissions } from "../../common/decorators/roles.decorator";
 import {
   CurrentUser,
@@ -23,7 +24,7 @@ import { UpdateMermaDto } from "./dto/update-merma.dto";
 
 @ApiTags("Merma")
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, BranchAccessGuard)
 @Controller("merma")
 export class MermaController {
   constructor(private mermaService: MermaService) {}

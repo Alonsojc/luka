@@ -478,6 +478,7 @@ model SupplierPriceHistory {
   supplier Supplier @relation(fields: [supplierId], references: [id])
   product  Product  @relation(fields: [productId], references: [id])
 
+  @@index([supplierId, productId, effectiveDate])
   @@map("supplier_price_history")
 }
 
@@ -511,6 +512,8 @@ model PurchaseOrder {
   items           PurchaseOrderItem[]
   accountsPayable AccountPayable[]
 
+  @@index([organizationId, status])
+  @@index([branchId, status])
   @@map("purchase_orders")
 }
 
@@ -572,6 +575,7 @@ model BankTransaction {
   bankAccount BankAccount @relation(fields: [bankAccountId], references: [id])
 
   @@index([bankAccountId, transactionDate])
+  @@index([bankAccountId, isReconciled])
   @@map("bank_transactions")
 }
 
@@ -603,6 +607,9 @@ model AccountPayable {
   purchaseOrder PurchaseOrder? @relation(fields: [purchaseOrderId], references: [id])
   payments      Payment[]      @relation("PayablePayments")
 
+  @@index([organizationId, status])
+  @@index([supplierId, status])
+  @@index([dueDate])
   @@map("accounts_payable")
 }
 
@@ -633,6 +640,8 @@ model AccountReceivable {
   cfdi         CFDI?        @relation(fields: [cfdiId], references: [id])
   payments     Payment[]    @relation("ReceivablePayments")
 
+  @@index([organizationId, status])
+  @@index([dueDate])
   @@map("accounts_receivable")
 }
 

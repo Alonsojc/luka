@@ -57,11 +57,14 @@ export class AuthService {
       })),
     };
 
-    const accessToken = this.jwtService.sign(payload as any);
-    const refreshToken = this.jwtService.sign(payload as any, {
-      secret: process.env.JWT_REFRESH_SECRET,
-      expiresIn: (process.env.JWT_REFRESH_EXPIRATION || "7d") as any,
-    });
+    const accessToken = this.jwtService.sign(payload as Record<string, unknown>);
+    const refreshToken = this.jwtService.sign(
+      payload as Record<string, unknown>,
+      {
+        secret: process.env.JWT_REFRESH_SECRET,
+        expiresIn: (process.env.JWT_REFRESH_EXPIRATION || "7d") as string,
+      },
+    );
 
     // Store refresh token hash
     await this.prisma.user.update({
@@ -115,6 +118,11 @@ export class AuthService {
 
     const isValid = await bcrypt.compare(refreshToken, user.refreshToken);
     if (!isValid) {
+      // Possible token reuse attack — invalidate all sessions
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: { refreshToken: null },
+      });
       throw new UnauthorizedException("Token de refresco inválido");
     }
 
@@ -129,8 +137,24 @@ export class AuthService {
       })),
     };
 
+    const newAccessToken = this.jwtService.sign(payload as Record<string, unknown>);
+    const newRefreshToken = this.jwtService.sign(
+      payload as Record<string, unknown>,
+      {
+        secret: process.env.JWT_REFRESH_SECRET,
+        expiresIn: (process.env.JWT_REFRESH_EXPIRATION || "7d") as string,
+      },
+    );
+
+    // Store new refresh token hash — old token is now invalid
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { refreshToken: await bcrypt.hash(newRefreshToken, 10) },
+    });
+
     return {
-      accessToken: this.jwtService.sign(payload as any),
+      accessToken: newAccessToken,
+      refreshToken: newRefreshToken,
     };
   }
 

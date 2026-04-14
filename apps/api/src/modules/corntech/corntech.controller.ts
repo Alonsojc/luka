@@ -11,6 +11,7 @@ import {
 import { ApiTags, ApiBearerAuth } from "@nestjs/swagger";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
+import { BranchAccessGuard } from "../../common/guards/branch-access.guard";
 import { ApiKeyGuard } from "../../common/guards/api-key.guard";
 import { Permissions } from "../../common/decorators/roles.decorator";
 import {
@@ -74,7 +75,7 @@ export class CorntechController {
   /** Get sync log history */
   @Get("sync/logs")
   @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard, BranchAccessGuard)
   @Permissions("corntech:view")
   getPosSyncLogs(
     @CurrentUser() user: JwtPayload,
@@ -107,7 +108,7 @@ export class CorntechController {
   /** List recent POS sales */
   @Get("sales/list")
   @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard, BranchAccessGuard)
   @Permissions("corntech:view")
   getPosSales(
     @CurrentUser() user: JwtPayload,
@@ -129,7 +130,7 @@ export class CorntechController {
 
   @Get("sync-logs/:branchId")
   @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard, BranchAccessGuard)
   @Permissions("corntech:view")
   getSyncLogs(
     @Param("branchId") branchId: string,
@@ -166,7 +167,7 @@ export class CorntechController {
 
   @Get("sales/:branchId")
   @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard, BranchAccessGuard)
   @Permissions("corntech:view")
   getSales(
     @Param("branchId") branchId: string,
@@ -220,7 +221,7 @@ export class CorntechController {
 
   @Get("cash-closings/:branchId")
   @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard, BranchAccessGuard)
   @Permissions("corntech:view")
   getCashClosings(
     @Param("branchId") branchId: string,

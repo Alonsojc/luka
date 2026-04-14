@@ -8,6 +8,7 @@ import {
 import { ApiTags, ApiBearerAuth } from "@nestjs/swagger";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
+import { BranchAccessGuard } from "../../common/guards/branch-access.guard";
 import { Permissions } from "../../common/decorators/roles.decorator";
 import {
   CurrentUser,
@@ -17,7 +18,7 @@ import { ForecastService } from "./forecast.service";
 
 @ApiTags("Inventarios - Forecast")
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, BranchAccessGuard)
 @Controller("inventarios/forecast")
 export class ForecastController {
   constructor(private forecastService: ForecastService) {}
