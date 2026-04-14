@@ -1,14 +1,23 @@
 import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../../common/prisma/prisma.service";
+import { CacheService } from "../../common/cache/cache.service";
+
+const TRENDS_TTL = 300; // 5 minutes
 
 @Injectable()
 export class AnalyticsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private cache: CacheService,
+  ) {}
 
   // =========================================================================
   // GET /reportes/analytics/trends
   // =========================================================================
   async getTrends(organizationId: string) {
+    const cacheKey = `analytics:trends:${organizationId}`;
+    const cached = await this.cache.get<any>(cacheKey);
+    if (cached) return cached;
     const now = new Date();
     const months: string[] = [];
     const monthRanges: { start: Date; end: Date; label: string }[] = [];
@@ -120,7 +129,9 @@ export class AnalyticsService {
       employeeCount.push(activeEmployees || branchCount * 8);
     }
 
-    return { months, sales, expenses, profit, employeeCount };
+    const result = { months, sales, expenses, profit, employeeCount };
+    await this.cache.set(cacheKey, result, TRENDS_TTL);
+    return result;
   }
 
   // =========================================================================

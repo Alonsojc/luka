@@ -1,11 +1,15 @@
 import { Controller, Get } from "@nestjs/common";
 import { ApiTags } from "@nestjs/swagger";
 import { PrismaService } from "../../common/prisma/prisma.service";
+import { CacheService } from "../../common/cache/cache.service";
 
 @ApiTags("Health")
 @Controller("health")
 export class HealthController {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private cache: CacheService,
+  ) {}
 
   @Get()
   async check() {
@@ -28,6 +32,19 @@ export class HealthController {
       checks.database = { status: "ok", latency: Date.now() - dbStart };
     } catch (err: any) {
       checks.database = { status: "error", latency: Date.now() - dbStart, error: err.message };
+    }
+
+    // Redis check
+    const redisStart = Date.now();
+    try {
+      await this.cache.set("health:ping", "pong", 10);
+      const result = await this.cache.get<string>("health:ping");
+      checks.redis = {
+        status: result === "pong" ? "ok" : "degraded",
+        latency: Date.now() - redisStart,
+      };
+    } catch (err: any) {
+      checks.redis = { status: "error", latency: Date.now() - redisStart, error: err.message };
     }
 
     // Memory usage

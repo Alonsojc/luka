@@ -4,6 +4,7 @@ import {
   Post,
   Param,
   Body,
+  Query,
   UseGuards,
 } from "@nestjs/common";
 import { ApiTags, ApiBearerAuth } from "@nestjs/swagger";
@@ -25,8 +26,21 @@ export class AccountsPayableController {
 
   @Get()
   @Permissions("bancos:view")
-  findAll(@CurrentUser() user: JwtPayload) {
-    return this.accountsPayableService.findAll(user.organizationId);
+  findAll(
+    @CurrentUser() user: JwtPayload,
+    @Query("status") status?: string,
+    @Query("supplierId") supplierId?: string,
+    @Query("branchId") branchId?: string,
+    @Query("page") page?: string,
+    @Query("limit") limit?: string,
+  ) {
+    return this.accountsPayableService.findAll(user.organizationId, {
+      status,
+      supplierId,
+      branchId,
+      page: page ? parseInt(page, 10) : undefined,
+      limit: limit ? parseInt(limit, 10) : undefined,
+    });
   }
 
   @Get(":id")

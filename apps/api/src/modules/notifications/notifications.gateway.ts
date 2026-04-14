@@ -1,7 +1,3 @@
-// NOTE: This gateway requires the following packages to be installed:
-//   pnpm add @nestjs/websockets @nestjs/platform-socket.io socket.io
-// Run from the apps/api directory before using this gateway.
-
 import {
   WebSocketGateway,
   WebSocketServer,
@@ -10,13 +6,12 @@ import {
 } from "@nestjs/websockets";
 import { Server, Socket } from "socket.io";
 import { Logger } from "@nestjs/common";
+import { JwtService } from "@nestjs/jwt";
+import { JwtPayload } from "../../common/decorators/current-user.decorator";
 
 @WebSocketGateway({
   cors: {
-    origin: [
-      "http://localhost:3002",
-      process.env.FRONTEND_URL || "http://localhost:3002",
-    ],
+    origin: [process.env.WEB_URL || "http://localhost:3002"],
     credentials: true,
   },
   namespace: "/notifications",
@@ -29,26 +24,51 @@ export class NotificationsGateway
   @WebSocketServer()
   server: Server;
 
+  constructor(private jwtService: JwtService) {}
+
   /** Map of userId -> set of socket IDs for that user. */
   private userSockets = new Map<string, Set<string>>();
 
   /** Reverse map of socketId -> userId for fast disconnect cleanup. */
   private socketToUser = new Map<string, string>();
 
+  /** Reverse map of socketId -> organizationId for org-scoped broadcasts. */
+  private socketToOrg = new Map<string, string>();
+
   handleConnection(client: Socket) {
-    const userId = client.handshake.query.userId as string;
-    if (!userId) {
-      this.logger.warn(`Socket ${client.id} connected without userId — ignoring`);
+    const token =
+      (client.handshake.auth?.token as string) ||
+      (client.handshake.query?.token as string);
+
+    if (!token) {
+      this.logger.warn(`Socket ${client.id} connected without token — disconnecting`);
+      client.disconnect(true);
       return;
     }
+
+    let payload: JwtPayload;
+    try {
+      payload = this.jwtService.verify<JwtPayload>(token);
+    } catch {
+      this.logger.warn(`Socket ${client.id} provided invalid token — disconnecting`);
+      client.disconnect(true);
+      return;
+    }
+
+    const userId = payload.sub;
+    const orgId = payload.organizationId;
 
     if (!this.userSockets.has(userId)) {
       this.userSockets.set(userId, new Set());
     }
     this.userSockets.get(userId)!.add(client.id);
     this.socketToUser.set(client.id, userId);
+    this.socketToOrg.set(client.id, orgId);
 
-    this.logger.log(`User ${userId} connected (socket ${client.id})`);
+    // Join org room for org-wide broadcasts
+    client.join(`org:${orgId}`);
+
+    this.logger.log(`User ${userId} connected (socket ${client.id}, org ${orgId})`);
   }
 
   handleDisconnect(client: Socket) {
@@ -62,6 +82,7 @@ export class NotificationsGateway
         }
       }
       this.socketToUser.delete(client.id);
+      this.socketToOrg.delete(client.id);
       this.logger.log(`User ${userId} disconnected (socket ${client.id})`);
     }
   }
@@ -83,11 +104,10 @@ export class NotificationsGateway
   }
 
   /**
-   * Broadcast a notification to ALL connected clients.
-   * Useful for org-wide announcements.
+   * Broadcast a notification to all connected clients in a specific organization.
    */
-  sendToOrg(_orgId: string, notification: Record<string, unknown>) {
-    this.server.emit("notification", notification);
+  sendToOrg(orgId: string, notification: Record<string, unknown>) {
+    this.server.to(`org:${orgId}`).emit("notification", notification);
   }
 
   /** Get the number of currently connected unique users. */

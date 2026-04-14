@@ -7,7 +7,7 @@ const API_URL = 'http://localhost:3001/api';
 
 /**
  * Fills email/password on the login page, submits, and waits for
- * the dashboard to load. Used by auth tests that don't have storage state.
+ * the dashboard to load. Used by auth tests that exercise the UI flow.
  */
 export async function login(
   page: Page,
@@ -26,20 +26,19 @@ export async function login(
 }
 
 /**
- * Fast login via API — sets tokens in localStorage without using the UI.
- * Used by tests that need auth state but don't have global storage.
+ * Fast login via API — triggers the login endpoint from within the page
+ * so the browser receives httpOnly cookies directly. No UI interaction needed.
  */
 export async function loginViaApi(page: Page) {
   await page.goto('/login');
   await page.evaluate(async (apiUrl) => {
     const res = await fetch(`${apiUrl}/auth/login`, {
       method: 'POST',
+      credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: 'admin@lukapoke.com', password: 'Admin123!' }),
     });
     const data = await res.json();
-    localStorage.setItem('luka_access_token', data.accessToken);
-    localStorage.setItem('luka_refresh_token', data.refreshToken);
     localStorage.setItem('luka_user', JSON.stringify(data.user));
   }, API_URL);
 }

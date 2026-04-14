@@ -11,6 +11,7 @@ import {
 import { ApiTags, ApiBearerAuth } from "@nestjs/swagger";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
+import { BranchAccessGuard } from "../../common/guards/branch-access.guard";
 import { Permissions } from "../../common/decorators/roles.decorator";
 import {
   CurrentUser,
@@ -25,7 +26,7 @@ import {
 
 @ApiTags("Inventarios - Conteo Fisico")
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, BranchAccessGuard)
 @Controller("inventarios/physical-counts")
 export class PhysicalCountController {
   constructor(private physicalCountService: PhysicalCountService) {}

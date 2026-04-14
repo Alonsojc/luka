@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useCallback, useState } from "react";
 import { Bell, BellOff, BellRing, X } from "lucide-react";
-import { getToken } from "@/lib/auth";
+import { getUser } from "@/lib/auth";
 
 type PermissionState = "default" | "granted" | "denied" | "unsupported";
 
@@ -60,18 +60,12 @@ export function PushNotificationManager() {
 
   // Connect to WebSocket notification gateway
   const connectWS = useCallback(() => {
-    const token = getToken();
-    if (!token || typeof window === "undefined" || !("Notification" in window)) return;
+    if (typeof window === "undefined" || !("Notification" in window)) return;
     if ((window as any).Notification.permission !== "granted") return;
 
-    // Parse userId from token
-    let userId = "";
-    try {
-      const payload = JSON.parse(atob(token.split(".")[1]));
-      userId = payload.sub;
-    } catch {
-      return;
-    }
+    const user = getUser();
+    if (!user) return;
+    const userId = user.id;
 
     if (wsRef.current?.readyState === WebSocket.OPEN) return;
 

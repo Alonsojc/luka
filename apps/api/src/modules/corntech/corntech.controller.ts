@@ -11,8 +11,10 @@ import {
 import { ApiTags, ApiBearerAuth } from "@nestjs/swagger";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
+import { BranchAccessGuard } from "../../common/guards/branch-access.guard";
 import { ApiKeyGuard } from "../../common/guards/api-key.guard";
 import { Permissions } from "../../common/decorators/roles.decorator";
+import { SkipCsrf } from "../../common/decorators/skip-csrf.decorator";
 import {
   CurrentUser,
   JwtPayload,
@@ -30,6 +32,7 @@ export class CorntechController {
 
   /** Receive a batch of sales from a POS terminal */
   @Post("sync/sales")
+  @SkipCsrf()
   @UseGuards(ApiKeyGuard)
   @Permissions("corntech:sync")
   processSalesBatch(
@@ -74,7 +77,7 @@ export class CorntechController {
   /** Get sync log history */
   @Get("sync/logs")
   @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard, BranchAccessGuard)
   @Permissions("corntech:view")
   getPosSyncLogs(
     @CurrentUser() user: JwtPayload,
@@ -107,7 +110,7 @@ export class CorntechController {
   /** List recent POS sales */
   @Get("sales/list")
   @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard, BranchAccessGuard)
   @Permissions("corntech:view")
   getPosSales(
     @CurrentUser() user: JwtPayload,
@@ -129,7 +132,7 @@ export class CorntechController {
 
   @Get("sync-logs/:branchId")
   @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard, BranchAccessGuard)
   @Permissions("corntech:view")
   getSyncLogs(
     @Param("branchId") branchId: string,
@@ -166,7 +169,7 @@ export class CorntechController {
 
   @Get("sales/:branchId")
   @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard, BranchAccessGuard)
   @Permissions("corntech:view")
   getSales(
     @Param("branchId") branchId: string,
@@ -177,6 +180,7 @@ export class CorntechController {
   }
 
   @Post("sales")
+  @SkipCsrf()
   @UseGuards(ApiKeyGuard)
   @Permissions("corntech:sync")
   upsertSale(
@@ -197,6 +201,7 @@ export class CorntechController {
   }
 
   @Post("sales/bulk/:branchId")
+  @SkipCsrf()
   @UseGuards(ApiKeyGuard)
   @Permissions("corntech:sync")
   bulkUpsertSales(
@@ -220,7 +225,7 @@ export class CorntechController {
 
   @Get("cash-closings/:branchId")
   @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard, BranchAccessGuard)
   @Permissions("corntech:view")
   getCashClosings(
     @Param("branchId") branchId: string,

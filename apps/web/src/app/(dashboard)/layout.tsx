@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { getUser, getToken, clearAuth, type AuthUser } from "@/lib/auth";
+import { getUser, clearAuth, type AuthUser } from "@/lib/auth";
 import { canAccessRoute } from "@/lib/permissions";
 import { useRouteGuard } from "@/hooks/use-route-guard";
 import { api } from "@/lib/api-client";
@@ -168,10 +168,8 @@ export default function DashboardLayout({
   }, [router]);
 
   const fetchBranches = useCallback(async () => {
-    const token = getToken();
-    if (!token) return;
     try {
-      const data = await api.get<Branch[]>("/branches", { token });
+      const data = await api.get<Branch[]>("/branches");
       setBranches(data);
     } catch {
       // silent fail
@@ -183,12 +181,9 @@ export default function DashboardLayout({
   }, [user, fetchBranches]);
 
   const fetchNotifications = useCallback(async () => {
-    const token = getToken();
-    if (!token) return;
     try {
       const data = await api.get<{ notifications: Notification[]; total: number }>(
         "/notifications?limit=10",
-        { token },
       );
       setNotifications(data.notifications);
     } catch {
@@ -197,12 +192,9 @@ export default function DashboardLayout({
   }, []);
 
   const fetchUnreadCount = useCallback(async () => {
-    const token = getToken();
-    if (!token) return;
     try {
       const data = await api.get<{ count: number }>(
         "/notifications/unread-count",
-        { token },
       );
       setUnreadCount(data.count);
     } catch {
@@ -277,10 +269,8 @@ export default function DashboardLayout({
   };
 
   const handleMarkAllRead = async () => {
-    const token = getToken();
-    if (!token) return;
     try {
-      await api.post("/notifications/read-all", {}, { token });
+      await api.post("/notifications/read-all", {});
       setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
       setUnreadCount(0);
     } catch {
@@ -289,10 +279,9 @@ export default function DashboardLayout({
   };
 
   const handleNotificationClick = async (notification: Notification) => {
-    const token = getToken();
-    if (token && !notification.isRead) {
+    if (!notification.isRead) {
       try {
-        await api.post(`/notifications/${notification.id}/read`, {}, { token });
+        await api.post(`/notifications/${notification.id}/read`, {});
         setNotifications((prev) =>
           prev.map((n) => (n.id === notification.id ? { ...n, isRead: true } : n)),
         );

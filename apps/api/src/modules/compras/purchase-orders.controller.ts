@@ -6,6 +6,7 @@ import {
   Delete,
   Param,
   Body,
+  Query,
   UseGuards,
 } from "@nestjs/common";
 import { ApiTags, ApiBearerAuth } from "@nestjs/swagger";
@@ -27,8 +28,21 @@ export class PurchaseOrdersController {
 
   @Get()
   @Permissions("compras:view")
-  findAll(@CurrentUser() user: JwtPayload) {
-    return this.purchaseOrdersService.findAll(user.organizationId);
+  findAll(
+    @CurrentUser() user: JwtPayload,
+    @Query("status") status?: string,
+    @Query("branchId") branchId?: string,
+    @Query("supplierId") supplierId?: string,
+    @Query("page") page?: string,
+    @Query("limit") limit?: string,
+  ) {
+    return this.purchaseOrdersService.findAll(user.organizationId, {
+      status,
+      branchId,
+      supplierId,
+      page: page ? parseInt(page, 10) : undefined,
+      limit: limit ? parseInt(limit, 10) : undefined,
+    });
   }
 
   @Get(":id")

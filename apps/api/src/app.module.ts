@@ -1,8 +1,9 @@
 import { Module } from "@nestjs/common";
-import { APP_GUARD, APP_INTERCEPTOR } from "@nestjs/core";
+import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from "@nestjs/core";
 import { ScheduleModule } from "@nestjs/schedule";
 import { ThrottlerModule, ThrottlerGuard } from "@nestjs/throttler";
 import { PrismaModule } from "./common/prisma/prisma.module";
+import { CacheModule } from "./common/cache/cache.module";
 import { EmailModule } from "./modules/email/email.module";
 import { AuthModule } from "./modules/auth/auth.module";
 import { BranchesModule } from "./modules/branches/branches.module";
@@ -30,6 +31,9 @@ import { WhatsAppModule } from "./modules/whatsapp/whatsapp.module";
 import { ConfiguracionModule } from "./modules/configuracion/configuracion.module";
 import { QueuesModule } from "./common/queues/queues.module";
 import { AuditInterceptor } from "./common/interceptors/audit-log.interceptor";
+import { TenantInterceptor } from "./common/interceptors/tenant.interceptor";
+import { CsrfGuard } from "./common/guards/csrf.guard";
+import { GlobalExceptionFilter } from "./common/filters/global-exception.filter";
 
 @Module({
   imports: [
@@ -41,6 +45,7 @@ import { AuditInterceptor } from "./common/interceptors/audit-log.interceptor";
     ]),
     ScheduleModule.forRoot(),
     PrismaModule,
+    CacheModule,
     EmailModule,
     AuthModule,
     BranchesModule,
@@ -69,7 +74,10 @@ import { AuditInterceptor } from "./common/interceptors/audit-log.interceptor";
     QueuesModule,
   ],
   providers: [
+    { provide: APP_FILTER, useClass: GlobalExceptionFilter },
     { provide: APP_GUARD, useClass: ThrottlerGuard },
+    { provide: APP_GUARD, useClass: CsrfGuard },
+    { provide: APP_INTERCEPTOR, useClass: TenantInterceptor },
     { provide: APP_INTERCEPTOR, useClass: AuditInterceptor },
   ],
 })

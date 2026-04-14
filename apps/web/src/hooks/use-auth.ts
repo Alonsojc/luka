@@ -2,43 +2,37 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { getToken, getUser, clearAuth, setAuth, type AuthUser } from "@/lib/auth";
+import { getUser, clearAuth, type AuthUser } from "@/lib/auth";
 import { api, ApiError } from "@/lib/api-client";
 
 export function useAuth() {
   const router = useRouter();
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const t = getToken();
     const u = getUser();
-    if (!t || !u) {
+    if (!u) {
       router.push("/login");
       return;
     }
-    setToken(t);
     setUser(u);
     setLoading(false);
   }, [router]);
 
   const logout = useCallback(() => {
-    if (token) {
-      api.post("/auth/logout", {}, { token }).catch(() => {});
-    }
+    api.post("/auth/logout", {}).catch(() => {});
     clearAuth();
     router.push("/login");
-  }, [token, router]);
+  }, [router]);
 
   const authFetch = useCallback(
     async <T>(method: "get" | "post" | "patch" | "put" | "delete", path: string, body?: unknown): Promise<T> => {
-      if (!token) throw new Error("No autenticado");
       try {
         if (method === "get" || method === "delete") {
-          return await api[method]<T>(path, { token });
+          return await api[method]<T>(path);
         }
-        return await api[method]<T>(path, body, { token });
+        return await api[method]<T>(path, body);
       } catch (err) {
         if (err instanceof ApiError && err.status === 401) {
           clearAuth();
@@ -47,8 +41,8 @@ export function useAuth() {
         throw err;
       }
     },
-    [token, router]
+    [router]
   );
 
-  return { user, token, loading, logout, authFetch };
+  return { user, loading, logout, authFetch };
 }

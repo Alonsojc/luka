@@ -1,13 +1,22 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
+import { InjectQueue } from "@nestjs/bullmq";
+import { Queue } from "bullmq";
 import { PrismaService } from "../../common/prisma/prisma.service";
+import { QUEUE_AUDIT_LOG } from "../../common/queues/queues.constants";
 
 @Injectable()
 export class AuditService {
-  constructor(private prisma: PrismaService) {}
+  private readonly logger = new Logger(AuditService.name);
+
+  constructor(
+    private prisma: PrismaService,
+    @InjectQueue(QUEUE_AUDIT_LOG) private auditQueue: Queue,
+  ) {}
 
   /**
-   * Fire-and-forget audit log creation.
+   * Enqueue an audit log entry via BullMQ.
    * Never throws — audit logging must never break business logic.
+   * Falls back to direct Prisma write if the queue is unavailable.
    */
   log(params: {
     organizationId: string;
@@ -22,10 +31,18 @@ export class AuditService {
     ipAddress?: string;
     userAgent?: string;
   }): void {
-    this.prisma.auditLog
-      .create({ data: params })
+    this.auditQueue
+      .add("audit-log", params, {
+        removeOnComplete: { age: 3600, count: 1000 },
+        removeOnFail: { age: 86400 },
+      })
       .catch(() => {
-        // Never let audit logging break the app
+        // Queue unavailable — fall back to direct write
+        this.prisma.auditLog
+          .create({ data: params })
+          .catch((err) => {
+            this.logger.error(`Audit log failed: ${err.message}`);
+          });
       });
   }
 

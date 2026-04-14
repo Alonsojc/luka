@@ -4,6 +4,7 @@ import { QueuesController } from "./queues.controller";
 import { CorntechSyncProcessor } from "./processors/corntech-sync.processor";
 import { CfdiTimbradoProcessor } from "./processors/cfdi-timbrado.processor";
 import { BankReconciliationProcessor } from "./processors/bank-reconciliation.processor";
+import { AuditLogProcessor } from "./processors/audit-log.processor";
 import { CorntechModule } from "../../modules/corntech/corntech.module";
 import { FacturacionModule } from "../../modules/facturacion/facturacion.module";
 import { BancosModule } from "../../modules/bancos/bancos.module";
@@ -11,6 +12,7 @@ import {
   QUEUE_CORNTECH_SYNC,
   QUEUE_CFDI_TIMBRADO,
   QUEUE_BANK_RECONCILIATION,
+  QUEUE_AUDIT_LOG,
 } from "./queues.constants";
 
 @Module({
@@ -39,6 +41,7 @@ import {
       { name: QUEUE_CORNTECH_SYNC },
       { name: QUEUE_CFDI_TIMBRADO },
       { name: QUEUE_BANK_RECONCILIATION },
+      { name: QUEUE_AUDIT_LOG },
     ),
     CorntechModule,
     FacturacionModule,
@@ -49,6 +52,7 @@ import {
     CorntechSyncProcessor,
     CfdiTimbradoProcessor,
     BankReconciliationProcessor,
+    AuditLogProcessor,
   ],
   exports: [BullModule],
 })
