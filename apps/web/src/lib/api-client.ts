@@ -1,8 +1,7 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
 
-interface ApiOptions extends RequestInit {
-  token?: string;
-  skipRefresh?: boolean;
+interface ApiOptions extends Omit<RequestInit, "body"> {
+  body?: string;
 }
 
 class ApiError extends Error {
@@ -16,100 +15,64 @@ class ApiError extends Error {
 }
 
 // Prevent multiple simultaneous refresh attempts
-let refreshPromise: Promise<string | null> | null = null;
+let refreshPromise: Promise<boolean> | null = null;
 
-async function refreshAccessToken(): Promise<string | null> {
-  if (typeof window === "undefined") return null;
-  const refreshToken = localStorage.getItem("luka_refresh_token");
-  if (!refreshToken) return null;
+async function refreshAccessToken(): Promise<boolean> {
+  if (typeof window === "undefined") return false;
 
   try {
     const res = await fetch(`${API_URL}/auth/refresh`, {
       method: "POST",
+      credentials: "include",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ refreshToken }),
     });
 
-    if (!res.ok) return null;
-
-    const data = await res.json();
-    if (data.accessToken) {
-      localStorage.setItem("luka_access_token", data.accessToken);
-      // Store rotated refresh token if provided
-      if (data.refreshToken) {
-        localStorage.setItem("luka_refresh_token", data.refreshToken);
-      }
-      return data.accessToken;
-    }
-    return null;
+    return res.ok;
   } catch {
-    return null;
+    return false;
   }
-}
-
-async function getValidToken(currentToken?: string): Promise<string | null> {
-  if (!currentToken) return null;
-
-  // Reuse in-flight refresh
-  if (refreshPromise) return refreshPromise;
-
-  // Check if token is about to expire (within 2 minutes)
-  try {
-    const payload = JSON.parse(atob(currentToken.split(".")[1]));
-    const expiresIn = payload.exp * 1000 - Date.now();
-    if (expiresIn > 120_000) return currentToken; // Still valid for >2min
-  } catch {
-    return currentToken; // Can't parse, let the server decide
-  }
-
-  // Token expiring soon — refresh proactively
-  refreshPromise = refreshAccessToken().finally(() => {
-    refreshPromise = null;
-  });
-
-  return (await refreshPromise) || currentToken;
 }
 
 async function request<T>(
   path: string,
   options: ApiOptions = {}
 ): Promise<T> {
-  const { token, skipRefresh, ...fetchOptions } = options;
-
-  // Proactively refresh if token is close to expiry
-  const validToken = skipRefresh ? token : await getValidToken(token || undefined);
-
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     ...(options.headers as Record<string, string>),
   };
 
-  if (validToken) {
-    headers.Authorization = `Bearer ${validToken}`;
-  }
-
   const res = await fetch(`${API_URL}${path}`, {
-    ...fetchOptions,
+    ...options,
     headers,
+    credentials: "include", // Send httpOnly cookies automatically
   });
 
   // 401 — attempt refresh once and retry
-  if (res.status === 401 && token && !skipRefresh) {
+  if (res.status === 401 && !path.includes("/auth/refresh")) {
     if (!refreshPromise) {
       refreshPromise = refreshAccessToken().finally(() => {
         refreshPromise = null;
       });
     }
-    const newToken = await refreshPromise;
+    const refreshed = await refreshPromise;
 
-    if (newToken) {
-      return request<T>(path, { ...options, token: newToken, skipRefresh: true });
+    if (refreshed) {
+      // Retry the original request with fresh cookies
+      const retryRes = await fetch(`${API_URL}${path}`, {
+        ...options,
+        headers,
+        credentials: "include",
+      });
+
+      if (retryRes.ok) {
+        if (retryRes.status === 204) return undefined as T;
+        return retryRes.json();
+      }
     }
 
     // Refresh failed — clear auth and redirect
     if (typeof window !== "undefined") {
-      localStorage.removeItem("luka_access_token");
-      localStorage.removeItem("luka_refresh_token");
       localStorage.removeItem("luka_user");
       window.location.href = "/login";
     }

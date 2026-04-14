@@ -23,7 +23,6 @@ import {
 import { exportToCSV } from "@/lib/export-csv";
 import { generateInvoicePDF } from "@/lib/pdf-generator";
 import { useAuth } from "@/hooks/use-auth";
-import { getToken } from "@/lib/auth";
 import { DataTable } from "@/components/ui/data-table";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
@@ -1058,9 +1057,6 @@ export default function FacturacionPage() {
   async function handleAttachFile(e: React.ChangeEvent<HTMLInputElement>, cfdi: Cfdi) {
     const file = e.target.files?.[0];
     if (!file) return;
-    const token = getToken();
-    if (!token) return;
-
     setAttachmentUploading(true);
     try {
       const formData = new FormData();
@@ -1068,7 +1064,7 @@ export default function FacturacionPage() {
 
       const res = await fetch(`${UPLOAD_API_URL}/uploads/document`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: "include",
         body: formData,
       });
 

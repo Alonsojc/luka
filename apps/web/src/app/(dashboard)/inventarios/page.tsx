@@ -37,7 +37,6 @@ import {
 import { exportToCSV } from "@/lib/export-csv";
 import { generateInventoryPDF } from "@/lib/pdf-generator";
 import { useAuth } from "@/hooks/use-auth";
-import { getToken } from "@/lib/auth";
 import { DataTable } from "@/components/ui/data-table";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
@@ -911,14 +910,12 @@ export default function InventariosPage() {
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
 
   async function uploadImage(file: File): Promise<string> {
-    const token = getToken();
-    if (!token) throw new Error("No autenticado");
     const formData = new FormData();
     formData.append("file", file);
 
     const res = await fetch(`${API_URL}/uploads/image`, {
       method: "POST",
-      headers: { Authorization: `Bearer ${token}` },
+      credentials: "include",
       body: formData,
     });
 

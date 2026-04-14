@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from "react";
-import { getToken, getUser } from "@/lib/auth";
+import { getUser } from "@/lib/auth";
 import { api } from "@/lib/api-client";
 
 // ---------------------------------------------------------------------------
@@ -51,24 +51,10 @@ const MAX_RECONNECT_ATTEMPTS = 10;
  * `socket.io-client` is unavailable, it falls back to HTTP polling
  * every 30 seconds.
  *
- * Usage:
- * ```tsx
- * const { isConnected, lastNotification, unreadCount } = useNotificationsWs();
- * ```
- *
- * NOTE: The backend gateway uses Socket.IO, which requires `socket.io-client`
- * on the frontend for full compatibility (Socket.IO uses a custom protocol on
- * top of WebSocket). Until `socket.io-client` is added as a dependency,
- * this hook operates in polling-only mode.
- *
- * TODO: Install socket.io-client (`pnpm add socket.io-client` in apps/web)
- *       and replace the native WebSocket attempt with:
- *         import { io } from "socket.io-client";
- *         const socket = io(`${WS_BASE_URL}/notifications`, {
- *           query: { userId },
- *           transports: ["websocket"],
- *         });
- *         socket.on("notification", (data) => { ... });
+ * NOTE: The backend gateway now validates JWT on connection. When
+ * socket.io-client is installed, pass the access token via
+ * `auth: { token }` in the handshake (the cookie will also work
+ * for same-origin connections).
  */
 export function useNotificationsWs(): UseNotificationsWsReturn {
   const [isConnected, setIsConnected] = useState(false);
@@ -82,12 +68,10 @@ export function useNotificationsWs(): UseNotificationsWsReturn {
 
   // --- Fetch unread count via HTTP -----------------------------------------
   const fetchUnreadCount = useCallback(async () => {
-    const token = getToken();
-    if (!token) return;
+    const user = getUser();
+    if (!user) return;
     try {
-      const data = await api.get<{ count: number }>("/notifications/unread-count", {
-        token,
-      });
+      const data = await api.get<{ count: number }>("/notifications/unread-count");
       setUnreadCount(data.count);
     } catch {
       // silent fail — network might be down

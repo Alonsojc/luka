@@ -3,6 +3,7 @@ import { APP_GUARD, APP_INTERCEPTOR } from "@nestjs/core";
 import { ScheduleModule } from "@nestjs/schedule";
 import { ThrottlerModule, ThrottlerGuard } from "@nestjs/throttler";
 import { PrismaModule } from "./common/prisma/prisma.module";
+import { CacheModule } from "./common/cache/cache.module";
 import { EmailModule } from "./modules/email/email.module";
 import { AuthModule } from "./modules/auth/auth.module";
 import { BranchesModule } from "./modules/branches/branches.module";
@@ -41,6 +42,7 @@ import { AuditInterceptor } from "./common/interceptors/audit-log.interceptor";
     ]),
     ScheduleModule.forRoot(),
     PrismaModule,
+    CacheModule,
     EmailModule,
     AuthModule,
     BranchesModule,

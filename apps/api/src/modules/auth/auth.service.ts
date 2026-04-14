@@ -57,9 +57,9 @@ export class AuthService {
       })),
     };
 
-    const accessToken = this.jwtService.sign(payload as Record<string, unknown>);
+    const accessToken = this.jwtService.sign(payload as unknown as Record<string, unknown>);
     const refreshToken = this.jwtService.sign(
-      payload as Record<string, unknown>,
+      payload as unknown as Record<string, unknown>,
       {
         secret: process.env.JWT_REFRESH_SECRET,
         expiresIn: (process.env.JWT_REFRESH_EXPIRATION || "7d") as string,
@@ -137,9 +137,9 @@ export class AuthService {
       })),
     };
 
-    const newAccessToken = this.jwtService.sign(payload as Record<string, unknown>);
+    const newAccessToken = this.jwtService.sign(payload as unknown as Record<string, unknown>);
     const newRefreshToken = this.jwtService.sign(
-      payload as Record<string, unknown>,
+      payload as unknown as Record<string, unknown>,
       {
         secret: process.env.JWT_REFRESH_SECRET,
         expiresIn: (process.env.JWT_REFRESH_EXPIRATION || "7d") as string,

@@ -1,17 +1,25 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../../common/prisma/prisma.service";
+import { CacheService } from "../../common/cache/cache.service";
 import { JwtPayload } from "../../common/decorators/current-user.decorator";
 import { AuditService } from "../audit/audit.service";
+
+const PRODUCTS_TTL = 600; // 10 minutes
 
 @Injectable()
 export class ProductsService {
   constructor(
     private prisma: PrismaService,
+    private cache: CacheService,
     private auditService: AuditService,
   ) {}
 
   async findAll(organizationId: string) {
-    return this.prisma.product.findMany({
+    const cacheKey = `products:${organizationId}`;
+    const cached = await this.cache.get<any[]>(cacheKey);
+    if (cached) return cached;
+
+    const products = await this.prisma.product.findMany({
       where: { organizationId },
       include: {
         category: true,
@@ -22,6 +30,9 @@ export class ProductsService {
       },
       orderBy: { name: "asc" },
     });
+
+    await this.cache.set(cacheKey, products, PRODUCTS_TTL);
+    return products;
   }
 
   async findOne(organizationId: string, id: string) {
@@ -70,6 +81,8 @@ export class ProductsService {
       },
     });
 
+    await this.cache.del(`products:${organizationId}`);
+
     if (caller) {
       await this.auditService.log({
         organizationId,
@@ -116,6 +129,8 @@ export class ProductsService {
       },
     });
 
+    await this.cache.del(`products:${organizationId}`);
+
     if (caller) {
       const changes: Record<string, { old: any; new: any }> = {};
       for (const key of Object.keys(data) as Array<keyof typeof data>) {
@@ -145,6 +160,8 @@ export class ProductsService {
       where: { id },
       data: { isActive: false },
     });
+
+    await this.cache.del(`products:${organizationId}`);
 
     if (caller) {
       await this.auditService.log({

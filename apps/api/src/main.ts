@@ -3,6 +3,7 @@ import { NestExpressApplication } from "@nestjs/platform-express";
 import { ValidationPipe } from "@nestjs/common";
 import { SwaggerModule, DocumentBuilder } from "@nestjs/swagger";
 import helmet from "helmet";
+import cookieParser from "cookie-parser";
 import { json, urlencoded } from "express";
 import { join } from "path";
 import { AppModule } from "./app.module";
@@ -22,6 +23,9 @@ async function bootstrap() {
       crossOriginEmbedderPolicy: false, // Allow loading resources cross-origin
     })
   );
+
+  // Cookie parsing (for httpOnly auth cookies)
+  app.use(cookieParser());
 
   // Request body size limits
   app.use(json({ limit: "5mb" }));
