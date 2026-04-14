@@ -62,7 +62,7 @@ export class AuthService {
       payload as unknown as Record<string, unknown>,
       {
         secret: process.env.JWT_REFRESH_SECRET,
-        expiresIn: (process.env.JWT_REFRESH_EXPIRATION || "7d") as string,
+        expiresIn: process.env.JWT_REFRESH_EXPIRATION || "7d",
       },
     );
 
@@ -142,7 +142,7 @@ export class AuthService {
       payload as unknown as Record<string, unknown>,
       {
         secret: process.env.JWT_REFRESH_SECRET,
-        expiresIn: (process.env.JWT_REFRESH_EXPIRATION || "7d") as string,
+        expiresIn: process.env.JWT_REFRESH_EXPIRATION || "7d",
       },
     );
 

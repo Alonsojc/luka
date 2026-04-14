@@ -42,12 +42,13 @@ test.describe('Autenticacion', () => {
   });
 
   test('ruta protegida sin autenticacion redirige a login', async ({ page }) => {
+    // Clear user info and cookies
     await page.goto('/login');
     await page.evaluate(() => {
-      localStorage.removeItem('luka_access_token');
-      localStorage.removeItem('luka_refresh_token');
       localStorage.removeItem('luka_user');
     });
+    // Clear auth cookies by navigating with a clean context
+    await page.context().clearCookies();
 
     await page.goto('/dashboard');
     await expect(page).toHaveURL(/\/login/, { timeout: 15000 });

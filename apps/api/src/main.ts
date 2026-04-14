@@ -45,7 +45,7 @@ async function bootstrap() {
   app.enableCors({
     origin: corsOrigins,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-CSRF-Token"],
     credentials: true,
     maxAge: 3600,
   });

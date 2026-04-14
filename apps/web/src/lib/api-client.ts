@@ -4,6 +4,13 @@ interface ApiOptions extends Omit<RequestInit, "body"> {
   body?: string;
 }
 
+/** Read the CSRF token from the non-httpOnly cookie set by the server. */
+function getCsrfToken(): string | undefined {
+  if (typeof document === "undefined") return undefined;
+  const match = document.cookie.match(/(?:^|;\s*)luka_csrf=([^;]*)/);
+  return match?.[1];
+}
+
 class ApiError extends Error {
   constructor(
     public status: number,
@@ -41,6 +48,13 @@ async function request<T>(
     "Content-Type": "application/json",
     ...(options.headers as Record<string, string>),
   };
+
+  // Attach CSRF token on mutation requests
+  const method = options.method?.toUpperCase() || "GET";
+  if (["POST", "PUT", "PATCH", "DELETE"].includes(method)) {
+    const csrf = getCsrfToken();
+    if (csrf) headers["X-CSRF-Token"] = csrf;
+  }
 
   const res = await fetch(`${API_URL}${path}`, {
     ...options,

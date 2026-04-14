@@ -25,6 +25,15 @@ export const refreshCookieOptions: CookieOptions = {
   maxAge: parseExpiration(process.env.JWT_REFRESH_EXPIRATION || "7d"),
 };
 
+/** CSRF token cookie — non-httpOnly so JS can read it and echo as header. */
+export const csrfCookieOptions: CookieOptions = {
+  httpOnly: false, // Must be readable by JS
+  secure: isProduction,
+  sameSite: "lax",
+  path: "/",
+  maxAge: parseExpiration(process.env.JWT_EXPIRATION || "20h"),
+};
+
 /** Options to clear a cookie (set maxAge to 0). */
 export function clearCookieOptions(path: string): CookieOptions {
   return { ...BASE, path, maxAge: 0 };

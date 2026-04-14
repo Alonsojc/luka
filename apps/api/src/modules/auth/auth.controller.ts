@@ -10,6 +10,7 @@ import {
 } from "@nestjs/common";
 import { ApiTags, ApiBearerAuth } from "@nestjs/swagger";
 import { Throttle } from "@nestjs/throttler";
+import * as crypto from "crypto";
 import type { Request, Response } from "express";
 import { AuthService } from "./auth.service";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
@@ -26,7 +27,10 @@ import {
   accessCookieOptions,
   refreshCookieOptions,
   clearCookieOptions,
+  csrfCookieOptions,
 } from "../../common/config/cookie.config";
+import { CSRF_COOKIE_NAME } from "../../common/guards/csrf.guard";
+import { SkipCsrf } from "../../common/decorators/skip-csrf.decorator";
 
 @ApiTags("Auth")
 @Controller("auth")
@@ -34,6 +38,7 @@ export class AuthController {
   constructor(private authService: AuthService) {}
 
   @Post("login")
+  @SkipCsrf()
   @Throttle({ default: { limit: 5, ttl: 60000 } })
   @HttpCode(HttpStatus.OK)
   async login(
@@ -42,15 +47,20 @@ export class AuthController {
   ) {
     const result = await this.authService.login(dto.email, dto.password);
 
-    // Set tokens as httpOnly cookies
+    // Set auth tokens as httpOnly cookies
     res.cookie(ACCESS_COOKIE_NAME, result.accessToken, accessCookieOptions);
     res.cookie(REFRESH_COOKIE_NAME, result.refreshToken, refreshCookieOptions);
+
+    // Set CSRF token as a non-httpOnly cookie (frontend must echo it as a header)
+    const csrfToken = crypto.randomUUID();
+    res.cookie(CSRF_COOKIE_NAME, csrfToken, csrfCookieOptions);
 
     // Return user info only — tokens are not exposed to JS
     return { user: result.user };
   }
 
   @Post("refresh")
+  @SkipCsrf()
   @Throttle({ default: { limit: 10, ttl: 60000 } })
   @HttpCode(HttpStatus.OK)
   async refresh(
@@ -78,6 +88,7 @@ export class AuthController {
   }
 
   @Post("forgot-password")
+  @SkipCsrf()
   @Throttle({ default: { limit: 3, ttl: 60000 } })
   @HttpCode(HttpStatus.OK)
   async forgotPassword(@Body() dto: ForgotPasswordDto) {
@@ -85,6 +96,7 @@ export class AuthController {
   }
 
   @Post("reset-password")
+  @SkipCsrf()
   @Throttle({ default: { limit: 5, ttl: 60000 } })
   @HttpCode(HttpStatus.OK)
   async resetPassword(@Body() dto: ResetPasswordDto) {

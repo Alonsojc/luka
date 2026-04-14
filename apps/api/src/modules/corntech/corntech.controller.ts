@@ -14,6 +14,7 @@ import { RolesGuard } from "../../common/guards/roles.guard";
 import { BranchAccessGuard } from "../../common/guards/branch-access.guard";
 import { ApiKeyGuard } from "../../common/guards/api-key.guard";
 import { Permissions } from "../../common/decorators/roles.decorator";
+import { SkipCsrf } from "../../common/decorators/skip-csrf.decorator";
 import {
   CurrentUser,
   JwtPayload,
@@ -31,6 +32,7 @@ export class CorntechController {
 
   /** Receive a batch of sales from a POS terminal */
   @Post("sync/sales")
+  @SkipCsrf()
   @UseGuards(ApiKeyGuard)
   @Permissions("corntech:sync")
   processSalesBatch(
@@ -178,6 +180,7 @@ export class CorntechController {
   }
 
   @Post("sales")
+  @SkipCsrf()
   @UseGuards(ApiKeyGuard)
   @Permissions("corntech:sync")
   upsertSale(
@@ -198,6 +201,7 @@ export class CorntechController {
   }
 
   @Post("sales/bulk/:branchId")
+  @SkipCsrf()
   @UseGuards(ApiKeyGuard)
   @Permissions("corntech:sync")
   bulkUpsertSales(
