@@ -16,7 +16,6 @@ import {
   Trash2,
   Calendar,
   Users,
-  Palette,
   X,
 } from "lucide-react";
 

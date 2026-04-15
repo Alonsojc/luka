@@ -11,7 +11,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Search,
-  Download,
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
@@ -143,7 +142,7 @@ const STATUS_LABEL: Record<string, string> = {
   CANCELLED: "Cancelada",
 };
 
-const STATUS_VARIANT: Record<string, string> = {
+const _STATUS_VARIANT: Record<string, string> = {
   RECEIVED: "blue",
   PREPARING: "yellow",
   READY: "purple",
@@ -157,7 +156,7 @@ const STATUS_VARIANT: Record<string, string> = {
 // ---------------------------------------------------------------------------
 
 export default function DeliveryPage() {
-  const { user, loading: authLoading, authFetch } = useAuth();
+  const { user: _user, loading: authLoading, authFetch } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [tab, setTab] = useState<Tab>("Ordenes");
@@ -392,7 +391,7 @@ export default function DeliveryPage() {
         ),
       },
     ],
-    [],
+    [handleStatusChange],
   );
 
   // ---------------------------------------------------------------

@@ -151,7 +151,7 @@ const PIE_COLORS = ["#22c55e", "#eab308", "#ef4444", "#9ca3af", "#a855f7"];
 
 const STATUS_PIE_ORDER = ["ACTIVE", "LOW", "EXPIRED", "CONSUMED", "DISPOSED"];
 
-const BAR_COLORS = ["#000000", "#333333", "#555555", "#777777", "#999999", "#bbbbbb"];
+const _BAR_COLORS = ["#000000", "#333333", "#555555", "#777777", "#999999", "#bbbbbb"];
 
 const EMPTY_FORM = {
   productId: "",
@@ -243,7 +243,7 @@ export default function LotesPage() {
   });
   const [listLoading, setListLoading] = useState(false);
   const [filterBranch, setFilterBranch] = useState("");
-  const [filterProduct, setFilterProduct] = useState("");
+  const [filterProduct, _setFilterProduct] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
   const [filterExpiring, setFilterExpiring] = useState("");
   const [searchTerm, setSearchTerm] = useState("");

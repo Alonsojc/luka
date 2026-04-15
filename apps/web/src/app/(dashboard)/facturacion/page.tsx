@@ -65,7 +65,7 @@ export default function FacturacionPage() {
   const {
     // Auth
     authFetch,
-    user,
+    user: _user,
     authLoading,
     toast,
 
@@ -233,7 +233,7 @@ export default function FacturacionPage() {
 
     // Fetch helpers
     fetchCfdis,
-    fetchBranches,
+    fetchBranches: _fetchBranches,
     fetchPendingPayments,
     fetchPaymentComplements,
   } = useFacturacion();

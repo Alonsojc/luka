@@ -13,11 +13,8 @@ import {
   Pencil,
   Trash2,
   ArrowUpCircle,
-  ArrowDownCircle,
   Settings,
-  ChevronLeft,
   TrendingUp,
-  TrendingDown,
 } from "lucide-react";
 import {
   PieChart,
@@ -30,7 +27,6 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Legend,
 } from "recharts";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/components/ui/toast";

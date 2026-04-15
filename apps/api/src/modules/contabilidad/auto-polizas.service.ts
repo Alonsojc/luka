@@ -305,7 +305,7 @@ export class AutoPolizasService {
 
     const totalGross = Number(period.totalGross);
     const totalNet = Number(period.totalNet);
-    const totalEmployerCost = Number(period.totalEmployerCost);
+    const _totalEmployerCost = Number(period.totalEmployerCost);
 
     // Calculate totals from receipts for ISR and IMSS breakdown
     let totalIsr = 0;

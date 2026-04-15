@@ -124,7 +124,7 @@ export class RecipesService {
     await this.findOne(organizationId, id);
     const { ingredients, ...recipeData } = data;
 
-    const recipe = await this.prisma.$transaction(async (tx) => {
+    const _recipe = await this.prisma.$transaction(async (tx) => {
       if (ingredients) {
         await tx.recipeIngredient.deleteMany({ where: { recipeId: id } });
         await tx.recipeIngredient.createMany({

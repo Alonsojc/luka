@@ -3,7 +3,7 @@ import { test, expect } from "./fixtures";
 // The sidebar sections and items defined in the dashboard layout
 const EXPECTED_SECTIONS = ["OPERACIONES", "FINANZAS", "ANALYTICS", "CLIENTES", "SISTEMA"];
 
-const EXPECTED_NAV_ITEMS = [
+const _EXPECTED_NAV_ITEMS = [
   { name: "Dashboard", href: "/dashboard" },
   { name: "Inventarios", href: "/inventarios" },
   { name: "Compras", href: "/compras" },

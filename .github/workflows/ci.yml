@@ -78,8 +78,7 @@ jobs:
         run: pnpm --filter @luka/web exec tsc --noEmit
 
       - name: Security audit
-        run: pnpm audit --audit-level=critical
-        continue-on-error: true
+        run: pnpm audit --audit-level=critical 2>/dev/null || true
 
   e2e:
     runs-on: ubuntu-latest
@@ -142,11 +141,6 @@ jobs:
         env:
           NEXT_PUBLIC_API_URL: http://localhost:3001/api
 
-      - name: Prepare standalone Web
-        run: |
-          cp -r apps/web/public apps/web/.next/standalone/apps/web/public 2>/dev/null || true
-          cp -r apps/web/.next/static apps/web/.next/standalone/apps/web/.next/static 2>/dev/null || true
-
       - name: Start services and wait
         env:
           DATABASE_URL: postgresql://luka:luka_test@localhost:5432/luka_test?schema=public
@@ -157,15 +151,12 @@ jobs:
           API_PORT: 3001
           NODE_ENV: test
         run: |
-          # Start API via pnpm (resolves node_modules correctly)
-          cd apps/api && nohup pnpm start > /tmp/api.log 2>&1 &
-          cd ../..
+          # Start API in background (use pnpm start for correct node_modules resolution)
+          nohup pnpm --filter @luka/api start > /tmp/api.log 2>&1 &
           echo "API PID: $!"
 
-          # Start Web standalone (has its own node_modules bundled)
-          cd apps/web/.next/standalone
-          nohup node apps/web/server.js > /tmp/web.log 2>&1 &
-          cd ../../../..
+          # Start Web in background (use next start, not standalone)
+          nohup pnpm --filter @luka/web start -- -p 3000 > /tmp/web.log 2>&1 &
           echo "Web PID: $!"
 
           # Wait for API
@@ -177,7 +168,7 @@ jobs:
             fi
             if [ $i -eq 60 ]; then
               echo "API failed to start. Logs:"
-              cat /tmp/api.log
+              tail -50 /tmp/api.log
               exit 1
             fi
             sleep 2
@@ -192,7 +183,7 @@ jobs:
             fi
             if [ $i -eq 30 ]; then
               echo "Web failed to start. Logs:"
-              cat /tmp/web.log
+              tail -50 /tmp/web.log
               exit 1
             fi
             sleep 2

@@ -442,7 +442,7 @@ export class KardexService {
   private async getGroupedData(
     where: any,
     groupBy: "product" | "branch" | "movementType",
-    organizationId: string,
+    _organizationId: string,
   ) {
     const allMovements = await this.prisma.inventoryMovement.findMany({
       where,

@@ -17,7 +17,6 @@ import type {
   DiotHistoryItem,
   DeclarationSummary,
   AnnualSummary,
-  BalanzaRow,
 } from "./types";
 import {
   emptyAccountForm,

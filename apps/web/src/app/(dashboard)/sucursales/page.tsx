@@ -10,7 +10,7 @@ import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { ActiveBadge, StatusBadge } from "@/components/ui/status-badge";
 import { FormField, Input, Select } from "@/components/ui/form-field";
-import { MEXICAN_STATES, safeNum, formatMXN } from "@luka/shared";
+import { MEXICAN_STATES, formatMXN } from "@luka/shared";
 
 // =============== Types ===============
 

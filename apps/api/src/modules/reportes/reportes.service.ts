@@ -3,7 +3,7 @@ import { Prisma } from "@luka/database";
 import { PrismaService } from "../../common/prisma/prisma.service";
 import { CacheService } from "../../common/cache/cache.service";
 
-const REPORT_TTL = 300; // 5 minutes
+const _REPORT_TTL = 300; // 5 minutes
 
 @Injectable()
 export class ReportesService {

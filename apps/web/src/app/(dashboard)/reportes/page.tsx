@@ -21,7 +21,6 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   ResponsiveContainer,
   PieChart,
   Pie,
@@ -1742,7 +1741,7 @@ export default function ReportesPage() {
                           outerRadius={100}
                           innerRadius={50}
                           dataKey="value"
-                          label={({ name, percent }) =>
+                          label={({ percent }) =>
                             percent > 0 ? `${(percent * 100).toFixed(0)}%` : ""
                           }
                           labelLine={false}

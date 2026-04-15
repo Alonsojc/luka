@@ -576,7 +576,7 @@ export class LotsService {
   // ---------------------------------------------------------------
   // Helper: generate lot number
   // ---------------------------------------------------------------
-  private generateLotNumber(productId: string, branchId: string): string {
+  private generateLotNumber(productId: string, _branchId: string): string {
     const now = new Date();
     const datePart = now.toISOString().slice(0, 10).replace(/-/g, "");
     const timePart = now.toISOString().slice(11, 19).replace(/:/g, "");

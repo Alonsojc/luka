@@ -34,7 +34,7 @@ import { DataTable } from "@/components/ui/data-table";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { FormField, Input, Select, Textarea } from "@/components/ui/form-field";
-import { formatMXN } from "@luka/shared";
+import { formatMXN as _formatMXN } from "@luka/shared";
 
 // ---------------------------------------------------------------------------
 // Helpers – safe number coercion

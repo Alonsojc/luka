@@ -176,7 +176,7 @@ export class NominaCfdiService {
     const isrWithheld = Number(receipt.isrWithheld);
     const imssEmployee = Number(receipt.imssEmployee);
     const employmentSubsidy = Number(receipt.employmentSubsidy || 0);
-    const netSalary = Number(receipt.netSalary);
+    const _netSalary = Number(receipt.netSalary);
     const daysWorked = Number(receipt.daysWorked);
 
     // Build percepciones from perceptionDetails JSON or default to salary

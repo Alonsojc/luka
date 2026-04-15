@@ -20,7 +20,7 @@ export class AlertEngineService {
     if (rules.length === 0) return { triggered: 0 };
 
     // Find products below minimum stock
-    const lowStockItems = await this.prisma.branchInventory.findMany({
+    const _lowStockItems = await this.prisma.branchInventory.findMany({
       where: {
         branch: { organizationId },
         currentQuantity: { lt: this.prisma.$queryRawUnsafe as any },
@@ -262,7 +262,7 @@ export class AlertEngineService {
     ]);
 
     // Try to get sales total (from Corntech or POS sales)
-    let totalSales = "0.00";
+    let totalSales: string;
     try {
       const salesResult = await this.prisma.posSale.aggregate({
         where: {

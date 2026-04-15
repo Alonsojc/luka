@@ -1,6 +1,4 @@
-import { Injectable, OnModuleInit, OnModuleDestroy, Scope } from "@nestjs/common";
-import { REQUEST } from "@nestjs/core";
-import { Inject } from "@nestjs/common";
+import { Injectable, OnModuleInit, OnModuleDestroy } from "@nestjs/common";
 import { PrismaClient } from "@luka/database";
 
 /**

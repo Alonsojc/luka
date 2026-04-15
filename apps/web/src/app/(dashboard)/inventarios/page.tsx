@@ -29,10 +29,7 @@ import {
   Barcode,
   ChevronDown,
   ChevronUp,
-  FileSpreadsheet,
   PackagePlus,
-  History,
-  ClipboardEdit,
 } from "lucide-react";
 import { exportToCSV } from "@/lib/export-csv";
 import { generateInventoryPDF } from "@/lib/pdf-generator";
@@ -311,7 +308,7 @@ const CONVERSION_UNIT_OPTIONS = [
   { value: "bolsa", label: "Bolsa" },
 ];
 
-const BRANCH_TYPE_STYLES: Record<string, string> = {
+const _BRANCH_TYPE_STYLES: Record<string, string> = {
   CEDIS: "bg-blue-100 text-blue-800",
   ALMACEN: "bg-purple-100 text-purple-800",
   TIENDA: "bg-gray-100 text-gray-600",
@@ -472,19 +469,19 @@ export default function InventariosPage() {
   const [receiveQuantities, setReceiveQuantities] = useState<Record<string, string>>({});
 
   // ---- Cargas CEDIS state ----
-  const [cargasSection, setCargasSection] = useState<"stock" | "load" | "adjust" | "history">(
+  const [cargasSection, _setCargasSection] = useState<"stock" | "load" | "adjust" | "history">(
     "stock",
   );
   const [cargasBranchId, setCargasBranchId] = useState("");
   const [cargasStock, setCargasStock] = useState<CedisStockResponse | null>(null);
-  const [cargasStockLoading, setCargasStockLoading] = useState(false);
-  const [cargasStockSearch, setCargasStockSearch] = useState("");
-  const [cargasStockCategory, setCargasStockCategory] = useState("");
+  const [_cargasStockLoading, setCargasStockLoading] = useState(false);
+  const [cargasStockSearch, _setCargasStockSearch] = useState("");
+  const [cargasStockCategory, _setCargasStockCategory] = useState("");
 
   // Manual load
   const [loadItems, setLoadItems] = useState<LoadItemRow[]>([{ ...EMPTY_LOAD_ITEM }]);
-  const [loadSaving, setLoadSaving] = useState(false);
-  const [loadResult, setLoadResult] = useState<{
+  const [_loadSaving, setLoadSaving] = useState(false);
+  const [_loadResult, setLoadResult] = useState<{
     totalItems: number;
     totalQuantity: number;
     totalCost: number;
@@ -492,9 +489,9 @@ export default function InventariosPage() {
 
   // CSV import
   const [csvPreview, setCsvPreview] = useState<CsvPreviewRow[]>([]);
-  const [csvFileName, setCsvFileName] = useState("");
-  const [csvImporting, setCsvImporting] = useState(false);
-  const [csvResult, setCsvResult] = useState<{
+  const [_csvFileName, setCsvFileName] = useState("");
+  const [_csvImporting, setCsvImporting] = useState(false);
+  const [_csvResult, setCsvResult] = useState<{
     matched: number;
     unmatched: Array<{ sku: string; row: number }>;
     loaded: number;
@@ -504,8 +501,8 @@ export default function InventariosPage() {
   const [adjustProductId, setAdjustProductId] = useState("");
   const [adjustNewQty, setAdjustNewQty] = useState("");
   const [adjustReason, setAdjustReason] = useState("");
-  const [adjustSaving, setAdjustSaving] = useState(false);
-  const [adjustResult, setAdjustResult] = useState<{
+  const [_adjustSaving, setAdjustSaving] = useState(false);
+  const [_adjustResult, setAdjustResult] = useState<{
     productName: string;
     previousQuantity: number;
     newQuantity: number;
@@ -513,11 +510,11 @@ export default function InventariosPage() {
   } | null>(null);
 
   // Load history
-  const [loadHistory, setLoadHistory] = useState<LoadHistoryGroup[]>([]);
-  const [loadHistoryLoading, setLoadHistoryLoading] = useState(false);
-  const [historyDateFrom, setHistoryDateFrom] = useState("");
-  const [historyDateTo, setHistoryDateTo] = useState("");
-  const [expandedHistoryDate, setExpandedHistoryDate] = useState<string | null>(null);
+  const [_loadHistory, setLoadHistory] = useState<LoadHistoryGroup[]>([]);
+  const [_loadHistoryLoading, setLoadHistoryLoading] = useState(false);
+  const [historyDateFrom, _setHistoryDateFrom] = useState("");
+  const [historyDateTo, _setHistoryDateTo] = useState("");
+  const [_expandedHistoryDate, _setExpandedHistoryDate] = useState<string | null>(null);
 
   // =======================================================================
   // Data-fetching helpers
@@ -691,7 +688,7 @@ export default function InventariosPage() {
     [authFetch, toast],
   );
 
-  async function handleManualLoad() {
+  async function _handleManualLoad() {
     if (!cargasBranchId) return;
     setLoadSaving(true);
     setLoadResult(null);
@@ -722,7 +719,7 @@ export default function InventariosPage() {
     }
   }
 
-  function handleCsvFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+  function _handleCsvFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
     setCsvFileName(file.name);
@@ -772,7 +769,7 @@ export default function InventariosPage() {
     e.target.value = "";
   }
 
-  async function handleCsvImport() {
+  async function _handleCsvImport() {
     if (!cargasBranchId || csvPreview.length === 0) return;
     setCsvImporting(true);
     setCsvResult(null);
@@ -800,7 +797,7 @@ export default function InventariosPage() {
     }
   }
 
-  async function handleAdjustInventory() {
+  async function _handleAdjustInventory() {
     if (!cargasBranchId || !adjustProductId || !adjustNewQty || !adjustReason) return;
     setAdjustSaving(true);
     setAdjustResult(null);
@@ -830,13 +827,13 @@ export default function InventariosPage() {
   }
 
   // Helper: current stock for selected adjust product
-  const adjustCurrentStock = useMemo(() => {
+  const _adjustCurrentStock = useMemo(() => {
     if (!adjustProductId || !cargasStock) return null;
     return cargasStock.items.find((i) => i.productId === adjustProductId);
   }, [adjustProductId, cargasStock]);
 
   // Helper: filtered stock for cargas tab
-  const filteredCargasStock = useMemo(() => {
+  const _filteredCargasStock = useMemo(() => {
     if (!cargasStock) return [];
     let items = cargasStock.items;
     if (cargasStockSearch) {
@@ -852,7 +849,7 @@ export default function InventariosPage() {
   }, [cargasStock, cargasStockSearch, cargasStockCategory]);
 
   // Derive categories from cargas stock for filter
-  const cargasCategories = useMemo(() => {
+  const _cargasCategories = useMemo(() => {
     if (!cargasStock) return [];
     const catMap = new Map<string, { id: string; name: string }>();
     cargasStock.items.forEach((i) => {
@@ -1471,7 +1468,7 @@ export default function InventariosPage() {
       key: "expand",
       header: "",
       render: (r: Product) => {
-        const count = r.presentations?.length ?? 0;
+        const _count = r.presentations?.length ?? 0;
         return (
           <button
             onClick={(e) => {

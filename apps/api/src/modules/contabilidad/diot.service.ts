@@ -38,7 +38,7 @@ const THIRD_PARTY_NATIONAL = "04"; // Proveedor nacional
 // SAT Operation Type codes
 const OP_PROFESSIONAL_SERVICES = "85";
 const OP_PURCHASE_OF_GOODS = "06";
-const OP_LEASE = "03";
+const _OP_LEASE = "03";
 
 @Injectable()
 export class DiotService {

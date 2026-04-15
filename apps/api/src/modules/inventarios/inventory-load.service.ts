@@ -268,7 +268,7 @@ export class InventoryLoadService {
     const previousQty = currentInventory ? Number(currentInventory.currentQuantity) : 0;
     const diff = data.newQuantity - previousQty;
 
-    const result = await this.prisma.$transaction(async (tx) => {
+    const _result = await this.prisma.$transaction(async (tx) => {
       // Create ADJUSTMENT movement
       await tx.inventoryMovement.create({
         data: {

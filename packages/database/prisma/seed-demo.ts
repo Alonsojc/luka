@@ -17,7 +17,7 @@ function randDec(min: number, max: number): number {
 }
 
 /** Pick a random element from an array. */
-function pick<T>(arr: T[]): T {
+function _pick<T>(arr: T[]): T {
   return arr[randInt(0, arr.length - 1)];
 }
 

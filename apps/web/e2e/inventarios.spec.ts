@@ -89,7 +89,7 @@ test.describe("Inventarios", () => {
     }
 
     // Fill SKU
-    const skuInput = modal.locator("input").filter({ hasText: "" });
+    const _skuInput = modal.locator("input").filter({ hasText: "" });
     const allInputs = modal.locator("input");
     const inputCount = await allInputs.count();
     for (let i = 0; i < inputCount; i++) {

@@ -225,7 +225,7 @@ describe("PayrollService", () => {
         totalNet: 0,
       });
 
-      const result = await service.calculatePayroll("org-1", "per-1");
+      const _result = await service.calculatePayroll("org-1", "per-1");
 
       expect(mockTx.payrollReceipt.create).not.toHaveBeenCalled();
       expect(mockTx.payrollPeriod.update).toHaveBeenCalledWith(

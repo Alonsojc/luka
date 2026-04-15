@@ -156,14 +156,14 @@ const TABS = [
 type TabId = (typeof TABS)[number]["id"];
 
 export default function PrediccionesPage() {
-  const { user, loading: authLoading, authFetch } = useAuth();
+  const { user: _user, loading: authLoading, authFetch } = useAuth();
   const [activeTab, setActiveTab] = useState<TabId>("branch");
 
   // Shared state
   const [branches, setBranches] = useState<Branch[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
-  const [loadingBranches, setLoadingBranches] = useState(true);
-  const [loadingProducts, setLoadingProducts] = useState(true);
+  const [_loadingBranches, setLoadingBranches] = useState(true);
+  const [_loadingProducts, setLoadingProducts] = useState(true);
 
   // Tab 1: By Branch
   const [selectedBranchId, setSelectedBranchId] = useState("");

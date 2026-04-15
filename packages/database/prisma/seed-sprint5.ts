@@ -32,7 +32,7 @@ function daysAgo(days: number): Date {
 }
 
 /** Return a specific date. */
-function dateOf(y: number, m: number, d: number, h = 12): Date {
+function _dateOf(y: number, m: number, d: number, h = 12): Date {
   return new Date(y, m - 1, d, h, 0, 0);
 }
 
@@ -1077,7 +1077,7 @@ async function main() {
         const grossSalary = parseFloat((dailySalary * daysWorked).toFixed(2));
 
         // Simplified ISR calculation (approximate)
-        let isrWithheld = 0;
+        let isrWithheld: number;
         const monthlyGross = grossSalary * 2; // approximate monthly
         if (monthlyGross > 49233) isrWithheld = grossSalary * 0.25;
         else if (monthlyGross > 31236) isrWithheld = grossSalary * 0.2;

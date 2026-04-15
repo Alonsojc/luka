@@ -44,7 +44,7 @@ export class UsersService {
     });
 
     // Exclude sensitive fields
-    return allUsers.map(({ passwordHash, refreshToken, ...u }) => u);
+    return allUsers.map(({ passwordHash: _passwordHash, refreshToken: _refreshToken, ...u }) => u);
   }
 
   async findOne(caller: JwtPayload, id: string) {
@@ -67,7 +67,7 @@ export class UsersService {
     }
 
     // Exclude sensitive fields
-    const { passwordHash, refreshToken, ...safeUser } = foundUser;
+    const { passwordHash: _passwordHash, refreshToken: _refreshToken, ...safeUser } = foundUser;
     return safeUser;
   }
 

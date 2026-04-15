@@ -649,7 +649,7 @@ export class DataImportService {
         }
 
         const minStock = row.minStock ? Number(row.minStock) : 0;
-        const maxStock = row.maxStock ? Number(row.maxStock) : undefined;
+        const _maxStock = row.maxStock ? Number(row.maxStock) : undefined;
 
         await this.prisma.branchInventory.upsert({
           where: {

@@ -18,7 +18,7 @@ function pick<T>(arr: T[]): T {
   return arr[randInt(0, arr.length - 1)];
 }
 
-function pickN<T>(arr: T[], n: number): T[] {
+function _pickN<T>(arr: T[], n: number): T[] {
   const shuffled = [...arr].sort(() => Math.random() - 0.5);
   return shuffled.slice(0, n);
 }

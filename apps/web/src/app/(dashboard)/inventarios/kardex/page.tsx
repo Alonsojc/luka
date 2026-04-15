@@ -116,7 +116,7 @@ export default function KardexPage() {
   const [kardexData, setKardexData] = useState<KardexResponse | null>(null);
   const [summary, setSummary] = useState<KardexSummary | null>(null);
   const [loadingKardex, setLoadingKardex] = useState(false);
-  const [loadingSummary, setLoadingSummary] = useState(false);
+  const [_loadingSummary, setLoadingSummary] = useState(false);
 
   // --- Filters ---
   const [selectedProductId, setSelectedProductId] = useState("");

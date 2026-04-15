@@ -8,7 +8,6 @@ import {
   Store,
   Clock,
   Loader2,
-  AlertTriangle,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { DataTable } from "@/components/ui/data-table";
