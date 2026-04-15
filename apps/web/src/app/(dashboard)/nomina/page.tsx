@@ -36,6 +36,7 @@ import {
 } from "lucide-react";
 import { exportToCSV } from "@/lib/export-csv";
 import { generatePayrollPDF } from "@/lib/pdf-generator";
+import { safeNum } from "@luka/shared";
 
 const TABS = ["Empleados", "Períodos de Nómina", "Detalle de Recibos", "CFDI Nómina", "SUA / IMSS", "Worky"];
 
@@ -63,11 +64,6 @@ const PAYROLL_STATUS_MAP: Record<string, { label: string; variant: string }> = {
   STAMPED: { label: "Timbrada", variant: "purple" },
   PAID: { label: "Pagada", variant: "green" },
 };
-
-function safeNum(value: unknown): number {
-  const n = Number(value);
-  return isNaN(n) ? 0 : n;
-}
 
 function fmt(v: any): string {
   return safeNum(v).toLocaleString("es-MX", {

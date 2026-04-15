@@ -1,14 +1,16 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState } from "react";
 import { Plus, Pencil, Trash2, RefreshCw } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
+import { useApiQuery } from "@/hooks/use-api-query";
 import { DataTable } from "@/components/ui/data-table";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { ActiveBadge, StatusBadge } from "@/components/ui/status-badge";
 import { FormField, Input, Select } from "@/components/ui/form-field";
-import { MEXICAN_STATES } from "@luka/shared";
+import { MEXICAN_STATES, safeNum, formatMXN } from "@luka/shared";
 
 // =============== Types ===============
 
@@ -120,18 +122,6 @@ type TabKey = (typeof TABS)[number]["key"];
 
 // =============== Helpers ===============
 
-function safeNum(value: unknown): number {
-  const n = Number(value);
-  return isNaN(n) ? 0 : n;
-}
-
-function formatCurrency(value: number): string {
-  return new Intl.NumberFormat("es-MX", {
-    style: "currency",
-    currency: "MXN",
-  }).format(safeNum(value));
-}
-
 function formatDateTime(dateStr: string | null): string {
   if (!dateStr) return "Nunca";
   return new Intl.DateTimeFormat("es-MX", {
@@ -170,12 +160,15 @@ function syncDotColor(status: string, lastSyncAt: string | null): string {
 // =============== Component ===============
 
 export default function SucursalesPage() {
-  const { authFetch, loading: authLoading } = useAuth();
+  const { authFetch } = useAuth();
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<TabKey>("sucursales");
 
-  // ---------- Branches state ----------
-  const [branches, setBranches] = useState<Branch[]>([]);
-  const [loading, setLoading] = useState(true);
+  // ---------- Branches (React Query) ----------
+  const { data: branches = [], isLoading: loading } = useApiQuery<Branch[]>(
+    "/branches",
+    ["branches"],
+  );
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingBranch, setEditingBranch] = useState<Branch | null>(null);
@@ -188,115 +181,33 @@ export default function SucursalesPage() {
   const [deleteTarget, setDeleteTarget] = useState<Branch | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  // ---------- Legal Entities state ----------
-  const [legalEntities, setLegalEntities] = useState<LegalEntityOption[]>([]);
+  // ---------- Legal Entities (React Query) ----------
+  const { data: legalEntities = [] } = useApiQuery<LegalEntityOption[]>(
+    "/legal-entities",
+    ["legal-entities"],
+  );
   const [filterLegalEntity, setFilterLegalEntity] = useState<string>("all");
 
-  // ---------- POS Sync state ----------
-  const [syncStatuses, setSyncStatuses] = useState<BranchSyncStatus[]>([]);
-  const [syncLoading, setSyncLoading] = useState(false);
+  // ---------- POS Sync state (React Query) ----------
   const [summaryDate, setSummaryDate] = useState(todayISO());
-  const [dailySummary, setDailySummary] = useState<DailySummaryRow[]>([]);
-  const [summaryLoading, setSummaryLoading] = useState(false);
-  const [syncLogs, setSyncLogs] = useState<SyncLogEntry[]>([]);
-  const [logsLoading, setLogsLoading] = useState(false);
 
-  // --------------- Fetch branches ---------------
-  const fetchBranches = useCallback(async () => {
-    try {
-      setLoading(true);
-      const data = await authFetch<Branch[]>("get", "/branches");
-      setBranches(data);
-    } catch {
-      // auth redirect handled by authFetch
-    } finally {
-      setLoading(false);
-    }
-  }, [authFetch]);
-
-  const fetchLegalEntities = useCallback(async () => {
-    try {
-      const data = await authFetch<LegalEntityOption[]>(
-        "get",
-        "/legal-entities",
-      );
-      setLegalEntities(data);
-    } catch {
-      // silent
-    }
-  }, [authFetch]);
-
-  useEffect(() => {
-    if (!authLoading) {
-      fetchBranches();
-      fetchLegalEntities();
-    }
-  }, [authLoading, fetchBranches, fetchLegalEntities]);
-
-  // --------------- POS Sync data fetchers ---------------
-  const fetchSyncStatus = useCallback(async () => {
-    try {
-      setSyncLoading(true);
-      const data = await authFetch<BranchSyncStatus[]>(
-        "get",
-        "/corntech/sync/status",
-      );
-      setSyncStatuses(data);
-    } catch {
-      setSyncStatuses([]);
-    } finally {
-      setSyncLoading(false);
-    }
-  }, [authFetch]);
-
-  const fetchDailySummary = useCallback(
-    async (date: string) => {
-      try {
-        setSummaryLoading(true);
-        const data = await authFetch<DailySummaryRow[]>(
-          "get",
-          `/corntech/sales/summary?date=${date}`,
-        );
-        setDailySummary(data);
-      } catch {
-        setDailySummary([]);
-      } finally {
-        setSummaryLoading(false);
-      }
-    },
-    [authFetch],
+  const { data: syncStatuses = [], isLoading: syncLoading } = useApiQuery<BranchSyncStatus[]>(
+    "/corntech/sync/status",
+    ["corntech-sync-status"],
+    { enabled: activeTab === "pos-sync" },
   );
 
-  const fetchSyncLogs = useCallback(async () => {
-    try {
-      setLogsLoading(true);
-      const data = await authFetch<SyncLogEntry[]>(
-        "get",
-        "/corntech/sync/logs?limit=30",
-      );
-      setSyncLogs(data);
-    } catch {
-      setSyncLogs([]);
-    } finally {
-      setLogsLoading(false);
-    }
-  }, [authFetch]);
+  const { data: dailySummary = [], isLoading: summaryLoading } = useApiQuery<DailySummaryRow[]>(
+    `/corntech/sales/summary?date=${summaryDate}`,
+    ["corntech-daily-summary", summaryDate],
+    { enabled: activeTab === "pos-sync" },
+  );
 
-  // Load POS Sync data when tab is active
-  useEffect(() => {
-    if (activeTab === "pos-sync" && !authLoading) {
-      fetchSyncStatus();
-      fetchDailySummary(summaryDate);
-      fetchSyncLogs();
-    }
-  }, [
-    activeTab,
-    authLoading,
-    fetchSyncStatus,
-    fetchDailySummary,
-    fetchSyncLogs,
-    summaryDate,
-  ]);
+  const { data: syncLogs = [], isLoading: logsLoading } = useApiQuery<SyncLogEntry[]>(
+    "/corntech/sync/logs?limit=30",
+    ["corntech-sync-logs"],
+    { enabled: activeTab === "pos-sync" },
+  );
 
   // --------------- Form helpers ---------------
   const openCreateModal = () => {
@@ -377,7 +288,7 @@ export default function SucursalesPage() {
         await authFetch<Branch>("post", "/branches", body);
       }
       closeModal();
-      await fetchBranches();
+      queryClient.invalidateQueries({ queryKey: ["branches"] });
     } catch {
       // errors handled globally
     } finally {
@@ -391,7 +302,7 @@ export default function SucursalesPage() {
     try {
       await authFetch<void>("delete", `/branches/${deleteTarget.id}`);
       setDeleteTarget(null);
-      await fetchBranches();
+      queryClient.invalidateQueries({ queryKey: ["branches"] });
     } catch {
       // errors handled globally
     } finally {
@@ -566,9 +477,9 @@ export default function SucursalesPage() {
           <Button
             variant="outline"
             onClick={() => {
-              fetchSyncStatus();
-              fetchDailySummary(summaryDate);
-              fetchSyncLogs();
+              queryClient.invalidateQueries({ queryKey: ["corntech-sync-status"] });
+              queryClient.invalidateQueries({ queryKey: ["corntech-daily-summary"] });
+              queryClient.invalidateQueries({ queryKey: ["corntech-sync-logs"] });
             }}
           >
             <RefreshCw className="h-4 w-4" />
@@ -682,7 +593,7 @@ export default function SucursalesPage() {
                           Total hoy
                         </p>
                         <p className="font-semibold text-base">
-                          {formatCurrency(s.todaySalesTotal)}
+                          {formatMXN(s.todaySalesTotal)}
                         </p>
                       </div>
                     </div>
@@ -753,16 +664,16 @@ export default function SucursalesPage() {
                           {row.branchName}
                         </td>
                         <td className="px-4 py-3 text-sm text-right">
-                          {formatCurrency(row.cash)}
+                          {formatMXN(row.cash)}
                         </td>
                         <td className="px-4 py-3 text-sm text-right">
-                          {formatCurrency(row.card)}
+                          {formatMXN(row.card)}
                         </td>
                         <td className="px-4 py-3 text-sm text-right">
-                          {formatCurrency(row.transfer)}
+                          {formatMXN(row.transfer)}
                         </td>
                         <td className="px-4 py-3 text-sm text-right font-semibold">
-                          {formatCurrency(row.total)}
+                          {formatMXN(row.total)}
                         </td>
                       </tr>
                     ))}
@@ -770,16 +681,16 @@ export default function SucursalesPage() {
                     <tr className="bg-muted/50 font-semibold">
                       <td className="px-4 py-3 text-sm">Total</td>
                       <td className="px-4 py-3 text-sm text-right">
-                        {formatCurrency(summaryTotals.cash)}
+                        {formatMXN(summaryTotals.cash)}
                       </td>
                       <td className="px-4 py-3 text-sm text-right">
-                        {formatCurrency(summaryTotals.card)}
+                        {formatMXN(summaryTotals.card)}
                       </td>
                       <td className="px-4 py-3 text-sm text-right">
-                        {formatCurrency(summaryTotals.transfer)}
+                        {formatMXN(summaryTotals.transfer)}
                       </td>
                       <td className="px-4 py-3 text-sm text-right">
-                        {formatCurrency(summaryTotals.total)}
+                        {formatMXN(summaryTotals.total)}
                       </td>
                     </tr>
                   </tbody>

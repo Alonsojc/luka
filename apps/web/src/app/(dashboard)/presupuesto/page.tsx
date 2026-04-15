@@ -25,6 +25,7 @@ import {
 } from "recharts";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/components/ui/toast";
+import { useApiQuery } from "@/hooks/use-api-query";
 import { Button } from "@/components/ui/button";
 import { FormField, Input, Select } from "@/components/ui/form-field";
 
@@ -174,8 +175,10 @@ export default function PresupuestoPage() {
   const [activeTab, setActiveTab] = useState<TabKey>("comparativo");
 
   // Shared state
-  const [branches, setBranches] = useState<Branch[]>([]);
-  const [branchesLoaded, setBranchesLoaded] = useState(false);
+  const { data: branches = [], isSuccess: branchesLoaded } = useApiQuery<Branch[]>(
+    "/branches",
+    ["branches"],
+  );
 
   const now = new Date();
   const currentYear = now.getFullYear();
@@ -204,27 +207,15 @@ export default function PresupuestoPage() {
   const [mbLoading, setMbLoading] = useState(false);
 
   // =======================================================================
-  // Fetch branches
+  // Set default branch when branches load
   // =======================================================================
 
-  const fetchBranches = useCallback(async () => {
-    if (branchesLoaded) return;
-    try {
-      const data = await authFetch<Branch[]>("get", "/branches");
-      setBranches(data);
-      if (data.length > 0) {
-        setCompBranchId((prev) => prev || data[0].id);
-        setCapBranchId((prev) => prev || data[0].id);
-      }
-      setBranchesLoaded(true);
-    } catch {
-      toast("Error al cargar sucursales", "error");
-    }
-  }, [authFetch, branchesLoaded, toast]);
-
   useEffect(() => {
-    if (!authLoading) fetchBranches();
-  }, [authLoading, fetchBranches]);
+    if (branches.length > 0) {
+      setCompBranchId((prev) => prev || branches[0].id);
+      setCapBranchId((prev) => prev || branches[0].id);
+    }
+  }, [branches]);
 
   // =======================================================================
   // Tab 1: Fetch comparison

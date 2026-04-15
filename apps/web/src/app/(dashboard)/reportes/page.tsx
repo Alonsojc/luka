@@ -29,6 +29,7 @@ import {
 } from "recharts";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/components/ui/toast";
+import { useApiQuery } from "@/hooks/use-api-query";
 import { DataTable } from "@/components/ui/data-table";
 import { Button } from "@/components/ui/button";
 import { FormField, Input, Select } from "@/components/ui/form-field";
@@ -397,8 +398,10 @@ export default function ReportesPage() {
   const [activeTab, setActiveTab] = useState<TabKey>("ventas-sucursal");
 
   // ---- Shared state ----
-  const [branches, setBranches] = useState<Branch[]>([]);
-  const [branchesLoaded, setBranchesLoaded] = useState(false);
+  const { data: branches = [], isSuccess: branchesLoaded } = useApiQuery<Branch[]>(
+    "/branches",
+    ["branches"],
+  );
 
   // ---- Date filters ----
   const [startDate, setStartDate] = useState(getFirstDayOfMonth);
@@ -440,22 +443,14 @@ export default function ReportesPage() {
   const [agingExporting, setAgingExporting] = useState(false);
 
   // =======================================================================
-  // Fetch branches (shared across tabs)
+  // Set default branch when branches load
   // =======================================================================
 
-  const fetchBranches = useCallback(async () => {
-    if (branchesLoaded) return;
-    try {
-      const data = await authFetch<Branch[]>("get", "/branches");
-      setBranches(data);
-      if (data.length > 0) {
-        setSelectedBranchId((prev) => prev || data[0].id);
-      }
-      setBranchesLoaded(true);
-    } catch {
-      toast("Error al cargar sucursales", "error");
+  useEffect(() => {
+    if (branches.length > 0) {
+      setSelectedBranchId((prev) => prev || branches[0].id);
     }
-  }, [authFetch, branchesLoaded, toast]);
+  }, [branches]);
 
   // =======================================================================
   // Data-fetching functions (existing)
@@ -654,11 +649,6 @@ export default function ReportesPage() {
   // =======================================================================
   // Load data when tab changes
   // =======================================================================
-
-  useEffect(() => {
-    if (authLoading) return;
-    fetchBranches();
-  }, [authLoading, fetchBranches]);
 
   useEffect(() => {
     if (authLoading || !branchesLoaded) return;

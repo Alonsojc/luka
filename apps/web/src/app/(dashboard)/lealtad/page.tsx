@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Gift,
   Star,
@@ -33,6 +34,7 @@ import {
 } from "recharts";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/components/ui/toast";
+import { useApiQuery } from "@/hooks/use-api-query";
 import { DataTable } from "@/components/ui/data-table";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
@@ -191,14 +193,27 @@ function TierBadge({ tier }: { tier: string }) {
 export default function LealtadPage() {
   const { authFetch, loading: authLoading } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [tab, setTab] = useState("miembros");
 
-  // Shared state
-  const [customers, setCustomers] = useState<LoyaltyCustomer[]>([]);
-  const [rewards, setRewards] = useState<LoyaltyReward[]>([]);
-  const [program, setProgram] = useState<LoyaltyProgram | null>(null);
-  const [dashboard, setDashboard] = useState<DashboardData | null>(null);
-  const [loading, setLoading] = useState(true);
+  // Shared state via React Query
+  const { data: customers = [], isLoading: customersLoading } = useApiQuery<LoyaltyCustomer[]>(
+    "/loyalty/customers",
+    ["loyalty-customers"],
+  );
+  const { data: rewards = [], isLoading: rewardsLoading } = useApiQuery<LoyaltyReward[]>(
+    "/loyalty/rewards",
+    ["loyalty-rewards"],
+  );
+  const { data: program } = useApiQuery<LoyaltyProgram>(
+    "/loyalty/program",
+    ["loyalty-program"],
+  );
+  const { data: dashboard } = useApiQuery<DashboardData>(
+    "/loyalty/dashboard",
+    ["loyalty-dashboard"],
+  );
+  const loading = customersLoading || rewardsLoading;
 
   // Search / filter
   const [search, setSearch] = useState("");
@@ -249,71 +264,31 @@ export default function LealtadPage() {
   const [saving, setSaving] = useState(false);
 
   // -----------------------------------------------------------------------
-  // Data fetching
+  // Sync program config form when data loads
   // -----------------------------------------------------------------------
 
-  const fetchCustomers = useCallback(async () => {
-    try {
-      const data = await authFetch<LoyaltyCustomer[]>("get", "/loyalty/customers");
-      setCustomers(data);
-    } catch {
-      // silent
-    }
-  }, [authFetch]);
-
-  const fetchRewards = useCallback(async () => {
-    try {
-      const data = await authFetch<LoyaltyReward[]>("get", "/loyalty/rewards");
-      setRewards(data);
-    } catch {
-      // silent
-    }
-  }, [authFetch]);
-
-  const fetchProgram = useCallback(async () => {
-    try {
-      const data = await authFetch<LoyaltyProgram>("get", "/loyalty/program");
-      setProgram(data);
+  useEffect(() => {
+    if (program) {
       setConfigForm({
-        name: data.name,
-        pointsPerDollar: String(data.pointsPerDollar),
-        pointValue: String(data.pointValue),
-        minRedemption: String(data.minRedemption),
-        expirationDays: data.expirationDays != null ? String(data.expirationDays) : "",
-        tiers: data.tiers || [
+        name: program.name,
+        pointsPerDollar: String(program.pointsPerDollar),
+        pointValue: String(program.pointValue),
+        minRedemption: String(program.minRedemption),
+        expirationDays: program.expirationDays != null ? String(program.expirationDays) : "",
+        tiers: program.tiers || [
           { name: "Bronce", minPoints: 0, multiplier: 1 },
           { name: "Plata", minPoints: 500, multiplier: 1.5 },
           { name: "Oro", minPoints: 2000, multiplier: 2 },
         ],
       });
-    } catch {
-      // silent
     }
-  }, [authFetch]);
+  }, [program]);
 
-  const fetchDashboard = useCallback(async () => {
-    try {
-      const data = await authFetch<DashboardData>("get", "/loyalty/dashboard");
-      setDashboard(data);
-    } catch {
-      // silent
-    }
-  }, [authFetch]);
-
-  const fetchAll = useCallback(async () => {
-    setLoading(true);
-    await Promise.all([
-      fetchCustomers(),
-      fetchRewards(),
-      fetchProgram(),
-      fetchDashboard(),
-    ]);
-    setLoading(false);
-  }, [fetchCustomers, fetchRewards, fetchProgram, fetchDashboard]);
-
-  useEffect(() => {
-    if (!authLoading) fetchAll();
-  }, [authLoading, fetchAll]);
+  // Helper to invalidate queries after mutations
+  const invalidateCustomers = () => queryClient.invalidateQueries({ queryKey: ["loyalty-customers"] });
+  const invalidateRewards = () => queryClient.invalidateQueries({ queryKey: ["loyalty-rewards"] });
+  const invalidateDashboard = () => queryClient.invalidateQueries({ queryKey: ["loyalty-dashboard"] });
+  const invalidateProgram = () => queryClient.invalidateQueries({ queryKey: ["loyalty-program"] });
 
   // -----------------------------------------------------------------------
   // Customer detail
@@ -357,8 +332,8 @@ export default function LealtadPage() {
       );
       setShowEarnModal(false);
       setEarnForm({ customerId: "", amount: "" });
-      fetchCustomers();
-      fetchDashboard();
+      invalidateCustomers();
+      invalidateDashboard();
       if (selectedCustomer?.id === earnForm.customerId) {
         openCustomerDetail(earnForm.customerId);
       }
@@ -394,9 +369,9 @@ export default function LealtadPage() {
       );
       setShowRedeemModal(false);
       setRedeemForm({ customerId: "", rewardId: "", points: "" });
-      fetchCustomers();
-      fetchRewards();
-      fetchDashboard();
+      invalidateCustomers();
+      invalidateRewards();
+      invalidateDashboard();
       if (selectedCustomer?.id === redeemForm.customerId) {
         openCustomerDetail(redeemForm.customerId);
       }
@@ -427,8 +402,8 @@ export default function LealtadPage() {
       toast(`Ajuste aplicado. Nuevo balance: ${fmtNum(res.newBalance)}`, "success");
       setShowAdjustModal(false);
       setAdjustForm({ customerId: "", points: "", description: "" });
-      fetchCustomers();
-      fetchDashboard();
+      invalidateCustomers();
+      invalidateDashboard();
       if (selectedCustomer?.id === adjustForm.customerId) {
         openCustomerDetail(adjustForm.customerId);
       }
@@ -495,7 +470,7 @@ export default function LealtadPage() {
         toast("Recompensa creada", "success");
       }
       setShowRewardModal(false);
-      fetchRewards();
+      invalidateRewards();
     } catch (err: any) {
       toast(err.message || "Error al guardar recompensa", "error");
     } finally {
@@ -507,7 +482,7 @@ export default function LealtadPage() {
     try {
       await authFetch("delete", `/loyalty/rewards/${id}`);
       toast("Recompensa desactivada", "success");
-      fetchRewards();
+      invalidateRewards();
     } catch (err: any) {
       toast(err.message || "Error al desactivar recompensa", "error");
     }
@@ -531,7 +506,7 @@ export default function LealtadPage() {
         tiers: configForm.tiers,
       });
       toast("Configuracion guardada", "success");
-      fetchProgram();
+      invalidateProgram();
     } catch (err: any) {
       toast(err.message || "Error al guardar configuracion", "error");
     } finally {

@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/components/ui/toast";
+import { useApiQuery } from "@/hooks/use-api-query";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { FormField, Input, Select } from "@/components/ui/form-field";
@@ -145,13 +147,27 @@ const PRESET_COLORS = [
 export default function HorariosPage() {
   const { authFetch, loading: authLoading } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("Calendario Semanal");
 
-  // ── Shared state ──
-  const [branches, setBranches] = useState<Branch[]>([]);
-  const [employees, setEmployees] = useState<Employee[]>([]);
-  const [templates, setTemplates] = useState<ShiftTemplate[]>([]);
+  // ── Shared state (React Query) ──
+  const { data: branches = [] } = useApiQuery<Branch[]>("/branches", ["branches"]);
+  const { data: employees = [] } = useApiQuery<Employee[]>(
+    "/nomina/employees",
+    ["horarios-employees"],
+  );
+  const { data: templates = [], isLoading: loadingTemplates } = useApiQuery<ShiftTemplate[]>(
+    "/nomina/shifts/templates",
+    ["shift-templates"],
+  );
   const [selectedBranch, setSelectedBranch] = useState("");
+
+  // Set default branch when branches load
+  useEffect(() => {
+    if (branches.length > 0 && !selectedBranch) {
+      setSelectedBranch(branches[0].id);
+    }
+  }, [branches, selectedBranch]);
 
   // ── Calendar state ──
   const [weekStart, setWeekStart] = useState(() => getMonday(new Date()));
@@ -172,7 +188,6 @@ export default function HorariosPage() {
   const [bulkAssigning, setBulkAssigning] = useState(false);
 
   // ── Template CRUD state ──
-  const [loadingTemplates, setLoadingTemplates] = useState(false);
   const [showTemplateModal, setShowTemplateModal] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<ShiftTemplate | null>(
     null,
@@ -186,45 +201,6 @@ export default function HorariosPage() {
   });
 
   // ── Data loading ──
-
-  const fetchBranches = useCallback(async () => {
-    if (!authFetch) return;
-    try {
-      const data = await authFetch<Branch[]>("get", "/branches");
-      setBranches(data);
-      if (data.length > 0 && !selectedBranch) {
-        setSelectedBranch(data[0].id);
-      }
-    } catch {
-      // silent
-    }
-  }, [authFetch, selectedBranch]);
-
-  const fetchEmployees = useCallback(async () => {
-    if (!authFetch) return;
-    try {
-      const data = await authFetch<Employee[]>("get", "/nomina/employees");
-      setEmployees(data);
-    } catch {
-      // silent
-    }
-  }, [authFetch]);
-
-  const fetchTemplates = useCallback(async () => {
-    if (!authFetch) return;
-    setLoadingTemplates(true);
-    try {
-      const data = await authFetch<ShiftTemplate[]>(
-        "get",
-        "/nomina/shifts/templates",
-      );
-      setTemplates(data);
-    } catch {
-      // silent
-    } finally {
-      setLoadingTemplates(false);
-    }
-  }, [authFetch]);
 
   const fetchSchedule = useCallback(async () => {
     if (!authFetch || !selectedBranch) return;
@@ -254,14 +230,6 @@ export default function HorariosPage() {
       // silent
     }
   }, [authFetch, selectedBranch, weekStart]);
-
-  useEffect(() => {
-    if (!authLoading) {
-      fetchBranches();
-      fetchEmployees();
-      fetchTemplates();
-    }
-  }, [authLoading, fetchBranches, fetchEmployees, fetchTemplates]);
 
   useEffect(() => {
     if (!authLoading && selectedBranch) {
@@ -400,7 +368,7 @@ export default function HorariosPage() {
         toast("Turno creado");
       }
       setShowTemplateModal(false);
-      fetchTemplates();
+      queryClient.invalidateQueries({ queryKey: ["shift-templates"] });
     } catch {
       toast("Error al guardar turno", "error");
     }
@@ -411,7 +379,7 @@ export default function HorariosPage() {
     try {
       await authFetch("delete", `/nomina/shifts/templates/${id}`);
       toast("Turno eliminado");
-      fetchTemplates();
+      queryClient.invalidateQueries({ queryKey: ["shift-templates"] });
     } catch {
       toast("Error al eliminar turno", "error");
     }

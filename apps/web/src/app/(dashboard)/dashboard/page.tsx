@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useAuth } from "@/hooks/use-auth";
+import { useApiQuery } from "@/hooks/use-api-query";
 import { useToast } from "@/components/ui/toast";
 import { hasRole } from "@/lib/auth";
 import { DateRangePicker, type DateRange } from "@/components/dashboard/date-range-picker";
@@ -47,15 +48,11 @@ import {
   AreaChart,
   Area,
 } from "recharts";
+import { safeNum } from "@luka/shared";
 
 // =============================================================================
 // Helpers
 // =============================================================================
-
-function safeNum(value: unknown): number {
-  const n = Number(value);
-  return isNaN(n) ? 0 : n;
-}
 
 function fmt(v: number): string {
   return safeNum(v).toLocaleString("es-MX", { style: "currency", currency: "MXN" });
@@ -1133,20 +1130,17 @@ function getDefaultDateRange(): DateRange {
 }
 
 export default function DashboardPage() {
-  const { user, authFetch, loading: authLoading } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
 
   const [currentView, setCurrentView] = useState<DashboardView>("investor");
   const [showSwitcher, setShowSwitcher] = useState(false);
-  const [dashboardData, setDashboardData] = useState<any>(null);
-  const [dashboardLoading, setDashboardLoading] = useState(true);
   const [dateRange, setDateRange] = useState<DateRange>(getDefaultDateRange);
 
   // Drill-down state: when user clicks a branch in investor view
   const [drillDownBranch, setDrillDownBranch] = useState<string | null>(null);
 
   // Branch selector state (for store view)
-  const [branches, setBranches] = useState<Array<{ id: string; name: string }>>([]);
   const [selectedBranch, setSelectedBranch] = useState<string>("");
 
   // Determine default view from user roles
@@ -1158,68 +1152,60 @@ export default function DashboardPage() {
   }, [user]);
 
   // Fetch branches for store view
-  useEffect(() => {
-    if (authLoading || !user) return;
-    authFetch<Array<{ id: string; name: string }>>("get", "/branches")
-      .then((data) => {
-        setBranches(data || []);
-        if (data?.length > 0 && !selectedBranch) {
-          const assignedBranch = user.roles.find((r) => r.branchId)?.branchId;
-          if (assignedBranch && data.some((b) => b.id === assignedBranch)) {
-            setSelectedBranch(assignedBranch);
-          } else {
-            setSelectedBranch(data[0].id);
-          }
-        }
-      })
-      .catch(() => {});
-  }, [authLoading, user, authFetch]);
-
-  // Fetch dashboard data with date range
-  const fetchDashboard = useCallback(
-    async (view: DashboardView, branchId?: string, range?: DateRange) => {
-      setDashboardLoading(true);
-      try {
-        let endpoint = "";
-        switch (view) {
-          case "store":
-            if (!branchId) return;
-            endpoint = `/reportes/dashboard/store/${branchId}`;
-            break;
-          case "cedis":
-            endpoint = "/reportes/dashboard/cedis";
-            break;
-          case "investor":
-            endpoint = "/reportes/dashboard/investor";
-            break;
-          case "accountant":
-            endpoint = "/reportes/dashboard/accountant";
-            break;
-        }
-        // Append date range query params
-        if (range) {
-          endpoint += `?startDate=${range.startDate}&endDate=${range.endDate}`;
-        }
-        const data = await authFetch<any>("get", endpoint);
-        setDashboardData(data);
-      } catch (err) {
-        toast(err instanceof Error ? err.message : "Error al cargar datos", "error");
-        setDashboardData(null);
-      } finally {
-        setDashboardLoading(false);
-      }
-    },
-    [authFetch],
+  const { data: branchesData = [] } = useApiQuery<Array<{ id: string; name: string }>>(
+    "/branches",
+    ["branches"],
+    { enabled: !authLoading && !!user },
   );
 
-  // Refetch when view, branch, or date range changes
+  // Set selectedBranch from fetched branches
+  const branches = branchesData;
   useEffect(() => {
-    if (authLoading || !user) return;
-    const effectiveView = drillDownBranch ? "store" : currentView;
-    const effectiveBranch = drillDownBranch || selectedBranch;
-    if (effectiveView === "store" && !effectiveBranch) return;
-    fetchDashboard(effectiveView, effectiveBranch, dateRange);
-  }, [currentView, selectedBranch, drillDownBranch, dateRange, authLoading, user, fetchDashboard]);
+    if (branches.length > 0 && !selectedBranch && user) {
+      const assignedBranch = user.roles.find((r) => r.branchId)?.branchId;
+      if (assignedBranch && branches.some((b) => b.id === assignedBranch)) {
+        setSelectedBranch(assignedBranch);
+      } else {
+        setSelectedBranch(branches[0].id);
+      }
+    }
+  }, [branches, selectedBranch, user]);
+
+  // Compute dashboard endpoint based on view, branch, and date range
+  const effectiveView = drillDownBranch ? "store" : currentView;
+  const effectiveBranch = drillDownBranch || selectedBranch;
+
+  const dashboardEndpoint = useMemo(() => {
+    let endpoint = "";
+    switch (effectiveView) {
+      case "store":
+        if (!effectiveBranch) return "";
+        endpoint = `/reportes/dashboard/store/${effectiveBranch}`;
+        break;
+      case "cedis":
+        endpoint = "/reportes/dashboard/cedis";
+        break;
+      case "investor":
+        endpoint = "/reportes/dashboard/investor";
+        break;
+      case "accountant":
+        endpoint = "/reportes/dashboard/accountant";
+        break;
+    }
+    if (dateRange) {
+      endpoint += `?startDate=${dateRange.startDate}&endDate=${dateRange.endDate}`;
+    }
+    return endpoint;
+  }, [effectiveView, effectiveBranch, dateRange]);
+
+  const dashboardEnabled = !authLoading && !!user && !!dashboardEndpoint &&
+    (effectiveView !== "store" || !!effectiveBranch);
+
+  const { data: dashboardData, isLoading: dashboardLoading } = useApiQuery<any>(
+    dashboardEndpoint || "/reportes/dashboard/investor",
+    ["dashboard", effectiveView, effectiveBranch, dateRange.startDate, dateRange.endDate],
+    { enabled: dashboardEnabled },
+  );
 
   // Handle drill-down from investor branch chart
   const handleDrillDown = useCallback(

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useMemo } from "react";
 import {
   Bike,
   UtensilsCrossed,
@@ -13,29 +13,21 @@ import {
   Search,
   Download,
 } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
+import { useApiQuery } from "@/hooks/use-api-query";
 import { useToast } from "@/components/ui/toast";
 import { DataTable } from "@/components/ui/data-table";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { FormField, Input, Select } from "@/components/ui/form-field";
-import { formatMXN } from "@luka/shared";
-
-function safeNum(value: unknown): number {
-  const n = Number(value);
-  return isNaN(n) ? 0 : n;
-}
+import { formatMXN, safeNum } from "@luka/shared";
+import type { Branch } from "@luka/shared";
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
-
-interface Branch {
-  id: string;
-  name: string;
-  code: string;
-}
 
 interface DeliveryOrder {
   id: string;
@@ -167,31 +159,57 @@ const STATUS_VARIANT: Record<string, string> = {
 export default function DeliveryPage() {
   const { user, loading: authLoading, authFetch } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [tab, setTab] = useState<Tab>("Ordenes");
 
-  // Orders state
-  const [orders, setOrders] = useState<DeliveryOrder[]>([]);
-  const [ordersTotal, setOrdersTotal] = useState(0);
+  // Orders filter/pagination state
   const [ordersPage, setOrdersPage] = useState(1);
-  const [ordersTotalPages, setOrdersTotalPages] = useState(1);
-  const [ordersLoading, setOrdersLoading] = useState(false);
   const [filterPlatform, setFilterPlatform] = useState("");
   const [filterBranch, setFilterBranch] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
   const [filterDateFrom, setFilterDateFrom] = useState("");
   const [filterDateTo, setFilterDateTo] = useState("");
 
-  // Summary state
-  const [summary, setSummary] = useState<DeliverySummary | null>(null);
-  const [summaryLoading, setSummaryLoading] = useState(false);
+  // Build orders query string
+  const ordersQueryString = useMemo(() => {
+    const params = new URLSearchParams();
+    params.set("page", String(ordersPage));
+    params.set("limit", "25");
+    if (filterPlatform) params.set("platform", filterPlatform);
+    if (filterBranch) params.set("branchId", filterBranch);
+    if (filterStatus) params.set("status", filterStatus);
+    if (filterDateFrom) params.set("dateFrom", filterDateFrom);
+    if (filterDateTo) params.set("dateTo", filterDateTo);
+    return params.toString();
+  }, [ordersPage, filterPlatform, filterBranch, filterStatus, filterDateFrom, filterDateTo]);
 
-  // Config state
-  const [configs, setConfigs] = useState<DeliveryConfig[]>([]);
-  const [configsLoading, setConfigsLoading] = useState(false);
+  // Orders (React Query)
+  const { data: ordersResponse, isLoading: ordersLoading } = useApiQuery<OrdersResponse>(
+    `/delivery/orders?${ordersQueryString}`,
+    ["delivery-orders", ordersQueryString],
+    { enabled: tab === "Ordenes" },
+  );
+  const orders = ordersResponse?.data ?? [];
+  const ordersTotal = ordersResponse?.total ?? 0;
+  const ordersTotalPages = ordersResponse?.totalPages ?? 1;
+
+  // Summary (React Query)
+  const { data: summary, isLoading: summaryLoading } = useApiQuery<DeliverySummary>(
+    "/delivery/summary",
+    ["delivery-summary"],
+    { enabled: tab === "Dashboard" },
+  );
+
+  // Config (React Query)
+  const { data: configs = [], isLoading: configsLoading } = useApiQuery<DeliveryConfig[]>(
+    "/delivery/config",
+    ["delivery-config"],
+    { enabled: tab === "Configuracion" },
+  );
   const [syncingPlatform, setSyncingPlatform] = useState<string | null>(null);
 
-  // Branch list for filters
-  const [branches, setBranches] = useState<Branch[]>([]);
+  // Branch list for filters (React Query)
+  const { data: branches = [] } = useApiQuery<Branch[]>("/branches", ["branches"]);
 
   // Manual order modal
   const [showModal, setShowModal] = useState(false);
@@ -208,103 +226,6 @@ export default function DeliveryPage() {
   } | null>(null);
 
   // ---------------------------------------------------------------
-  // Data fetching
-  // ---------------------------------------------------------------
-
-  const fetchBranches = useCallback(async () => {
-    try {
-      const data = await authFetch<Branch[]>("get", "/branches");
-      setBranches(data);
-    } catch (err) {
-      toast(err instanceof Error ? err.message : "Error al cargar datos", "error");
-    }
-  }, [authFetch]);
-
-  const fetchOrders = useCallback(async () => {
-    setOrdersLoading(true);
-    try {
-      const params = new URLSearchParams();
-      params.set("page", String(ordersPage));
-      params.set("limit", "25");
-      if (filterPlatform) params.set("platform", filterPlatform);
-      if (filterBranch) params.set("branchId", filterBranch);
-      if (filterStatus) params.set("status", filterStatus);
-      if (filterDateFrom) params.set("dateFrom", filterDateFrom);
-      if (filterDateTo) params.set("dateTo", filterDateTo);
-
-      const res = await authFetch<OrdersResponse>(
-        "get",
-        `/delivery/orders?${params.toString()}`,
-      );
-      setOrders(res.data);
-      setOrdersTotal(res.total);
-      setOrdersTotalPages(res.totalPages);
-    } catch (err) {
-      toast(err instanceof Error ? err.message : "Error al cargar datos", "error");
-    } finally {
-      setOrdersLoading(false);
-    }
-  }, [
-    authFetch,
-    ordersPage,
-    filterPlatform,
-    filterBranch,
-    filterStatus,
-    filterDateFrom,
-    filterDateTo,
-  ]);
-
-  const fetchSummary = useCallback(async () => {
-    setSummaryLoading(true);
-    try {
-      const data = await authFetch<DeliverySummary>(
-        "get",
-        "/delivery/summary",
-      );
-      setSummary(data);
-    } catch (err) {
-      toast(err instanceof Error ? err.message : "Error al cargar datos", "error");
-    } finally {
-      setSummaryLoading(false);
-    }
-  }, [authFetch]);
-
-  const fetchConfigs = useCallback(async () => {
-    setConfigsLoading(true);
-    try {
-      const data = await authFetch<DeliveryConfig[]>(
-        "get",
-        "/delivery/config",
-      );
-      setConfigs(data);
-    } catch (err) {
-      toast(err instanceof Error ? err.message : "Error al cargar datos", "error");
-    } finally {
-      setConfigsLoading(false);
-    }
-  }, [authFetch]);
-
-  useEffect(() => {
-    if (!user) return;
-    fetchBranches();
-  }, [user, fetchBranches]);
-
-  useEffect(() => {
-    if (!user) return;
-    if (tab === "Ordenes") fetchOrders();
-  }, [user, tab, fetchOrders]);
-
-  useEffect(() => {
-    if (!user) return;
-    if (tab === "Dashboard") fetchSummary();
-  }, [user, tab, fetchSummary]);
-
-  useEffect(() => {
-    if (!user) return;
-    if (tab === "Configuracion") fetchConfigs();
-  }, [user, tab, fetchConfigs]);
-
-  // ---------------------------------------------------------------
   // Handlers
   // ---------------------------------------------------------------
 
@@ -313,7 +234,7 @@ export default function DeliveryPage() {
       await authFetch("patch", `/delivery/orders/${orderId}/status`, {
         status: newStatus,
       });
-      fetchOrders();
+      queryClient.invalidateQueries({ queryKey: ["delivery-orders"] });
     } catch (err) {
       toast(err instanceof Error ? err.message : "Error al actualizar", "error");
     }
@@ -337,7 +258,7 @@ export default function DeliveryPage() {
         items: [],
       });
       setShowModal(false);
-      fetchOrders();
+      queryClient.invalidateQueries({ queryKey: ["delivery-orders"] });
     } catch (err) {
       toast(err instanceof Error ? err.message : "Error al guardar", "error");
     } finally {
@@ -352,7 +273,7 @@ export default function DeliveryPage() {
       await authFetch("post", "/delivery/config", editingConfig);
       setShowConfigModal(false);
       setEditingConfig(null);
-      fetchConfigs();
+      queryClient.invalidateQueries({ queryKey: ["delivery-config"] });
     } catch (err) {
       toast(err instanceof Error ? err.message : "Error al guardar", "error");
     }
@@ -362,7 +283,7 @@ export default function DeliveryPage() {
     setSyncingPlatform(platform);
     try {
       await authFetch("post", "/delivery/sync", { platform });
-      fetchConfigs();
+      queryClient.invalidateQueries({ queryKey: ["delivery-config"] });
     } catch (err) {
       toast(err instanceof Error ? err.message : "Error al actualizar", "error");
     } finally {
@@ -377,7 +298,7 @@ export default function DeliveryPage() {
         branchId: config.branchId || undefined,
         isActive: !config.isActive,
       });
-      fetchConfigs();
+      queryClient.invalidateQueries({ queryKey: ["delivery-config"] });
     } catch (err) {
       toast(err instanceof Error ? err.message : "Error al actualizar", "error");
     }
@@ -578,7 +499,7 @@ export default function DeliveryPage() {
             className="border rounded-md px-3 py-2 text-sm"
           />
         </div>
-        <Button variant="outline" size="sm" onClick={fetchOrders}>
+        <Button variant="outline" size="sm" onClick={() => queryClient.invalidateQueries({ queryKey: ["delivery-orders"] })}>
           <Search className="h-4 w-4" /> Buscar
         </Button>
         <div className="ml-auto">
@@ -908,7 +829,7 @@ export default function DeliveryPage() {
                       : authFetch("post", "/delivery/config", {
                           platform,
                           isActive: true,
-                        }).then(() => fetchConfigs())
+                        }).then(() => queryClient.invalidateQueries({ queryKey: ["delivery-config"] }))
                   }
                   className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
                     config?.isActive

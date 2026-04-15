@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/components/ui/toast";
+import { useApiQuery } from "@/hooks/use-api-query";
 import { DataTable } from "@/components/ui/data-table";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
@@ -67,7 +68,7 @@ export default function AsistenciaPage() {
   const [activeTab, setActiveTab] = useState("Checador");
 
   // ── Common state ──
-  const [branches, setBranches] = useState<any[]>([]);
+  const { data: branches = [] } = useApiQuery<any[]>("/branches", ["branches"]);
   const [selectedBranch, setSelectedBranch] = useState("");
 
   // ── Checador state ──
@@ -107,23 +108,12 @@ export default function AsistenciaPage() {
   const [showHolidayModal, setShowHolidayModal] = useState(false);
   const [holidayDate, setHolidayDate] = useState(() => new Date().toISOString().split("T")[0]);
 
-  // ── Fetch branches ──
-  const fetchBranches = useCallback(async () => {
-    try {
-      const data = await authFetch<any[]>("get", "/branches");
-      setBranches(data);
-      if (data.length > 0 && !selectedBranch) {
-        setSelectedBranch(data[0].id);
-      }
-    } catch {
-      // silent
-    }
-  }, [authFetch, selectedBranch]);
-
+  // ── Set default branch when branches load ──
   useEffect(() => {
-    if (authLoading) return;
-    fetchBranches();
-  }, [authLoading, fetchBranches]);
+    if (branches.length > 0 && !selectedBranch) {
+      setSelectedBranch(branches[0].id);
+    }
+  }, [branches, selectedBranch]);
 
   // ── Checador: fetch today ──
   const fetchToday = useCallback(async () => {

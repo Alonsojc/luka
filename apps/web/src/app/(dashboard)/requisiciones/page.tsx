@@ -19,6 +19,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
+import { useApiQuery } from "@/hooks/use-api-query";
 import { DataTable } from "@/components/ui/data-table";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
@@ -150,8 +151,12 @@ export default function RequisicionesPage() {
   const [requisitions, setRequisitions] = useState<Requisition[]>([]);
   const [pendingRequisitions, setPendingRequisitions] = useState<Requisition[]>([]);
   const [summary, setSummary] = useState<Summary | null>(null);
-  const [branches, setBranches] = useState<Branch[]>([]);
-  const [products, setProducts] = useState<Product[]>([]);
+  const { data: branches = [] } = useApiQuery<Branch[]>("/branches", ["branches"]);
+  const { data: productsResponse } = useApiQuery<{ data: Product[] }>(
+    "/inventarios/products?limit=500",
+    ["requisiciones-products"],
+  );
+  const products = productsResponse?.data || [];
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -199,27 +204,6 @@ export default function RequisicionesPage() {
   // Data fetching
   // ---------------------------------------------------------------------------
 
-  const fetchBranches = useCallback(async () => {
-    try {
-      const data = await authFetch<Branch[]>("get", "/branches");
-      setBranches(data);
-    } catch {
-      /* silent */
-    }
-  }, [authFetch]);
-
-  const fetchProducts = useCallback(async () => {
-    try {
-      const data = await authFetch<{ data: Product[] }>(
-        "get",
-        "/inventarios/products?limit=500",
-      );
-      setProducts(data.data || []);
-    } catch {
-      /* silent */
-    }
-  }, [authFetch]);
-
   const fetchRequisitions = useCallback(async () => {
     setLoading(true);
     try {
@@ -266,11 +250,9 @@ export default function RequisicionesPage() {
 
   useEffect(() => {
     if (!authLoading && user) {
-      fetchBranches();
-      fetchProducts();
       fetchSummary();
     }
-  }, [authLoading, user, fetchBranches, fetchProducts, fetchSummary]);
+  }, [authLoading, user, fetchSummary]);
 
   useEffect(() => {
     if (!authLoading && user) {

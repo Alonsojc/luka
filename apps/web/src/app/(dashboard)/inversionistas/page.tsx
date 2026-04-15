@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useMemo } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   DollarSign,
   TrendingUp,
@@ -27,6 +28,7 @@ import {
 import { generateFinancialPDF } from "@/lib/pdf-generator";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/components/ui/toast";
+import { useApiQuery } from "@/hooks/use-api-query";
 import { DataTable } from "@/components/ui/data-table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/form-field";
@@ -156,8 +158,9 @@ function getDefaultDateRange(): { startDate: string; endDate: string } {
 // ---------------------------------------------------------------------------
 
 export default function InversionistasPage() {
-  const { authFetch, loading: authLoading } = useAuth();
+  const { loading: authLoading } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   // --- state ----------------------------------------------------------------
   const [activeTab, setActiveTab] = useState<TabKey>("rentabilidad");
@@ -165,110 +168,36 @@ export default function InversionistasPage() {
   const [startDate, setStartDate] = useState(defaults.startDate);
   const [endDate, setEndDate] = useState(defaults.endDate);
 
-  const [branches, setBranches] = useState<Branch[]>([]);
-  const [profitability, setProfitability] = useState<BranchProfitability[]>([]);
-  const [pnl, setPnl] = useState<PnlData | null>(null);
-  const [roi, setRoi] = useState<RoiData | null>(null);
+  // --- React Query fetchers --------------------------------------------------
+  const { data: branches = [] } = useApiQuery<Branch[]>(
+    "/branches",
+    ["branches"],
+  );
 
-  const [loadingProfit, setLoadingProfit] = useState(false);
-  const [loadingPnl, setLoadingPnl] = useState(false);
-  const [loadingRoi, setLoadingRoi] = useState(false);
+  const { data: profitability = [], isLoading: loadingProfit } = useApiQuery<BranchProfitability[]>(
+    `/inversionistas/profitability/by-branch?startDate=${startDate}&endDate=${endDate}`,
+    ["inversionistas-profitability", startDate, endDate],
+  );
 
-  // Analytics state
-  const [trends, setTrends] = useState<TrendsData | null>(null);
-  const [analyticsKpis, setAnalyticsKpis] = useState<KpisData | null>(null);
-  const [analyticsLoading, setAnalyticsLoading] = useState(true);
+  const { data: pnl, isLoading: loadingPnl } = useApiQuery<PnlData>(
+    `/inversionistas/pnl?startDate=${startDate}&endDate=${endDate}`,
+    ["inversionistas-pnl", startDate, endDate],
+  );
 
-  // --- fetchers -------------------------------------------------------------
-  const fetchBranches = useCallback(async () => {
-    if (authLoading) return;
-    try {
-      const data = await authFetch<Branch[]>("get", "/branches");
-      setBranches(data);
-    } catch {
-      toast("Error al cargar sucursales", "error");
-    }
-  }, [authFetch, authLoading, toast]);
+  const { data: roi, isLoading: loadingRoi } = useApiQuery<RoiData>(
+    `/inversionistas/roi?startDate=${startDate}&endDate=${endDate}`,
+    ["inversionistas-roi", startDate, endDate],
+  );
 
-  const fetchProfitability = useCallback(async () => {
-    if (authLoading) return;
-    setLoadingProfit(true);
-    try {
-      const data = await authFetch<BranchProfitability[]>(
-        "get",
-        `/inversionistas/profitability/by-branch?startDate=${startDate}&endDate=${endDate}`
-      );
-      setProfitability(data);
-    } catch {
-      toast("Error al cargar rentabilidad", "error");
-    } finally {
-      setLoadingProfit(false);
-    }
-  }, [authFetch, authLoading, startDate, endDate, toast]);
+  const { data: trends, isLoading: analyticsLoading } = useApiQuery<TrendsData>(
+    "/reportes/analytics/trends",
+    ["analytics-trends"],
+  );
 
-  const fetchPnl = useCallback(async () => {
-    if (authLoading) return;
-    setLoadingPnl(true);
-    try {
-      const data = await authFetch<PnlData>(
-        "get",
-        `/inversionistas/pnl?startDate=${startDate}&endDate=${endDate}`
-      );
-      setPnl(data);
-    } catch {
-      toast("Error al cargar estado de resultados", "error");
-    } finally {
-      setLoadingPnl(false);
-    }
-  }, [authFetch, authLoading, startDate, endDate, toast]);
-
-  const fetchRoi = useCallback(async () => {
-    if (authLoading) return;
-    setLoadingRoi(true);
-    try {
-      const data = await authFetch<RoiData>(
-        "get",
-        `/inversionistas/roi?startDate=${startDate}&endDate=${endDate}`
-      );
-      setRoi(data);
-    } catch {
-      toast("Error al cargar ROI", "error");
-    } finally {
-      setLoadingRoi(false);
-    }
-  }, [authFetch, authLoading, startDate, endDate, toast]);
-
-  // --- effects --------------------------------------------------------------
-  useEffect(() => {
-    fetchBranches();
-  }, [fetchBranches]);
-
-  useEffect(() => {
-    if (authLoading) return;
-    fetchProfitability();
-    fetchPnl();
-    fetchRoi();
-  }, [authLoading, fetchProfitability, fetchPnl, fetchRoi]);
-
-  // Fetch analytics trends and KPIs
-  useEffect(() => {
-    if (authLoading) return;
-    async function fetchAnalytics() {
-      try {
-        const [t, k] = await Promise.all([
-          authFetch<TrendsData>("get", "/reportes/analytics/trends").catch(() => null),
-          authFetch<KpisData>("get", "/reportes/analytics/kpis").catch(() => null),
-        ]);
-        setTrends(t);
-        setAnalyticsKpis(k);
-      } catch {
-        // best effort
-      } finally {
-        setAnalyticsLoading(false);
-      }
-    }
-    fetchAnalytics();
-  }, [authFetch, authLoading]);
+  const { data: analyticsKpis } = useApiQuery<KpisData>(
+    "/reportes/analytics/kpis",
+    ["analytics-kpis"],
+  );
 
   // --- derived KPIs ---------------------------------------------------------
   const kpis = useMemo(() => {
@@ -364,9 +293,9 @@ export default function InversionistasPage() {
 
   // --- refresh --------------------------------------------------------------
   const handleRefresh = () => {
-    fetchProfitability();
-    fetchPnl();
-    fetchRoi();
+    queryClient.invalidateQueries({ queryKey: ["inversionistas-profitability"] });
+    queryClient.invalidateQueries({ queryKey: ["inversionistas-pnl"] });
+    queryClient.invalidateQueries({ queryKey: ["inversionistas-roi"] });
   };
 
   // --- loading guard --------------------------------------------------------

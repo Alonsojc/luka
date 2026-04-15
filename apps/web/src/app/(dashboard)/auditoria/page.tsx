@@ -28,6 +28,7 @@ import {
   Line,
 } from "recharts";
 import { useAuth } from "@/hooks/use-auth";
+import { useApiQuery } from "@/hooks/use-api-query";
 import { Button } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/form-field";
 
@@ -215,8 +216,8 @@ export default function AuditoriaPage() {
       </div>
 
       {/* Tab Content */}
-      {tab === "actividad" && <ActividadTab authFetch={authFetch} />}
-      {tab === "estadisticas" && <EstadisticasTab authFetch={authFetch} />}
+      {tab === "actividad" && <ActividadTab />}
+      {tab === "estadisticas" && <EstadisticasTab />}
       {tab === "buscar" && <BuscarEntidadTab authFetch={authFetch} />}
     </div>
   );
@@ -226,13 +227,7 @@ export default function AuditoriaPage() {
 // Actividad Tab
 // ---------------------------------------------------------------------------
 
-function ActividadTab({
-  authFetch,
-}: {
-  authFetch: <T>(method: "get" | "post" | "patch" | "put" | "delete", path: string, body?: unknown) => Promise<T>;
-}) {
-  const [data, setData] = useState<PaginatedLogs | null>(null);
-  const [loading, setLoading] = useState(true);
+function ActividadTab() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   // Filters
@@ -243,29 +238,19 @@ function ActividadTab({
   const [page, setPage] = useState(1);
   const [filtersOpen, setFiltersOpen] = useState(false);
 
-  const fetchLogs = useCallback(async () => {
-    setLoading(true);
-    try {
-      const params = new URLSearchParams();
-      params.set("page", String(page));
-      params.set("limit", "20");
-      if (filterModule) params.set("module", filterModule);
-      if (filterAction) params.set("action", filterAction);
-      if (filterStartDate) params.set("startDate", filterStartDate);
-      if (filterEndDate) params.set("endDate", filterEndDate);
+  // Build query string for audit logs
+  const auditParams = new URLSearchParams();
+  auditParams.set("page", String(page));
+  auditParams.set("limit", "20");
+  if (filterModule) auditParams.set("module", filterModule);
+  if (filterAction) auditParams.set("action", filterAction);
+  if (filterStartDate) auditParams.set("startDate", filterStartDate);
+  if (filterEndDate) auditParams.set("endDate", filterEndDate);
 
-      const result = await authFetch<PaginatedLogs>("get", `/audit?${params.toString()}`);
-      setData(result);
-    } catch {
-      // silent
-    } finally {
-      setLoading(false);
-    }
-  }, [authFetch, page, filterModule, filterAction, filterStartDate, filterEndDate]);
-
-  useEffect(() => {
-    fetchLogs();
-  }, [fetchLogs]);
+  const { data, isLoading: loading } = useApiQuery<PaginatedLogs>(
+    `/audit?${auditParams.toString()}`,
+    ["audit-logs", String(page), filterModule, filterAction, filterStartDate, filterEndDate],
+  );
 
   const clearFilters = () => {
     setFilterModule("");
@@ -522,35 +507,20 @@ function LogRow({
 // Estadisticas Tab
 // ---------------------------------------------------------------------------
 
-function EstadisticasTab({
-  authFetch,
-}: {
-  authFetch: <T>(method: "get" | "post" | "patch" | "put" | "delete", path: string, body?: unknown) => Promise<T>;
-}) {
-  const [stats, setStats] = useState<AuditStats | null>(null);
-  const [loading, setLoading] = useState(true);
+function EstadisticasTab() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
 
-  const fetchStats = useCallback(async () => {
-    setLoading(true);
-    try {
-      const params = new URLSearchParams();
-      if (startDate) params.set("startDate", startDate);
-      if (endDate) params.set("endDate", endDate);
-      const qs = params.toString();
-      const result = await authFetch<AuditStats>("get", `/audit/stats${qs ? `?${qs}` : ""}`);
-      setStats(result);
-    } catch {
-      // silent
-    } finally {
-      setLoading(false);
-    }
-  }, [authFetch, startDate, endDate]);
+  // Build query string for audit stats
+  const statsParams = new URLSearchParams();
+  if (startDate) statsParams.set("startDate", startDate);
+  if (endDate) statsParams.set("endDate", endDate);
+  const statsQs = statsParams.toString();
 
-  useEffect(() => {
-    fetchStats();
-  }, [fetchStats]);
+  const { data: stats, isLoading: loading } = useApiQuery<AuditStats>(
+    `/audit/stats${statsQs ? `?${statsQs}` : ""}`,
+    ["audit-stats", startDate, endDate],
+  );
 
   if (loading) {
     return (

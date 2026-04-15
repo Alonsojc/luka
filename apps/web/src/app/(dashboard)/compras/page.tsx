@@ -10,66 +10,8 @@ import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { FormField, Input, Select, Textarea } from "@/components/ui/form-field";
-import { formatMXN } from "@luka/shared";
-
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
-interface Supplier {
-  id: string;
-  name: string;
-  rfc: string | null;
-  contactName: string | null;
-  email: string | null;
-  phone: string | null;
-  address: string | null;
-  paymentTermsDays: number;
-  bankAccount: string | null;
-  clabe: string | null;
-  isActive: boolean;
-}
-
-interface Product {
-  id: string;
-  sku: string;
-  name: string;
-  unitOfMeasure: string;
-  costPerUnit: string | number;
-}
-
-interface Branch {
-  id: string;
-  name: string;
-  code: string;
-}
-
-interface POItem {
-  id: string;
-  productId: string;
-  quantity: string | number;
-  unitPrice: string | number;
-  receivedQuantity: string | number;
-  unitOfMeasure: string;
-  product: Product;
-}
-
-interface PurchaseOrder {
-  id: string;
-  folio?: string;
-  supplierId: string;
-  branchId: string;
-  status: "DRAFT" | "SENT" | "PARTIALLY_RECEIVED" | "RECEIVED" | "CANCELLED";
-  subtotal: string | number;
-  tax: string | number;
-  total: string | number;
-  currency: string;
-  notes: string | null;
-  createdAt: string;
-  supplier: Supplier;
-  branch: Branch;
-  items: POItem[];
-}
+import { formatMXN, safeNum } from "@luka/shared";
+import type { Supplier, Product, Branch, POItem, PurchaseOrder } from "@luka/shared";
 
 // Local line-item shape used in the create/edit modal
 interface LineItem {
@@ -146,11 +88,6 @@ const STATUS_VARIANT: Record<string, string> = {
   RECEIVED: "green",
   CANCELLED: "red",
 };
-
-function safeNum(value: unknown): number {
-  const n = Number(value);
-  return isNaN(n) ? 0 : n;
-}
 
 function num(v: string | number): number {
   return typeof v === "string" ? parseFloat(v) || 0 : (isNaN(v) ? 0 : v);

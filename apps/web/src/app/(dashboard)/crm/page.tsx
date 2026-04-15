@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Plus,
   Pencil,
@@ -16,23 +16,20 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { exportToCSV } from "@/lib/export-csv";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
+import { useApiQuery } from "@/hooks/use-api-query";
 import { useToast } from "@/components/ui/toast";
 import { DataTable } from "@/components/ui/data-table";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { FormField, Input, Select } from "@/components/ui/form-field";
+import type { Branch } from "@luka/shared";
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
-
-interface Branch {
-  id: string;
-  name: string;
-  code: string;
-}
 
 interface Customer {
   id: string;
@@ -139,6 +136,7 @@ const normalize = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, 
 export default function CRMPage() {
   const { authFetch, loading: authLoading } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const [activeTab, setActiveTab] = useState<TabKey>("clientes");
 
@@ -152,122 +150,44 @@ export default function CRMPage() {
   // Reset search when tab changes
   useEffect(() => { setSearchTerm(""); setCurrentPage(1); }, [activeTab]);
 
-  // ---- Shared ----
-  const [branches, setBranches] = useState<Branch[]>([]);
+  // ---- Shared (React Query) ----
+  const { data: branches = [] } = useApiQuery<Branch[]>("/branches", ["branches"]);
 
-  // ---- Customers state ----
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [customersLoading, setCustomersLoading] = useState(false);
+  // ---- Customers (React Query) ----
+  const { data: customers = [], isLoading: customersLoading } = useApiQuery<Customer[]>(
+    "/crm/customers",
+    ["crm-customers"],
+    { enabled: activeTab === "clientes" || activeTab === "lealtad" },
+  );
   const [customerModalOpen, setCustomerModalOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [customerForm, setCustomerForm] = useState({ ...EMPTY_CUSTOMER_FORM });
   const [customerSaving, setCustomerSaving] = useState(false);
   const [deleteCustomerConfirm, setDeleteCustomerConfirm] = useState<Customer | null>(null);
 
-  // ---- Loyalty state ----
+  // ---- Loyalty (React Query) ----
   const [selectedCustomerId, setSelectedCustomerId] = useState("");
-  const [loyaltyTxns, setLoyaltyTxns] = useState<LoyaltyTransaction[]>([]);
-  const [loyaltyLoading, setLoyaltyLoading] = useState(false);
+  const { data: loyaltyTxns = [], isLoading: loyaltyLoading } = useApiQuery<LoyaltyTransaction[]>(
+    `/crm/loyalty/customer/${selectedCustomerId}`,
+    ["crm-loyalty", selectedCustomerId],
+    { enabled: activeTab === "lealtad" && !!selectedCustomerId },
+  );
   const [pointsModalOpen, setPointsModalOpen] = useState(false);
   const [pointsModalMode, setPointsModalMode] = useState<"earn" | "redeem">("earn");
   const [pointsForm, setPointsForm] = useState({ ...EMPTY_POINTS_FORM });
   const [pointsSaving, setPointsSaving] = useState(false);
 
-  // ---- Promotions state ----
-  const [promotions, setPromotions] = useState<Promotion[]>([]);
-  const [promotionsLoading, setPromotionsLoading] = useState(false);
+  // ---- Promotions (React Query) ----
+  const { data: promotions = [], isLoading: promotionsLoading } = useApiQuery<Promotion[]>(
+    "/crm/promotions",
+    ["crm-promotions"],
+    { enabled: activeTab === "promociones" },
+  );
   const [promoModalOpen, setPromoModalOpen] = useState(false);
   const [editingPromo, setEditingPromo] = useState<Promotion | null>(null);
   const [promoForm, setPromoForm] = useState({ ...EMPTY_PROMO_FORM });
   const [promoSaving, setPromoSaving] = useState(false);
   const [deletePromoConfirm, setDeletePromoConfirm] = useState<Promotion | null>(null);
-
-  // =======================================================================
-  // Data-fetching helpers
-  // =======================================================================
-
-  const fetchBranches = useCallback(async () => {
-    try {
-      const data = await authFetch<Branch[]>("get", "/branches");
-      setBranches(data);
-    } catch (err) {
-      toast(err instanceof Error ? err.message : "Error al cargar datos", "error");
-    }
-  }, [authFetch]);
-
-  const fetchCustomers = useCallback(async () => {
-    setCustomersLoading(true);
-    try {
-      const data = await authFetch<Customer[]>("get", "/crm/customers");
-      setCustomers(data);
-    } catch (err) {
-      toast(err instanceof Error ? err.message : "Error al cargar datos", "error");
-    } finally {
-      setCustomersLoading(false);
-    }
-  }, [authFetch]);
-
-  const fetchLoyalty = useCallback(
-    async (customerId: string) => {
-      if (!customerId) {
-        setLoyaltyTxns([]);
-        return;
-      }
-      setLoyaltyLoading(true);
-      try {
-        const data = await authFetch<LoyaltyTransaction[]>(
-          "get",
-          `/crm/loyalty/customer/${customerId}`,
-        );
-        setLoyaltyTxns(data);
-      } catch (err) {
-        toast(err instanceof Error ? err.message : "Error al cargar datos", "error");
-      } finally {
-        setLoyaltyLoading(false);
-      }
-    },
-    [authFetch],
-  );
-
-  const fetchPromotions = useCallback(async () => {
-    setPromotionsLoading(true);
-    try {
-      const data = await authFetch<Promotion[]>("get", "/crm/promotions");
-      setPromotions(data);
-    } catch (err) {
-      toast(err instanceof Error ? err.message : "Error al cargar datos", "error");
-    } finally {
-      setPromotionsLoading(false);
-    }
-  }, [authFetch]);
-
-  // =======================================================================
-  // Load data when tab changes
-  // =======================================================================
-
-  useEffect(() => {
-    if (authLoading) return;
-    fetchBranches();
-  }, [authLoading, fetchBranches]);
-
-  useEffect(() => {
-    if (authLoading) return;
-    if (activeTab === "clientes") {
-      fetchCustomers();
-    } else if (activeTab === "lealtad") {
-      if (customers.length === 0) fetchCustomers();
-    } else if (activeTab === "promociones") {
-      fetchPromotions();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab, authLoading]);
-
-  // Fetch loyalty when customer selection changes
-  useEffect(() => {
-    if (activeTab === "lealtad" && selectedCustomerId) {
-      fetchLoyalty(selectedCustomerId);
-    }
-  }, [activeTab, selectedCustomerId, fetchLoyalty]);
 
   // =======================================================================
   // Customer CRUD handlers
@@ -314,7 +234,7 @@ export default function CRMPage() {
         toast("Cliente creado");
       }
       setCustomerModalOpen(false);
-      fetchCustomers();
+      queryClient.invalidateQueries({ queryKey: ["crm-customers"] });
     } catch (err: any) {
       toast(err?.message ?? "Error al guardar cliente", "error");
     } finally {
@@ -328,7 +248,7 @@ export default function CRMPage() {
       await authFetch("delete", `/crm/customers/${deleteCustomerConfirm.id}`);
       toast("Cliente eliminado");
       setDeleteCustomerConfirm(null);
-      fetchCustomers();
+      queryClient.invalidateQueries({ queryKey: ["crm-customers"] });
     } catch (err: any) {
       toast(err?.message ?? "Error al eliminar cliente", "error");
       setDeleteCustomerConfirm(null);
@@ -365,8 +285,8 @@ export default function CRMPage() {
           : "Puntos canjeados",
       );
       setPointsModalOpen(false);
-      fetchLoyalty(selectedCustomerId);
-      fetchCustomers(); // refresh totals
+      queryClient.invalidateQueries({ queryKey: ["crm-loyalty"] });
+      queryClient.invalidateQueries({ queryKey: ["crm-customers"] });
     } catch (err: any) {
       toast(err?.message ?? "Error al procesar puntos", "error");
     } finally {
@@ -419,7 +339,7 @@ export default function CRMPage() {
         toast("Promocion creada");
       }
       setPromoModalOpen(false);
-      fetchPromotions();
+      queryClient.invalidateQueries({ queryKey: ["crm-promotions"] });
     } catch (err: any) {
       toast(err?.message ?? "Error al guardar promocion", "error");
     } finally {
@@ -433,7 +353,7 @@ export default function CRMPage() {
       await authFetch("delete", `/crm/promotions/${deletePromoConfirm.id}`);
       toast("Promocion eliminada");
       setDeletePromoConfirm(null);
-      fetchPromotions();
+      queryClient.invalidateQueries({ queryKey: ["crm-promotions"] });
     } catch (err: any) {
       toast(err?.message ?? "Error al eliminar promocion", "error");
       setDeletePromoConfirm(null);

@@ -28,32 +28,12 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { exportToCSV } from "@/lib/export-csv";
+import { safeNum } from "@luka/shared";
+import type { BankAccount, Transaction, Branch, Supplier } from "@luka/shared";
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
-
-interface BankAccount {
-  id: string;
-  bankName: string;
-  accountNumber: string;
-  clabe: string;
-  branchId: string | null;
-  currency: string;
-  currentBalance: number;
-  branch?: { id: string; name: string } | null;
-}
-
-interface Transaction {
-  id: string;
-  bankAccountId: string;
-  transactionDate: string;
-  amount: number;
-  type: "credit" | "debit";
-  reference: string;
-  description: string;
-  reconciled: boolean;
-}
 
 interface Payable {
   id: string;
@@ -115,16 +95,6 @@ interface MatchCandidate {
   branch?: { id: string; name: string } | null;
 }
 
-interface Branch {
-  id: string;
-  name: string;
-}
-
-interface Supplier {
-  id: string;
-  name: string;
-}
-
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -137,11 +107,6 @@ const TABS = [
   "Conciliacion",
   "Flujo de Efectivo",
 ];
-
-function safeNum(value: unknown): number {
-  const n = Number(value);
-  return isNaN(n) ? 0 : n;
-}
 
 const fmtMXN = (n: number) =>
   new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(safeNum(n));
