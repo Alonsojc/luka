@@ -41,6 +41,7 @@ import {
   Cell,
   AreaChart,
   Area,
+  Legend,
 } from "recharts";
 import { safeNum } from "@luka/shared";
 

@@ -23,7 +23,15 @@ import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { FormField, Input, Select } from "@/components/ui/form-field";
-import type { Account, JournalLine, JournalEntry } from "./_components/types";
+import type {
+  Account,
+  JournalLine,
+  JournalEntry,
+  PendingEvent,
+  AutoEntry,
+  DiotRecord,
+  DiotHistoryItem,
+} from "./_components/types";
 import {
   TABS,
   TYPE_LABELS,
@@ -127,6 +135,8 @@ export default function ContabilidadPage() {
     submitFiling,
     fetchAutoEntries,
   } = ctx;
+
+  const currentYear = new Date().getFullYear();
 
   // ---- journal lines helpers ----
 

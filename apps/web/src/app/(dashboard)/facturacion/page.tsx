@@ -34,6 +34,7 @@ import type {
   CfdiAttachment,
   PendingPayment,
   PaymentComplement,
+  PaymentComplementRelatedDoc,
 } from "./_components/types";
 import {
   REGIMEN_FISCAL,
