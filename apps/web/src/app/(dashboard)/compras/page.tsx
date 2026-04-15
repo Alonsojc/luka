@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { Plus, Pencil, Trash2, Send, PackageCheck, ShoppingCart, Download, Search, ChevronLeft, ChevronRight, AlertTriangle, PackagePlus, RefreshCw, Eye, Check } from "lucide-react";
 import { exportToCSV } from "@/lib/export-csv";
 import { useAuth } from "@/hooks/use-auth";
+import { useToast } from "@/components/ui/toast";
 import { DataTable } from "@/components/ui/data-table";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
@@ -181,6 +182,7 @@ const normalize = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, 
 
 export default function ComprasPage() {
   const { authFetch, loading: authLoading } = useAuth();
+  const { toast } = useToast();
 
   const [activeTab, setActiveTab] = useState<(typeof TABS)[number]>("Ordenes de Compra");
 
@@ -482,8 +484,8 @@ export default function ComprasPage() {
     try {
       const summary = await authFetch<ReorderSummary>("get", "/compras/reorder-alerts/summary");
       setReorderSummary(summary);
-    } catch {
-      // non-critical
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Error al cargar datos", "error");
     }
   }, [authFetch]);
 

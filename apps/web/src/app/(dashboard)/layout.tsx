@@ -171,8 +171,8 @@ export default function DashboardLayout({
     try {
       const data = await api.get<Branch[]>("/branches");
       setBranches(data);
-    } catch {
-      // silent fail
+    } catch (err) {
+      console.error("Failed to fetch branches:", err);
     }
   }, []);
 
@@ -186,8 +186,8 @@ export default function DashboardLayout({
         "/notifications?limit=10",
       );
       setNotifications(data.notifications);
-    } catch {
-      // silent fail
+    } catch (err) {
+      console.error("Failed to fetch notifications:", err);
     }
   }, []);
 
@@ -197,8 +197,8 @@ export default function DashboardLayout({
         "/notifications/unread-count",
       );
       setUnreadCount(data.count);
-    } catch {
-      // silent fail
+    } catch (err) {
+      console.error("Failed to fetch unread count:", err);
     }
   }, []);
 
@@ -273,8 +273,8 @@ export default function DashboardLayout({
       await api.post("/notifications/read-all", {});
       setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
       setUnreadCount(0);
-    } catch {
-      // silent fail
+    } catch (err) {
+      console.error("Failed to mark all notifications read:", err);
     }
   };
 
@@ -286,8 +286,8 @@ export default function DashboardLayout({
           prev.map((n) => (n.id === notification.id ? { ...n, isRead: true } : n)),
         );
         setUnreadCount((prev) => Math.max(0, prev - 1));
-      } catch {
-        // silent fail
+      } catch (err) {
+        console.error("Failed to mark notification read:", err);
       }
     }
     setNotificationsOpen(false);

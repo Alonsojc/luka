@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { PWARegister } from "@/components/pwa-register";
+import { Providers } from "@/components/providers";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -24,7 +25,9 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/luka-logo.png" />
       </head>
       <body suppressHydrationWarning>
-        {children}
+        <Providers>
+          {children}
+        </Providers>
         <PWARegister />
       </body>
     </html>

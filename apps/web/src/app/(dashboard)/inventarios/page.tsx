@@ -37,6 +37,7 @@ import {
 import { exportToCSV } from "@/lib/export-csv";
 import { generateInventoryPDF } from "@/lib/pdf-generator";
 import { useAuth } from "@/hooks/use-auth";
+import { useToast } from "@/components/ui/toast";
 import { DataTable } from "@/components/ui/data-table";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
@@ -375,6 +376,7 @@ const normalize = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, 
 
 export default function InventariosPage() {
   const { authFetch, loading: authLoading } = useAuth();
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<TabKey>("productos");
 
   // ---- Search & Pagination state ----
@@ -506,8 +508,8 @@ export default function InventariosPage() {
         if (p.category) catMap.set(p.category.id, p.category);
       });
       setCategories(Array.from(catMap.values()).sort((a, b) => a.name.localeCompare(b.name)));
-    } catch {
-      /* handled by authFetch */
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Error al cargar datos", "error");
     } finally {
       setProductsLoading(false);
     }
@@ -520,8 +522,8 @@ export default function InventariosPage() {
       if (data.length > 0 && !selectedBranchId) {
         setSelectedBranchId(data[0].id);
       }
-    } catch {
-      /* handled by authFetch */
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Error al cargar datos", "error");
     }
   }, [authFetch, selectedBranchId]);
 
@@ -535,8 +537,8 @@ export default function InventariosPage() {
           `/inventarios/inventory/branch/${branchId}`,
         );
         setStockItems(data);
-      } catch {
-        /* handled by authFetch */
+      } catch (err) {
+        toast(err instanceof Error ? err.message : "Error al cargar datos", "error");
       } finally {
         setStockLoading(false);
       }
@@ -549,8 +551,8 @@ export default function InventariosPage() {
     try {
       const data = await authFetch<Recipe[]>("get", "/inventarios/recipes");
       setRecipes(data);
-    } catch {
-      /* handled by authFetch */
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Error al cargar datos", "error");
     } finally {
       setRecipesLoading(false);
     }
@@ -563,8 +565,8 @@ export default function InventariosPage() {
         "/inventarios/recipes/food-cost-summary",
       );
       setFoodCostSummary(data);
-    } catch {
-      /* handled by authFetch */
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Error al cargar datos", "error");
     }
   }, [authFetch]);
 
@@ -578,8 +580,8 @@ export default function InventariosPage() {
         );
         setRecipeCostDetail(data);
         setCostDetailModalOpen(true);
-      } catch {
-        /* handled by authFetch */
+      } catch (err) {
+        toast(err instanceof Error ? err.message : "Error al cargar datos", "error");
       } finally {
         setCostDetailLoading(false);
       }
@@ -593,8 +595,8 @@ export default function InventariosPage() {
       await authFetch("post", "/inventarios/recipes/recalculate");
       await fetchRecipes();
       await fetchFoodCostSummary();
-    } catch {
-      /* handled by authFetch */
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Error al actualizar", "error");
     } finally {
       setRecalculating(false);
     }
@@ -613,8 +615,8 @@ export default function InventariosPage() {
         `/inventarios/transfers${qs ? `?${qs}` : ""}`,
       );
       setTransfers(resp.data);
-    } catch {
-      /* handled by authFetch */
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Error al cargar datos", "error");
     } finally {
       setTransfersLoading(false);
     }
@@ -634,8 +636,8 @@ export default function InventariosPage() {
           `/inventarios/stock/${branchId}`,
         );
         setCargasStock(data);
-      } catch {
-        /* handled by authFetch */
+      } catch (err) {
+        toast(err instanceof Error ? err.message : "Error al cargar datos", "error");
       } finally {
         setCargasStockLoading(false);
       }
@@ -657,8 +659,8 @@ export default function InventariosPage() {
           `/inventarios/load-history/${branchId}${qs ? `?${qs}` : ""}`,
         );
         setLoadHistory(data);
-      } catch {
-        /* handled by authFetch */
+      } catch (err) {
+        toast(err instanceof Error ? err.message : "Error al cargar datos", "error");
       } finally {
         setLoadHistoryLoading(false);
       }
@@ -690,8 +692,8 @@ export default function InventariosPage() {
       setLoadItems([{ ...EMPTY_LOAD_ITEM }]);
       // Refresh stock
       fetchCargasStock(cargasBranchId);
-    } catch {
-      /* handled by authFetch */
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Error al guardar", "error");
     } finally {
       setLoadSaving(false);
     }
@@ -768,8 +770,8 @@ export default function InventariosPage() {
       setCsvFileName("");
       // Refresh stock
       fetchCargasStock(cargasBranchId);
-    } catch {
-      /* handled by authFetch */
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Error al guardar", "error");
     } finally {
       setCsvImporting(false);
     }
@@ -796,8 +798,8 @@ export default function InventariosPage() {
       setAdjustReason("");
       // Refresh stock
       fetchCargasStock(cargasBranchId);
-    } catch {
-      /* handled by authFetch */
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Error al actualizar", "error");
     } finally {
       setAdjustSaving(false);
     }
@@ -934,8 +936,8 @@ export default function InventariosPage() {
     try {
       const url = await uploadImage(file);
       setProductForm((f) => ({ ...f, imageUrl: url }));
-    } catch {
-      // silently fail — user can retry
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Error al guardar", "error");
     } finally {
       setImageUploading(false);
     }
@@ -1018,8 +1020,8 @@ export default function InventariosPage() {
 
       setProductModalOpen(false);
       fetchProducts();
-    } catch {
-      /* API errors are surfaced by authFetch */
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Error al guardar", "error");
     } finally {
       setProductSaving(false);
     }
@@ -1032,8 +1034,8 @@ export default function InventariosPage() {
       setDeleteConfirmOpen(false);
       setDeletingProduct(null);
       fetchProducts();
-    } catch {
-      /* handled */
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Error al eliminar", "error");
     }
   }
 
@@ -1090,8 +1092,8 @@ export default function InventariosPage() {
       }
       setPresentationModalOpen(false);
       fetchProducts();
-    } catch {
-      /* handled by authFetch */
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Error al guardar", "error");
     } finally {
       setPresentationSaving(false);
     }
@@ -1101,8 +1103,8 @@ export default function InventariosPage() {
     try {
       await authFetch("delete", `/inventarios/presentations/${presentationId}`);
       fetchProducts();
-    } catch {
-      /* handled */
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Error al eliminar", "error");
     }
   }
 
@@ -1172,8 +1174,8 @@ export default function InventariosPage() {
       setRecipeModalOpen(false);
       fetchRecipes();
       fetchFoodCostSummary();
-    } catch {
-      /* handled */
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Error al guardar", "error");
     } finally {
       setRecipeSaving(false);
     }
@@ -1222,8 +1224,8 @@ export default function InventariosPage() {
       await authFetch<Transfer>("post", "/inventarios/transfers", payload);
       setCreateTransferOpen(false);
       fetchTransfers();
-    } catch {
-      /* handled */
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Error al guardar", "error");
     } finally {
       setTransferSaving(false);
     }
@@ -1234,8 +1236,8 @@ export default function InventariosPage() {
       const detail = await authFetch<Transfer>("get", `/inventarios/transfers/${transfer.id}`);
       setSelectedTransfer(detail);
       setDetailModalOpen(true);
-    } catch {
-      /* handled */
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Error al cargar datos", "error");
     }
   }
 
@@ -1249,8 +1251,8 @@ export default function InventariosPage() {
       );
       setSelectedTransfer(updated);
       fetchTransfers();
-    } catch {
-      /* handled */
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Error al actualizar", "error");
     } finally {
       setTransferActionLoading(false);
     }
@@ -1266,8 +1268,8 @@ export default function InventariosPage() {
       );
       setSelectedTransfer(updated);
       fetchTransfers();
-    } catch {
-      /* handled */
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Error al actualizar", "error");
     } finally {
       setTransferActionLoading(false);
     }
@@ -1301,8 +1303,8 @@ export default function InventariosPage() {
       setShipModalOpen(false);
       setSelectedTransfer(updated);
       fetchTransfers();
-    } catch {
-      /* handled */
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Error al actualizar", "error");
     } finally {
       setTransferActionLoading(false);
     }
@@ -1336,8 +1338,8 @@ export default function InventariosPage() {
       setReceiveModalOpen(false);
       setSelectedTransfer(updated);
       fetchTransfers();
-    } catch {
-      /* handled */
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Error al actualizar", "error");
     } finally {
       setTransferActionLoading(false);
     }

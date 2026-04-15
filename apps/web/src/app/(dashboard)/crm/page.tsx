@@ -190,8 +190,8 @@ export default function CRMPage() {
     try {
       const data = await authFetch<Branch[]>("get", "/branches");
       setBranches(data);
-    } catch {
-      /* handled by authFetch */
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Error al cargar datos", "error");
     }
   }, [authFetch]);
 
@@ -200,8 +200,8 @@ export default function CRMPage() {
     try {
       const data = await authFetch<Customer[]>("get", "/crm/customers");
       setCustomers(data);
-    } catch {
-      /* handled by authFetch */
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Error al cargar datos", "error");
     } finally {
       setCustomersLoading(false);
     }
@@ -220,8 +220,8 @@ export default function CRMPage() {
           `/crm/loyalty/customer/${customerId}`,
         );
         setLoyaltyTxns(data);
-      } catch {
-        /* handled by authFetch */
+      } catch (err) {
+        toast(err instanceof Error ? err.message : "Error al cargar datos", "error");
       } finally {
         setLoyaltyLoading(false);
       }
@@ -234,8 +234,8 @@ export default function CRMPage() {
     try {
       const data = await authFetch<Promotion[]>("get", "/crm/promotions");
       setPromotions(data);
-    } catch {
-      /* handled by authFetch */
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Error al cargar datos", "error");
     } finally {
       setPromotionsLoading(false);
     }

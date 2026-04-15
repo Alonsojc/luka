@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@/hooks/use-auth";
+import { useToast } from "@/components/ui/toast";
 import { hasRole } from "@/lib/auth";
 import { DateRangePicker, type DateRange } from "@/components/dashboard/date-range-picker";
 import {
@@ -1133,6 +1134,7 @@ function getDefaultDateRange(): DateRange {
 
 export default function DashboardPage() {
   const { user, authFetch, loading: authLoading } = useAuth();
+  const { toast } = useToast();
 
   const [currentView, setCurrentView] = useState<DashboardView>("investor");
   const [showSwitcher, setShowSwitcher] = useState(false);
@@ -1200,7 +1202,8 @@ export default function DashboardPage() {
         }
         const data = await authFetch<any>("get", endpoint);
         setDashboardData(data);
-      } catch {
+      } catch (err) {
+        toast(err instanceof Error ? err.message : "Error al cargar datos", "error");
         setDashboardData(null);
       } finally {
         setDashboardLoading(false);

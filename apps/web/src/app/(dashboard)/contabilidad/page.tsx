@@ -19,6 +19,7 @@ import {
   Calculator,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
+import { useToast } from "@/components/ui/toast";
 import { DataTable } from "@/components/ui/data-table";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
@@ -306,6 +307,7 @@ const emptyJournalForm = () => ({
 
 export default function ContabilidadPage() {
   const { authFetch, loading: authLoading } = useAuth();
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState(TABS[0]);
 
   // ---- shared data ----
@@ -382,7 +384,8 @@ export default function ContabilidadPage() {
         a.code.localeCompare(b.code, undefined, { numeric: true })
       );
       setAccounts(sorted);
-    } catch {
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Error al cargar datos", "error");
       setAccounts([]);
     } finally {
       setAccountsLoading(false);
@@ -394,7 +397,8 @@ export default function ContabilidadPage() {
     try {
       const data = await authFetch<JournalEntry[]>("get", "/contabilidad/journal-entries");
       setEntries(Array.isArray(data) ? data : []);
-    } catch {
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Error al cargar datos", "error");
       setEntries([]);
     } finally {
       setEntriesLoading(false);
@@ -405,7 +409,8 @@ export default function ContabilidadPage() {
     try {
       const data = await authFetch<Branch[]>("get", "/branches");
       setBranches(Array.isArray(data) ? data : []);
-    } catch {
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Error al cargar datos", "error");
       setBranches([]);
     }
   }, [authFetch]);
@@ -415,7 +420,8 @@ export default function ContabilidadPage() {
     try {
       const data = await authFetch<PendingResponse>("get", "/contabilidad/auto-polizas/pending");
       setPendingData(data && typeof data === "object" ? data : null);
-    } catch {
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Error al cargar datos", "error");
       setPendingData(null);
     } finally {
       setPendingLoading(false);
@@ -427,7 +433,8 @@ export default function ContabilidadPage() {
     try {
       const data = await authFetch<AutoEntry[]>("get", "/contabilidad/auto-polizas/recent");
       setAutoEntries(Array.isArray(data) ? data : []);
-    } catch {
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Error al cargar datos", "error");
       setAutoEntries([]);
     } finally {
       setAutoEntriesLoading(false);
@@ -616,7 +623,8 @@ export default function ContabilidadPage() {
       ]);
       setDiotRecords(Array.isArray(records) ? records : []);
       setDiotSummary(summary && typeof summary === "object" ? summary : null);
-    } catch {
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Error al cargar datos", "error");
       setDiotRecords([]);
       setDiotSummary(null);
     } finally {
@@ -632,7 +640,8 @@ export default function ContabilidadPage() {
         "/contabilidad/diot/history",
       );
       setDiotHistory(Array.isArray(data) ? data : []);
-    } catch {
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Error al cargar datos", "error");
       setDiotHistory([]);
     } finally {
       setDiotHistoryLoading(false);
@@ -704,7 +713,8 @@ export default function ContabilidadPage() {
         `/contabilidad/declarations/summary?year=${declYear}&month=${declMonth}`,
       );
       setDeclSummary(data && typeof data === "object" ? data : null);
-    } catch {
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Error al cargar datos", "error");
       setDeclSummary(null);
     } finally {
       setDeclSummaryLoading(false);
@@ -719,7 +729,8 @@ export default function ContabilidadPage() {
         `/contabilidad/declarations/annual?year=${declYear}`,
       );
       setDeclAnnual(data && typeof data === "object" ? data : null);
-    } catch {
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Error al cargar datos", "error");
       setDeclAnnual(null);
     } finally {
       setDeclAnnualLoading(false);

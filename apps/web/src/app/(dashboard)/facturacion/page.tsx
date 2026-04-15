@@ -23,6 +23,7 @@ import {
 import { exportToCSV } from "@/lib/export-csv";
 import { generateInvoicePDF } from "@/lib/pdf-generator";
 import { useAuth } from "@/hooks/use-auth";
+import { useToast } from "@/components/ui/toast";
 import { DataTable } from "@/components/ui/data-table";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
@@ -357,6 +358,7 @@ const EMPTY_CONCEPTO: Concepto = {
 
 export default function FacturacionPage() {
   const { authFetch, user, loading: authLoading } = useAuth();
+  const { toast } = useToast();
 
   // Data state
   const [cfdis, setCfdis] = useState<Cfdi[]>([]);
@@ -473,7 +475,8 @@ export default function FacturacionPage() {
     try {
       const data = await authFetch<Cfdi[]>("get", "/facturacion/invoices");
       setCfdis(data);
-    } catch {
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Error al cargar datos", "error");
       setCfdis([]);
     }
   }, [authFetch]);
@@ -482,8 +485,8 @@ export default function FacturacionPage() {
     try {
       const data = await authFetch<Branch[]>("get", "/branches");
       setBranches(data);
-    } catch {
-      // ignore
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Error al cargar datos", "error");
     }
   }, [authFetch]);
 
@@ -491,7 +494,8 @@ export default function FacturacionPage() {
     try {
       const data = await authFetch<PendingPayment[]>("get", "/facturacion/pending-payments");
       setPendingPayments(data);
-    } catch {
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Error al cargar datos", "error");
       setPendingPayments([]);
     }
   }, [authFetch]);
@@ -500,7 +504,8 @@ export default function FacturacionPage() {
     try {
       const data = await authFetch<PaymentComplement[]>("get", "/facturacion/payment-complements");
       setPaymentComplements(data);
-    } catch {
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Error al cargar datos", "error");
       setPaymentComplements([]);
     }
   }, [authFetch]);
@@ -777,8 +782,8 @@ export default function FacturacionPage() {
       if (generateXml && created.id) {
         try {
           await authFetch("post", `/facturacion/invoices/${created.id}/xml`);
-        } catch {
-          // XML generation may fail, but invoice is saved
+        } catch (err) {
+          toast(err instanceof Error ? err.message : "Error al generar XML", "error");
         }
       }
       await fetchCfdis();
@@ -1088,8 +1093,8 @@ export default function FacturacionPage() {
       const refreshed = { ...cfdi, attachments: updated };
       setCfdis((prev) => prev.map((c) => (c.id === cfdi.id ? refreshed : c)));
       if (viewingCfdi?.id === cfdi.id) setViewingCfdi(refreshed);
-    } catch {
-      // silently fail — user can retry
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Error al guardar", "error");
     } finally {
       setAttachmentUploading(false);
     }
@@ -1108,8 +1113,8 @@ export default function FacturacionPage() {
       const refreshed = { ...cfdi, attachments: updated.length > 0 ? updated : null };
       setCfdis((prev) => prev.map((c) => (c.id === cfdi.id ? refreshed : c)));
       if (viewingCfdi?.id === cfdi.id) setViewingCfdi(refreshed);
-    } catch {
-      // silently fail
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Error al eliminar", "error");
     }
   }
 

@@ -8,5 +8,7 @@ export * from "./schemas/employee.schema";
 export * from "./schemas/supplier.schema";
 export * from "./schemas/cfdi.schema";
 export * from "./schemas/purchase-order.schema";
+export * from "./types/api.types";
 export * from "./utils/currency";
+export * from "./utils/numbers";
 export * from "./utils/rfc-validator";

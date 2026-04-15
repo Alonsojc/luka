@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useAuth } from "@/hooks/use-auth";
+import { useToast } from "@/components/ui/toast";
 import { DataTable } from "@/components/ui/data-table";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
@@ -192,6 +193,7 @@ const normalize = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, 
 
 export default function BancosPage() {
   const { authFetch, loading: authLoading } = useAuth();
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("Cuentas Bancarias");
 
   // ---- Search & Pagination state ----
@@ -293,8 +295,8 @@ export default function BancosPage() {
     try {
       const data = await authFetch<BankAccount[]>("get", "/bancos/accounts");
       setAccounts(data);
-    } catch {
-      // silent
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Error al cargar datos", "error");
     } finally {
       setAccountsLoading(false);
     }
@@ -310,7 +312,8 @@ export default function BancosPage() {
       try {
         const data = await authFetch<Transaction[]>("get", `/bancos/transactions/account/${accountId}`);
         setTransactions(data);
-      } catch {
+      } catch (err) {
+        toast(err instanceof Error ? err.message : "Error al cargar datos", "error");
         setTransactions([]);
       } finally {
         setTxLoading(false);
@@ -324,8 +327,8 @@ export default function BancosPage() {
     try {
       const data = await authFetch<Payable[]>("get", "/bancos/payable");
       setPayables(data);
-    } catch {
-      // silent
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Error al cargar datos", "error");
     } finally {
       setPayablesLoading(false);
     }
@@ -336,8 +339,8 @@ export default function BancosPage() {
     try {
       const data = await authFetch<Receivable[]>("get", "/bancos/receivable");
       setReceivables(data);
-    } catch {
-      // silent
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Error al cargar datos", "error");
     } finally {
       setReceivablesLoading(false);
     }
@@ -351,8 +354,8 @@ export default function BancosPage() {
       ]);
       setBranches(b);
       setSuppliers(s);
-    } catch {
-      // silent
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Error al cargar datos", "error");
     }
   }, [authFetch]);
 
@@ -363,7 +366,10 @@ export default function BancosPage() {
       try {
         const data = await authFetch<ReconciliationSummary>("get", `/bancos/accounts/${accountId}/reconciliation-summary`);
         setRecSummary(data);
-      } catch { setRecSummary(null); }
+      } catch (err) {
+        toast(err instanceof Error ? err.message : "Error al cargar datos", "error");
+        setRecSummary(null);
+      }
     },
     [authFetch],
   );
@@ -375,7 +381,10 @@ export default function BancosPage() {
       try {
         const data = await authFetch<RecTransaction[]>("get", `/bancos/transactions/account/${accountId}`);
         setRecTransactions(data);
-      } catch { setRecTransactions([]); }
+      } catch (err) {
+        toast(err instanceof Error ? err.message : "Error al cargar datos", "error");
+        setRecTransactions([]);
+      }
       finally { setRecLoading(false); }
     },
     [authFetch],
@@ -387,7 +396,9 @@ export default function BancosPage() {
     try {
       await authFetch("post", `/bancos/accounts/${recAccountId}/reconcile`);
       await Promise.all([fetchRecSummary(recAccountId), fetchRecTransactions(recAccountId)]);
-    } catch { /* silent */ }
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Error al actualizar", "error");
+    }
     finally { setRecAutoLoading(false); }
   }, [authFetch, recAccountId, fetchRecSummary, fetchRecTransactions]);
 
@@ -399,7 +410,9 @@ export default function BancosPage() {
       setCsvPreview([]);
       setImportModal(false);
       await Promise.all([fetchRecSummary(recAccountId), fetchRecTransactions(recAccountId), fetchAccounts()]);
-    } catch { /* silent */ }
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Error al guardar", "error");
+    }
     finally { setImportLoading(false); }
   }, [authFetch, recAccountId, csvPreview, fetchRecSummary, fetchRecTransactions, fetchAccounts]);
 
@@ -413,7 +426,9 @@ export default function BancosPage() {
       setManualImportForm({ date: "", amount: 0, type: "credit", reference: "", description: "" });
       setImportModal(false);
       await Promise.all([fetchRecSummary(recAccountId), fetchRecTransactions(recAccountId), fetchAccounts()]);
-    } catch { /* silent */ }
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Error al guardar", "error");
+    }
     finally { setImportLoading(false); }
   }, [authFetch, recAccountId, manualImportForm, fetchRecSummary, fetchRecTransactions, fetchAccounts]);
 
@@ -422,14 +437,18 @@ export default function BancosPage() {
       await authFetch("post", `/bancos/transactions/${transactionId}/reconcile`, { type, entityId });
       setReconcileModal(null);
       await Promise.all([fetchRecSummary(recAccountId), fetchRecTransactions(recAccountId)]);
-    } catch { /* silent */ }
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Error al actualizar", "error");
+    }
   }, [authFetch, recAccountId, fetchRecSummary, fetchRecTransactions]);
 
   const handleUnreconcile = useCallback(async (transactionId: string) => {
     try {
       await authFetch("post", `/bancos/transactions/${transactionId}/unreconcile`);
       await Promise.all([fetchRecSummary(recAccountId), fetchRecTransactions(recAccountId)]);
-    } catch { /* silent */ }
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Error al actualizar", "error");
+    }
   }, [authFetch, recAccountId, fetchRecSummary, fetchRecTransactions]);
 
   const searchMatches = useCallback(async (amount?: number, reference?: string) => {
@@ -440,7 +459,10 @@ export default function BancosPage() {
       if (reference) params.set("reference", reference);
       const data = await authFetch<{ payables: MatchCandidate[]; receivables: MatchCandidate[] }>("get", `/bancos/reconciliation/search-matches?${params.toString()}`);
       setMatchCandidates(data);
-    } catch { setMatchCandidates({ payables: [], receivables: [] }); }
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Error al cargar datos", "error");
+      setMatchCandidates({ payables: [], receivables: [] });
+    }
     finally { setMatchLoading(false); }
   }, [authFetch]);
 
@@ -532,8 +554,8 @@ export default function BancosPage() {
       }
       setAccountModal(false);
       fetchAccounts();
-    } catch {
-      // silent
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Error al guardar", "error");
     }
   };
 
@@ -542,8 +564,8 @@ export default function BancosPage() {
       await authFetch("delete", `/bancos/accounts/${id}`);
       setDeleteConfirm(null);
       fetchAccounts();
-    } catch {
-      // silent
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Error al eliminar", "error");
     }
   };
 
@@ -572,8 +594,8 @@ export default function BancosPage() {
       setTxModal(false);
       fetchTransactions(selectedAccountId);
       fetchAccounts(); // balance may change
-    } catch {
-      // silent
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Error al guardar", "error");
     }
   };
 
@@ -581,8 +603,8 @@ export default function BancosPage() {
     try {
       await authFetch("patch", `/bancos/transactions/${id}/reconcile`, {});
       fetchTransactions(selectedAccountId);
-    } catch {
-      // silent
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Error al actualizar", "error");
     }
   };
 
@@ -603,8 +625,8 @@ export default function BancosPage() {
       });
       setCxpModal(false);
       fetchPayables();
-    } catch {
-      // silent
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Error al guardar", "error");
     }
   };
 
@@ -625,8 +647,8 @@ export default function BancosPage() {
       });
       setCxcModal(false);
       fetchReceivables();
-    } catch {
-      // silent
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Error al guardar", "error");
     }
   };
 
@@ -658,8 +680,8 @@ export default function BancosPage() {
       setPaymentModal(null);
       if (paymentModal.type === "cxp") fetchPayables();
       else fetchReceivables();
-    } catch {
-      // silent
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Error al guardar", "error");
     }
   };
 

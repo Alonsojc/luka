@@ -198,7 +198,9 @@ export default function NominaPage() {
     try {
       const data = await authFetch<any[]>("get", "/branches");
       setBranches(data);
-    } catch {}
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Error al cargar datos", "error");
+    }
   }, [authFetch]);
 
   // ── Fetch periods ──
@@ -473,7 +475,8 @@ export default function NominaPage() {
     try {
       const data = await authFetch<any[]>("get", "/nomina/sua/history");
       setSuaHistory(data);
-    } catch {
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Error al cargar datos", "error");
       setSuaHistory([]);
     }
   }, [authFetch]);
@@ -540,8 +543,8 @@ export default function NominaPage() {
         companyId: data.companyId || "",
         syncFrequency: data.syncFrequency || "MANUAL",
       });
-    } catch {
-      // Config not yet created — use defaults
+    } catch (err) {
+      console.error("Worky config not yet created:", err);
     }
   }, [authFetch]);
 
@@ -549,7 +552,8 @@ export default function NominaPage() {
     try {
       const data = await authFetch<any[]>("get", "/nomina/worky/sync/history");
       setWorkySyncHistory(data);
-    } catch {
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Error al cargar datos", "error");
       setWorkySyncHistory([]);
     }
   }, [authFetch]);

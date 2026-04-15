@@ -14,6 +14,7 @@ import {
   Download,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
+import { useToast } from "@/components/ui/toast";
 import { DataTable } from "@/components/ui/data-table";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
@@ -165,6 +166,7 @@ const STATUS_VARIANT: Record<string, string> = {
 
 export default function DeliveryPage() {
   const { user, loading: authLoading, authFetch } = useAuth();
+  const { toast } = useToast();
   const [tab, setTab] = useState<Tab>("Ordenes");
 
   // Orders state
@@ -213,8 +215,8 @@ export default function DeliveryPage() {
     try {
       const data = await authFetch<Branch[]>("get", "/branches");
       setBranches(data);
-    } catch {
-      /* silent */
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Error al cargar datos", "error");
     }
   }, [authFetch]);
 
@@ -237,8 +239,8 @@ export default function DeliveryPage() {
       setOrders(res.data);
       setOrdersTotal(res.total);
       setOrdersTotalPages(res.totalPages);
-    } catch {
-      /* silent */
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Error al cargar datos", "error");
     } finally {
       setOrdersLoading(false);
     }
@@ -260,8 +262,8 @@ export default function DeliveryPage() {
         "/delivery/summary",
       );
       setSummary(data);
-    } catch {
-      /* silent */
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Error al cargar datos", "error");
     } finally {
       setSummaryLoading(false);
     }
@@ -275,8 +277,8 @@ export default function DeliveryPage() {
         "/delivery/config",
       );
       setConfigs(data);
-    } catch {
-      /* silent */
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Error al cargar datos", "error");
     } finally {
       setConfigsLoading(false);
     }
@@ -312,8 +314,8 @@ export default function DeliveryPage() {
         status: newStatus,
       });
       fetchOrders();
-    } catch {
-      /* silent */
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Error al actualizar", "error");
     }
   };
 
@@ -336,8 +338,8 @@ export default function DeliveryPage() {
       });
       setShowModal(false);
       fetchOrders();
-    } catch {
-      /* silent */
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Error al guardar", "error");
     } finally {
       setModalSaving(false);
     }
@@ -351,8 +353,8 @@ export default function DeliveryPage() {
       setShowConfigModal(false);
       setEditingConfig(null);
       fetchConfigs();
-    } catch {
-      /* silent */
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Error al guardar", "error");
     }
   };
 
@@ -361,8 +363,8 @@ export default function DeliveryPage() {
     try {
       await authFetch("post", "/delivery/sync", { platform });
       fetchConfigs();
-    } catch {
-      /* silent */
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Error al actualizar", "error");
     } finally {
       setSyncingPlatform(null);
     }
@@ -376,8 +378,8 @@ export default function DeliveryPage() {
         isActive: !config.isActive,
       });
       fetchConfigs();
-    } catch {
-      /* silent */
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Error al actualizar", "error");
     }
   };
 
