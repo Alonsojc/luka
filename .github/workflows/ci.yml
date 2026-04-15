@@ -11,7 +11,39 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    outputs:
+      image_prefix: ${{ steps.prefix.outputs.image_prefix }}
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          package-manager-cache: false
+
+      - name: Enable pnpm via Corepack
+        run: |
+          corepack enable
+          corepack install
+
+      - name: Validate pnpm availability
+        run: corepack pnpm --version
+
+      - name: Compute and validate lowercase image prefix
+        id: prefix
+        run: |
+          IMAGE_PREFIX="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/luka"
+          if [[ "${IMAGE_PREFIX}" != "${IMAGE_PREFIX,,}" ]]; then
+            echo "Image prefix is not lowercase: ${IMAGE_PREFIX}"
+            exit 1
+          fi
+          echo "image_prefix=${IMAGE_PREFIX}" >> "$GITHUB_OUTPUT"
+
   test:
+    needs: preflight
     runs-on: ubuntu-latest
 
     services:
@@ -108,7 +140,7 @@ jobs:
           NEXT_PUBLIC_API_URL: /api
 
   docker:
-    needs: build
+    needs: [preflight, build]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -118,9 +150,6 @@ jobs:
       - uses: actions/checkout@v5
 
       - uses: docker/setup-buildx-action@v3
-
-      - name: Prepare lowercase image prefix
-        run: echo "IMAGE_PREFIX=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/luka" >> "$GITHUB_ENV"
 
       - name: Login to GitHub Container Registry
         if: github.ref == 'refs/heads/main'
@@ -137,8 +166,8 @@ jobs:
           file: apps/api/Dockerfile
           push: ${{ github.ref == 'refs/heads/main' }}
           tags: |
-            ${{ env.IMAGE_PREFIX }}-api:latest
-            ${{ env.IMAGE_PREFIX }}-api:${{ github.sha }}
+            ${{ needs.preflight.outputs.image_prefix }}-api:latest
+            ${{ needs.preflight.outputs.image_prefix }}-api:${{ github.sha }}
           load: ${{ github.ref != 'refs/heads/main' }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
@@ -150,8 +179,8 @@ jobs:
           file: apps/web/Dockerfile
           push: ${{ github.ref == 'refs/heads/main' }}
           tags: |
-            ${{ env.IMAGE_PREFIX }}-web:latest
-            ${{ env.IMAGE_PREFIX }}-web:${{ github.sha }}
+            ${{ needs.preflight.outputs.image_prefix }}-web:latest
+            ${{ needs.preflight.outputs.image_prefix }}-web:${{ github.sha }}
           load: ${{ github.ref != 'refs/heads/main' }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
