@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useMemo } from "react";
 import {
   FileText,
   FileCode,
@@ -22,566 +22,214 @@ import {
 } from "lucide-react";
 import { exportToCSV } from "@/lib/export-csv";
 import { generateInvoicePDF } from "@/lib/pdf-generator";
-import { useAuth } from "@/hooks/use-auth";
-import { useToast } from "@/components/ui/toast";
 import { DataTable } from "@/components/ui/data-table";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { FormField, Input, Select } from "@/components/ui/form-field";
 import { formatMXN } from "@luka/shared";
-
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
-interface Concepto {
-  satClaveProdServ: string;
-  quantity: number;
-  satClaveUnidad: string;
-  unitOfMeasure: string;
-  description: string;
-  unitPrice: number;
-  importe: number;
-  withIva: boolean;
-}
-
-type CfdiStatus = "DRAFT" | "STAMPED" | "CANCELLED" | "CANCELLATION_PENDING" | "SENT";
-
-interface Cfdi {
-  id: string;
-  series: string;
-  folio: string;
-  uuid: string | null;
-  receiverRfc: string;
-  receiverName: string;
-  receiverRegimen: string | null;
-  receiverUsoCfdi: string;
-  receiverDomicilioFiscal: string | null;
-  issuerRfc: string;
-  issuerName: string;
-  issuerRegimen: string;
-  subtotal: number | string;
-  total: number | string;
-  currency: string;
-  exchangeRate: number | string | null;
-  paymentMethod: string | null;
-  paymentForm: string | null;
-  exportacion: string | null;
-  lugarExpedicion: string | null;
-  status: CfdiStatus;
-  createdAt: string;
-  stampedAt: string | null;
-  cancelledAt: string | null;
-  cancellationReason: string | null;
-  xmlContent: string | null;
-  branchId: string;
-  concepts: ConceptoApi[];
-  attachments?: CfdiAttachment[] | null;
-}
-
-interface CfdiAttachment {
-  filename: string;
-  url: string;
-  size?: number;
-  uploadedAt: string;
-}
-
-interface ConceptoApi {
-  id: string;
-  satClaveProdServ: string;
-  quantity: number | string;
-  satClaveUnidad: string;
-  unitOfMeasure: string;
-  description: string;
-  unitPrice: number | string;
-  amount: number | string;
-  taxDetails: Record<string, unknown>;
-}
-
-interface PendingPayment {
-  id: string;
-  series: string | null;
-  folio: string | null;
-  uuid: string | null;
-  receiverRfc: string;
-  receiverName: string;
-  total: number;
-  totalPaid: number;
-  saldoPendiente: number;
-  currency: string;
-  createdAt: string;
-  branchName: string | null;
-}
-
-interface PaymentComplementRelatedDoc {
-  cfdiId: string;
-  uuid: string;
-  serie: string;
-  folio: string;
-  amountPaid: number;
-  saldoAnterior: number;
-  saldoInsoluto: number;
-  numParcialidad: number;
-}
-
-interface PaymentComplement {
-  id: string;
-  series: string | null;
-  folio: string | null;
-  uuid: string | null;
-  status: CfdiStatus;
-  createdAt: string;
-  stampedAt: string | null;
-  xmlContent: string | null;
-  receiverRfc: string;
-  receiverName: string;
-  complement: {
-    id: string;
-    paymentDate: string;
-    paymentForm: string;
-    currency: string;
-    amount: number | string;
-    relatedDocuments: PaymentComplementRelatedDoc[];
-  } | null;
-}
-
-interface Branch {
-  id: string;
-  name: string;
-  code: string;
-}
-
-interface CatalogItem {
-  clave: string;
-  descripcion: string;
-}
-
-// ---------------------------------------------------------------------------
-// SAT Catalog Constants (hardcoded fallback)
-// ---------------------------------------------------------------------------
-
-const REGIMEN_FISCAL: CatalogItem[] = [
-  { clave: "601", descripcion: "General de Ley Personas Morales" },
-  { clave: "603", descripcion: "Personas Morales con Fines no Lucrativos" },
-  { clave: "605", descripcion: "Sueldos y Salarios e Ingresos Asimilados a Salarios" },
-  { clave: "606", descripcion: "Arrendamiento" },
-  { clave: "607", descripcion: "Regimen de Enajenacion o Adquisicion de Bienes" },
-  { clave: "608", descripcion: "Demas ingresos" },
-  { clave: "610", descripcion: "Residentes en el Extranjero sin Establecimiento Permanente en Mexico" },
-  { clave: "611", descripcion: "Ingresos por Dividendos (socios y accionistas)" },
-  { clave: "612", descripcion: "Personas Fisicas con Actividades Empresariales y Profesionales" },
-  { clave: "614", descripcion: "Ingresos por intereses" },
-  { clave: "615", descripcion: "Regimen de los ingresos por obtencion de premios" },
-  { clave: "616", descripcion: "Sin obligaciones fiscales" },
-  { clave: "620", descripcion: "Sociedades Cooperativas de Produccion que optan por diferir sus ingresos" },
-  { clave: "621", descripcion: "Incorporacion Fiscal" },
-  { clave: "622", descripcion: "Actividades Agricolas, Ganaderas, Silvicolas y Pesqueras" },
-  { clave: "623", descripcion: "Opcional para Grupos de Sociedades" },
-  { clave: "624", descripcion: "Coordinados" },
-  { clave: "625", descripcion: "Regimen de las Actividades Empresariales con ingresos a traves de Plataformas Tecnologicas" },
-  { clave: "626", descripcion: "Regimen Simplificado de Confianza" },
-];
-
-const USO_CFDI: CatalogItem[] = [
-  { clave: "G01", descripcion: "Adquisicion de mercancias" },
-  { clave: "G02", descripcion: "Devoluciones, descuentos o bonificaciones" },
-  { clave: "G03", descripcion: "Gastos en general" },
-  { clave: "I01", descripcion: "Construcciones" },
-  { clave: "I02", descripcion: "Mobiliario y equipo de oficina por inversiones" },
-  { clave: "I03", descripcion: "Equipo de transporte" },
-  { clave: "I04", descripcion: "Equipo de computo y accesorios" },
-  { clave: "I05", descripcion: "Dados, troqueles, moldes, matrices y herramental" },
-  { clave: "I06", descripcion: "Comunicaciones telefonicas" },
-  { clave: "I07", descripcion: "Comunicaciones satelitales" },
-  { clave: "I08", descripcion: "Otra maquinaria y equipo" },
-  { clave: "D01", descripcion: "Honorarios medicos, dentales y gastos hospitalarios" },
-  { clave: "D02", descripcion: "Gastos medicos por incapacidad o discapacidad" },
-  { clave: "D03", descripcion: "Gastos funerales" },
-  { clave: "D04", descripcion: "Donativos" },
-  { clave: "D05", descripcion: "Intereses reales efectivamente pagados por creditos hipotecarios (casa habitacion)" },
-  { clave: "D06", descripcion: "Aportaciones voluntarias al SAR" },
-  { clave: "D07", descripcion: "Primas por seguros de gastos medicos" },
-  { clave: "D08", descripcion: "Gastos de transportacion escolar obligatoria" },
-  { clave: "D09", descripcion: "Depositos en cuentas para el ahorro, primas que tengan como base planes de pensiones" },
-  { clave: "D10", descripcion: "Pagos por servicios educativos (colegiaturas)" },
-  { clave: "S01", descripcion: "Sin efectos fiscales" },
-  { clave: "CP01", descripcion: "Pagos" },
-  { clave: "CN01", descripcion: "Nomina" },
-];
-
-const FORMA_PAGO: CatalogItem[] = [
-  { clave: "01", descripcion: "Efectivo" },
-  { clave: "02", descripcion: "Cheque nominativo" },
-  { clave: "03", descripcion: "Transferencia electronica de fondos" },
-  { clave: "04", descripcion: "Tarjeta de credito" },
-  { clave: "05", descripcion: "Monedero electronico" },
-  { clave: "06", descripcion: "Dinero electronico" },
-  { clave: "08", descripcion: "Vales de despensa" },
-  { clave: "12", descripcion: "Dacion en pago" },
-  { clave: "13", descripcion: "Pago por subrogacion" },
-  { clave: "14", descripcion: "Pago por consignacion" },
-  { clave: "15", descripcion: "Condonacion" },
-  { clave: "17", descripcion: "Compensacion" },
-  { clave: "23", descripcion: "Novacion" },
-  { clave: "24", descripcion: "Confusion" },
-  { clave: "25", descripcion: "Remision de deuda" },
-  { clave: "26", descripcion: "Prescripcion o caducidad" },
-  { clave: "27", descripcion: "A satisfaccion del acreedor" },
-  { clave: "28", descripcion: "Tarjeta de debito" },
-  { clave: "29", descripcion: "Tarjeta de servicios" },
-  { clave: "30", descripcion: "Aplicacion de anticipos" },
-  { clave: "31", descripcion: "Intermediario pagos" },
-  { clave: "99", descripcion: "Por definir" },
-];
-
-const METODO_PAGO: CatalogItem[] = [
-  { clave: "PUE", descripcion: "Pago en una sola exhibicion" },
-  { clave: "PPD", descripcion: "Pago en parcialidades o diferido" },
-];
-
-const TIPO_COMPROBANTE: CatalogItem[] = [
-  { clave: "I", descripcion: "Ingreso" },
-  { clave: "E", descripcion: "Egreso" },
-  { clave: "T", descripcion: "Traslado" },
-  { clave: "N", descripcion: "Nomina" },
-  { clave: "P", descripcion: "Pago" },
-];
-
-const MONEDA: CatalogItem[] = [
-  { clave: "MXN", descripcion: "Peso Mexicano" },
-  { clave: "USD", descripcion: "Dolar Americano" },
-  { clave: "EUR", descripcion: "Euro" },
-  { clave: "GBP", descripcion: "Libra Esterlina" },
-  { clave: "CAD", descripcion: "Dolar Canadiense" },
-  { clave: "JPY", descripcion: "Yen Japones" },
-];
-
-const EXPORTACION: CatalogItem[] = [
-  { clave: "01", descripcion: "No aplica" },
-  { clave: "02", descripcion: "Definitiva" },
-  { clave: "03", descripcion: "Temporal" },
-];
-
-const CLAVE_UNIDAD: CatalogItem[] = [
-  { clave: "E48", descripcion: "Unidad de servicio" },
-  { clave: "H87", descripcion: "Pieza" },
-  { clave: "KGM", descripcion: "Kilogramo" },
-  { clave: "LTR", descripcion: "Litro" },
-  { clave: "XBX", descripcion: "Caja" },
-  { clave: "EA", descripcion: "Elemento" },
-  { clave: "ACT", descripcion: "Actividad" },
-  { clave: "E51", descripcion: "Trabajo" },
-  { clave: "MTR", descripcion: "Metro" },
-  { clave: "KWH", descripcion: "Kilowatt hora" },
-];
-
-const MOTIVOS_CANCELACION: CatalogItem[] = [
-  { clave: "01", descripcion: "Comprobante emitido con errores con relacion" },
-  { clave: "02", descripcion: "Comprobante emitido con errores sin relacion" },
-  { clave: "03", descripcion: "No se llevo a cabo la operacion" },
-  { clave: "04", descripcion: "Operacion nominativa relacionada en una factura global" },
-];
-
-const ALL_CATALOGS: { name: string; data: CatalogItem[] }[] = [
-  { name: "Regimen Fiscal", data: REGIMEN_FISCAL },
-  { name: "Uso CFDI", data: USO_CFDI },
-  { name: "Forma de Pago", data: FORMA_PAGO },
-  { name: "Metodo de Pago", data: METODO_PAGO },
-  { name: "Tipo de Comprobante", data: TIPO_COMPROBANTE },
-  { name: "Moneda", data: MONEDA },
-  { name: "Clave Unidad", data: CLAVE_UNIDAD },
-  { name: "Exportacion", data: EXPORTACION },
-];
-
-// ---------------------------------------------------------------------------
-// Constants
-// ---------------------------------------------------------------------------
-
-const TABS = ["Facturas", "Nueva Factura", "Complementos de Pago", "Catalogos SAT"] as const;
-
-const STATUS_VARIANT: Record<string, string> = {
-  DRAFT: "gray",
-  STAMPED: "green",
-  CANCELLED: "red",
-  CANCELLATION_PENDING: "yellow",
-  SENT: "blue",
-};
-
-const STATUS_LABEL: Record<string, string> = {
-  DRAFT: "Borrador",
-  STAMPED: "Timbrada",
-  CANCELLED: "Cancelada",
-  CANCELLATION_PENDING: "Cancelacion Pendiente",
-  SENT: "Enviada",
-};
-
-const PAGE_SIZE = 10;
-
-const normalize = (s: string) =>
-  s
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase();
-
-function num(v: string | number | null | undefined): number {
-  if (v == null) return 0;
-  return typeof v === "string" ? parseFloat(v) || 0 : v;
-}
-
-function formatDate(iso: string) {
-  const d = new Date(iso);
-  const dd = String(d.getDate()).padStart(2, "0");
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const yyyy = d.getFullYear();
-  return `${dd}/${mm}/${yyyy}`;
-}
-
-function todayISO(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-
-const EMPTY_CONCEPTO: Concepto = {
-  satClaveProdServ: "",
-  quantity: 1,
-  satClaveUnidad: "E48",
-  unitOfMeasure: "Unidad de servicio",
-  description: "",
-  unitPrice: 0,
-  importe: 0,
-  withIva: true,
-};
+import type { Cfdi, Concepto, CfdiAttachment, PendingPayment, PaymentComplement } from "./_components/types";
+import {
+  REGIMEN_FISCAL,
+  USO_CFDI,
+  FORMA_PAGO,
+  METODO_PAGO,
+  MONEDA,
+  EXPORTACION,
+  CLAVE_UNIDAD,
+  MOTIVOS_CANCELACION,
+  ALL_CATALOGS,
+  TABS,
+  STATUS_VARIANT,
+  STATUS_LABEL,
+  normalize,
+  num,
+  formatDate,
+  todayISO,
+  EMPTY_CONCEPTO,
+} from "./_components/types";
+import { useFacturacion } from "./_components/use-facturacion";
 
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
 export default function FacturacionPage() {
-  const { authFetch, user, loading: authLoading } = useAuth();
-  const { toast } = useToast();
+  const {
+    // Auth
+    authFetch,
+    user,
+    authLoading,
+    toast,
 
-  // Data state
-  const [cfdis, setCfdis] = useState<Cfdi[]>([]);
-  const [branches, setBranches] = useState<Branch[]>([]);
-  const [loadingData, setLoadingData] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+    // Data state
+    cfdis,
+    setCfdis,
+    branches,
+    loadingData,
+    error,
+    setError,
 
-  // UI state
-  const [activeTab, setActiveTab] = useState<(typeof TABS)[number]>("Facturas");
-  const [saving, setSaving] = useState(false);
+    // UI state
+    activeTab,
+    setActiveTab,
+    saving,
+    setSaving,
 
-  // Search & Pagination
-  const [searchTerm, setSearchTerm] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
+    // Search & Pagination
+    searchTerm,
+    setSearchTerm,
+    currentPage,
+    setCurrentPage,
+    filteredCfdis,
+    totalPages,
+    paginatedCfdis,
+    paginationStart,
+    paginationEnd,
 
-  // View/Edit modal
-  const [viewModalOpen, setViewModalOpen] = useState(false);
-  const [viewingCfdi, setViewingCfdi] = useState<Cfdi | null>(null);
-  const [editModalOpen, setEditModalOpen] = useState(false);
-  const [editingCfdi, setEditingCfdi] = useState<Cfdi | null>(null);
+    // View/Edit modal
+    viewModalOpen,
+    setViewModalOpen,
+    viewingCfdi,
+    setViewingCfdi,
+    editModalOpen,
+    setEditModalOpen,
+    editingCfdi,
+    setEditingCfdi,
 
-  // Cancel modal
-  const [cancelModalOpen, setCancelModalOpen] = useState(false);
-  const [cancellingCfdi, setCancellingCfdi] = useState<Cfdi | null>(null);
-  const [cancelMotivo, setCancelMotivo] = useState("02");
+    // Cancel modal
+    cancelModalOpen,
+    setCancelModalOpen,
+    cancellingCfdi,
+    setCancellingCfdi,
+    cancelMotivo,
+    setCancelMotivo,
 
-  // Catalog search
-  const [catalogSearch, setCatalogSearch] = useState("");
-  const [activeCatalog, setActiveCatalog] = useState(ALL_CATALOGS[0].name);
+    // Catalog search
+    catalogSearch,
+    setCatalogSearch,
+    activeCatalog,
+    setActiveCatalog,
 
-  // Create form state
-  const [formSerie, setFormSerie] = useState("A");
-  const [formFolio, setFormFolio] = useState("");
-  const [formFecha, setFormFecha] = useState(todayISO());
-  const [formFormaPago, setFormFormaPago] = useState("01");
-  const [formMetodoPago, setFormMetodoPago] = useState("PUE");
-  const [formMoneda, setFormMoneda] = useState("MXN");
-  const [formLugarExpedicion, setFormLugarExpedicion] = useState("");
-  const [formExportacion, setFormExportacion] = useState("01");
-  const [formBranchId, setFormBranchId] = useState("");
+    // Create form state
+    formSerie,
+    setFormSerie,
+    formFolio,
+    formFecha,
+    setFormFecha,
+    formFormaPago,
+    setFormFormaPago,
+    formMetodoPago,
+    setFormMetodoPago,
+    formMoneda,
+    setFormMoneda,
+    formLugarExpedicion,
+    setFormLugarExpedicion,
+    formExportacion,
+    setFormExportacion,
+    formBranchId,
+    setFormBranchId,
 
-  // Emisor
-  const [formEmisorRfc, setFormEmisorRfc] = useState("");
-  const [formEmisorNombre, setFormEmisorNombre] = useState("");
-  const [formEmisorRegimen, setFormEmisorRegimen] = useState("601");
+    // Emisor
+    formEmisorRfc,
+    setFormEmisorRfc,
+    formEmisorNombre,
+    setFormEmisorNombre,
+    formEmisorRegimen,
+    setFormEmisorRegimen,
 
-  // Receptor
-  const [formReceptorRfc, setFormReceptorRfc] = useState("");
-  const [formReceptorNombre, setFormReceptorNombre] = useState("");
-  const [formReceptorRegimen, setFormReceptorRegimen] = useState("601");
-  const [formReceptorUsoCfdi, setFormReceptorUsoCfdi] = useState("G03");
-  const [formReceptorDomicilio, setFormReceptorDomicilio] = useState("");
+    // Receptor
+    formReceptorRfc,
+    setFormReceptorRfc,
+    formReceptorNombre,
+    setFormReceptorNombre,
+    formReceptorRegimen,
+    setFormReceptorRegimen,
+    formReceptorUsoCfdi,
+    setFormReceptorUsoCfdi,
+    formReceptorDomicilio,
+    setFormReceptorDomicilio,
 
-  // Conceptos
-  const [formConceptos, setFormConceptos] = useState<Concepto[]>([{ ...EMPTY_CONCEPTO }]);
+    // Conceptos
+    formConceptos,
+    setFormConceptos,
 
-  // Form errors
-  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+    // Form errors
+    formErrors,
+    setFormErrors,
 
-  // Edit form state (mirrors create)
-  const [editFormSerie, setEditFormSerie] = useState("");
-  const [editFormFecha, setEditFormFecha] = useState("");
-  const [editFormFormaPago, setEditFormFormaPago] = useState("01");
-  const [editFormMetodoPago, setEditFormMetodoPago] = useState("PUE");
-  const [editFormMoneda, setEditFormMoneda] = useState("MXN");
-  const [editFormLugarExpedicion, setEditFormLugarExpedicion] = useState("");
-  const [editFormExportacion, setEditFormExportacion] = useState("01");
-  const [editFormReceptorRfc, setEditFormReceptorRfc] = useState("");
-  const [editFormReceptorNombre, setEditFormReceptorNombre] = useState("");
-  const [editFormReceptorRegimen, setEditFormReceptorRegimen] = useState("601");
-  const [editFormReceptorUsoCfdi, setEditFormReceptorUsoCfdi] = useState("G03");
-  const [editFormReceptorDomicilio, setEditFormReceptorDomicilio] = useState("");
-  const [editFormConceptos, setEditFormConceptos] = useState<Concepto[]>([]);
-  const [editFormErrors, setEditFormErrors] = useState<Record<string, string>>({});
+    // Edit form state
+    editFormSerie,
+    setEditFormSerie,
+    editFormFecha,
+    setEditFormFecha,
+    editFormFormaPago,
+    setEditFormFormaPago,
+    editFormMetodoPago,
+    setEditFormMetodoPago,
+    editFormMoneda,
+    setEditFormMoneda,
+    editFormLugarExpedicion,
+    setEditFormLugarExpedicion,
+    editFormExportacion,
+    setEditFormExportacion,
+    editFormReceptorRfc,
+    setEditFormReceptorRfc,
+    editFormReceptorNombre,
+    setEditFormReceptorNombre,
+    editFormReceptorRegimen,
+    setEditFormReceptorRegimen,
+    editFormReceptorUsoCfdi,
+    setEditFormReceptorUsoCfdi,
+    editFormReceptorDomicilio,
+    setEditFormReceptorDomicilio,
+    editFormConceptos,
+    setEditFormConceptos,
+    editFormErrors,
+    setEditFormErrors,
 
-  // Payment Complement state
-  const [pendingPayments, setPendingPayments] = useState<PendingPayment[]>([]);
-  const [paymentComplements, setPaymentComplements] = useState<PaymentComplement[]>([]);
-  const [loadingComplements, setLoadingComplements] = useState(false);
-  const [complementModalOpen, setComplementModalOpen] = useState(false);
-  const [viewComplementModalOpen, setViewComplementModalOpen] = useState(false);
-  const [viewingComplement, setViewingComplement] = useState<PaymentComplement | null>(null);
-  const [complementSaving, setComplementSaving] = useState(false);
+    // Payment Complement state
+    pendingPayments,
+    paymentComplements,
+    loadingComplements,
+    complementModalOpen,
+    setComplementModalOpen,
+    viewComplementModalOpen,
+    setViewComplementModalOpen,
+    viewingComplement,
+    setViewingComplement,
+    complementSaving,
+    setComplementSaving,
 
-  // Complement form state
-  const [compPaymentDate, setCompPaymentDate] = useState(todayISO());
-  const [compPaymentForm, setCompPaymentForm] = useState("03");
-  const [compCurrency, setCompCurrency] = useState("MXN");
-  const [compSelectedDocs, setCompSelectedDocs] = useState<
-    Array<{ cfdiId: string; amountPaid: number; maxAmount: number; label: string }>
-  >([]);
-  const [compErrors, setCompErrors] = useState<Record<string, string>>({});
-  const [complementSearchTerm, setComplementSearchTerm] = useState("");
-  const [pendingSearchTerm, setPendingSearchTerm] = useState("");
+    // Complement form state
+    compPaymentDate,
+    setCompPaymentDate,
+    compPaymentForm,
+    setCompPaymentForm,
+    compCurrency,
+    setCompCurrency,
+    compSelectedDocs,
+    setCompSelectedDocs,
+    compErrors,
+    setCompErrors,
+    complementSearchTerm,
+    setComplementSearchTerm,
+    pendingSearchTerm,
+    setPendingSearchTerm,
 
-  // Attachment state for view modal
-  const [attachmentUploading, setAttachmentUploading] = useState(false);
+    // Attachment state
+    attachmentUploading,
+    setAttachmentUploading,
 
-  // Reset page when search changes
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm]);
-  // Reset search when tab changes
-  useEffect(() => {
-    setSearchTerm("");
-    setCurrentPage(1);
-  }, [activeTab]);
+    // Summary
+    summaryData,
 
-  // -------------------------------------------------------------------
-  // Fetch helpers
-  // -------------------------------------------------------------------
-
-  const fetchCfdis = useCallback(async () => {
-    try {
-      const data = await authFetch<Cfdi[]>("get", "/facturacion/invoices");
-      setCfdis(data);
-    } catch (err) {
-      toast(err instanceof Error ? err.message : "Error al cargar datos", "error");
-      setCfdis([]);
-    }
-  }, [authFetch]);
-
-  const fetchBranches = useCallback(async () => {
-    try {
-      const data = await authFetch<Branch[]>("get", "/branches");
-      setBranches(data);
-    } catch (err) {
-      toast(err instanceof Error ? err.message : "Error al cargar datos", "error");
-    }
-  }, [authFetch]);
-
-  const fetchPendingPayments = useCallback(async () => {
-    try {
-      const data = await authFetch<PendingPayment[]>("get", "/facturacion/pending-payments");
-      setPendingPayments(data);
-    } catch (err) {
-      toast(err instanceof Error ? err.message : "Error al cargar datos", "error");
-      setPendingPayments([]);
-    }
-  }, [authFetch]);
-
-  const fetchPaymentComplements = useCallback(async () => {
-    try {
-      const data = await authFetch<PaymentComplement[]>("get", "/facturacion/payment-complements");
-      setPaymentComplements(data);
-    } catch (err) {
-      toast(err instanceof Error ? err.message : "Error al cargar datos", "error");
-      setPaymentComplements([]);
-    }
-  }, [authFetch]);
-
-  useEffect(() => {
-    if (authLoading) return;
-    setLoadingData(true);
-    Promise.all([fetchCfdis(), fetchBranches()]).finally(() =>
-      setLoadingData(false)
-    );
-  }, [authLoading, fetchCfdis, fetchBranches]);
-
-  // Fetch complement data when tab is active
-  useEffect(() => {
-    if (authLoading || activeTab !== "Complementos de Pago") return;
-    setLoadingComplements(true);
-    Promise.all([fetchPendingPayments(), fetchPaymentComplements()]).finally(
-      () => setLoadingComplements(false)
-    );
-  }, [authLoading, activeTab, fetchPendingPayments, fetchPaymentComplements]);
-
-  // Auto-calculate folio from existing invoices
-  useEffect(() => {
-    if (cfdis.length > 0) {
-      const maxFolio = cfdis.reduce((max, c) => {
-        const f = parseInt(c.folio) || 0;
-        return f > max ? f : max;
-      }, 0);
-      setFormFolio(String(maxFolio + 1));
-    } else {
-      setFormFolio("1");
-    }
-  }, [cfdis]);
-
-  // -------------------------------------------------------------------
-  // Computed: Summary cards
-  // -------------------------------------------------------------------
-
-  const summaryData = useMemo(() => {
-    const totalFacturas = cfdis.length;
-    const timbradas = cfdis.filter(
-      (c) => c.status === "STAMPED"
-    ).length;
-    const canceladas = cfdis.filter((c) => c.status === "CANCELLED").length;
-    const totalFacturado = cfdis.reduce((sum, c) => sum + num(c.total), 0);
-    return { totalFacturas, timbradas, canceladas, totalFacturado };
-  }, [cfdis]);
-
-  // -------------------------------------------------------------------
-  // Search & Pagination
-  // -------------------------------------------------------------------
-
-  const filteredCfdis = useMemo(() => {
-    if (!searchTerm) return cfdis;
-    const q = normalize(searchTerm);
-    return cfdis.filter(
-      (c) =>
-        (c.folio && normalize(c.folio).includes(q)) ||
-        (c.series && normalize(c.series).includes(q)) ||
-        normalize(c.receiverName || "").includes(q) ||
-        normalize(c.receiverRfc || "").includes(q) ||
-        (c.uuid && normalize(c.uuid).includes(q))
-    );
-  }, [cfdis, searchTerm]);
-
-  const totalPages = Math.ceil(filteredCfdis.length / PAGE_SIZE);
-  const paginatedCfdis = filteredCfdis.slice(
-    (currentPage - 1) * PAGE_SIZE,
-    currentPage * PAGE_SIZE
-  );
-  const paginationStart =
-    filteredCfdis.length === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1;
-  const paginationEnd = Math.min(
-    currentPage * PAGE_SIZE,
-    filteredCfdis.length
-  );
+    // Fetch helpers
+    fetchCfdis,
+    fetchBranches,
+    fetchPendingPayments,
+    fetchPaymentComplements,
+  } = useFacturacion();
 
   // -------------------------------------------------------------------
   // Create form helpers
