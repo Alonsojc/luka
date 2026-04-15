@@ -81,7 +81,7 @@ const PAYMENT_FORMS = [
 ];
 
 async function main() {
-  console.log("=== Seed Finance — CFDIs ===\n");
+  console.warn("=== Seed Finance — CFDIs ===\n");
 
   const org = await prisma.organization.findFirstOrThrow({ where: { rfc: "LUK240101AAA" } });
   const branches = await prisma.branch.findMany({
@@ -92,7 +92,7 @@ async function main() {
   // Check existing
   const existingCfdis = await prisma.cFDI.count({ where: { organizationId: org.id } });
   if (existingCfdis > 0) {
-    console.log(`  ${existingCfdis} CFDIs already exist — skipping`);
+    console.warn(`  ${existingCfdis} CFDIs already exist — skipping`);
     return;
   }
 
@@ -103,7 +103,7 @@ async function main() {
   // ------------------------------------------------------------------
   // INGRESO invoices (35) — the main revenue invoices
   // ------------------------------------------------------------------
-  console.log("Creating INGRESO CFDIs...");
+  console.warn("Creating INGRESO CFDIs...");
   for (let i = 0; i < 35; i++) {
     const receiver = pick(RECEIVERS);
     const branch = pick(storeBranches);
@@ -198,12 +198,12 @@ async function main() {
     });
     cfdiCount++;
   }
-  console.log(`  INGRESO CFDIs: ${cfdiCount}`);
+  console.warn(`  INGRESO CFDIs: ${cfdiCount}`);
 
   // ------------------------------------------------------------------
   // EGRESO (credit notes) — 8 linked to random INGRESO
   // ------------------------------------------------------------------
-  console.log("Creating EGRESO CFDIs (notas de credito)...");
+  console.warn("Creating EGRESO CFDIs (notas de credito)...");
   const stampedIngresos = await prisma.cFDI.findMany({
     where: { organizationId: org.id, cfdiType: "INGRESO", status: "STAMPED" },
     take: 8,
@@ -277,12 +277,12 @@ async function main() {
     });
     egresoCount++;
   }
-  console.log(`  EGRESO CFDIs: ${egresoCount}`);
+  console.warn(`  EGRESO CFDIs: ${egresoCount}`);
 
   // ------------------------------------------------------------------
   // PAGO (payment complements) — 5
   // ------------------------------------------------------------------
-  console.log("Creating PAGO CFDIs (complementos de pago)...");
+  console.warn("Creating PAGO CFDIs (complementos de pago)...");
   const ppdIngresos = await prisma.cFDI.findMany({
     where: { organizationId: org.id, cfdiType: "INGRESO", status: "STAMPED", paymentMethod: "PPD" },
     take: 5,
@@ -340,14 +340,14 @@ async function main() {
     });
     pagoCount++;
   }
-  console.log(`  PAGO CFDIs: ${pagoCount}`);
+  console.warn(`  PAGO CFDIs: ${pagoCount}`);
 
   // ------------------------------------------------------------------
   // Fiscal Periods (if missing)
   // ------------------------------------------------------------------
   const existingFP = await prisma.fiscalPeriod.count({ where: { organizationId: org.id } });
   if (existingFP === 0) {
-    console.log("\nCreating Fiscal Periods...");
+    console.warn("\nCreating Fiscal Periods...");
     const months = [
       { y: 2026, m: 1 },
       { y: 2026, m: 2 },
@@ -365,14 +365,14 @@ async function main() {
         },
       });
     }
-    console.log("  Fiscal periods created: 4 (Jan-Apr 2026)");
+    console.warn("  Fiscal periods created: 4 (Jan-Apr 2026)");
   }
 
   // ------------------------------------------------------------------
   // Summary
   // ------------------------------------------------------------------
-  console.log("\n=== Finance Seed Complete ===");
-  console.log({
+  console.warn("\n=== Finance Seed Complete ===");
+  console.warn({
     "INGRESO CFDIs": cfdiCount,
     "EGRESO CFDIs (notas de credito)": egresoCount,
     "PAGO CFDIs (complementos)": pagoCount,

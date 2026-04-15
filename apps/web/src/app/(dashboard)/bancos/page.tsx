@@ -295,7 +295,7 @@ export default function BancosPage() {
     } finally {
       setAccountsLoading(false);
     }
-  }, [authFetch]);
+  }, [authFetch, toast]);
 
   const fetchTransactions = useCallback(
     async (accountId: string) => {
@@ -317,7 +317,7 @@ export default function BancosPage() {
         setTxLoading(false);
       }
     },
-    [authFetch],
+    [authFetch, toast],
   );
 
   const fetchPayables = useCallback(async () => {
@@ -330,7 +330,7 @@ export default function BancosPage() {
     } finally {
       setPayablesLoading(false);
     }
-  }, [authFetch]);
+  }, [authFetch, toast]);
 
   const fetchReceivables = useCallback(async () => {
     setReceivablesLoading(true);
@@ -342,7 +342,7 @@ export default function BancosPage() {
     } finally {
       setReceivablesLoading(false);
     }
-  }, [authFetch]);
+  }, [authFetch, toast]);
 
   const fetchBranchesAndSuppliers = useCallback(async () => {
     try {
@@ -355,7 +355,7 @@ export default function BancosPage() {
     } catch (err) {
       toast(err instanceof Error ? err.message : "Error al cargar datos", "error");
     }
-  }, [authFetch]);
+  }, [authFetch, toast]);
 
   // Reconciliation fetchers
   const fetchRecSummary = useCallback(
@@ -375,7 +375,7 @@ export default function BancosPage() {
         setRecSummary(null);
       }
     },
-    [authFetch],
+    [authFetch, toast],
   );
 
   const fetchRecTransactions = useCallback(
@@ -398,7 +398,7 @@ export default function BancosPage() {
         setRecLoading(false);
       }
     },
-    [authFetch],
+    [authFetch, toast],
   );
 
   const triggerAutoReconcile = useCallback(async () => {
@@ -412,7 +412,7 @@ export default function BancosPage() {
     } finally {
       setRecAutoLoading(false);
     }
-  }, [authFetch, recAccountId, fetchRecSummary, fetchRecTransactions]);
+  }, [authFetch, toast, recAccountId, fetchRecSummary, fetchRecTransactions]);
 
   const handleImportCSV = useCallback(async () => {
     if (!recAccountId || csvPreview.length === 0) return;
@@ -433,7 +433,7 @@ export default function BancosPage() {
     } finally {
       setImportLoading(false);
     }
-  }, [authFetch, recAccountId, csvPreview, fetchRecSummary, fetchRecTransactions, fetchAccounts]);
+  }, [authFetch, toast, recAccountId, csvPreview, fetchRecSummary, fetchRecTransactions, fetchAccounts]);
 
   const handleImportManual = useCallback(async () => {
     if (!recAccountId || !manualImportForm.date || !manualImportForm.amount) return;
@@ -456,6 +456,7 @@ export default function BancosPage() {
     }
   }, [
     authFetch,
+    toast,
     recAccountId,
     manualImportForm,
     fetchRecSummary,
@@ -476,7 +477,7 @@ export default function BancosPage() {
         toast(err instanceof Error ? err.message : "Error al actualizar", "error");
       }
     },
-    [authFetch, recAccountId, fetchRecSummary, fetchRecTransactions],
+    [authFetch, toast, recAccountId, fetchRecSummary, fetchRecTransactions],
   );
 
   const handleUnreconcile = useCallback(
@@ -488,7 +489,7 @@ export default function BancosPage() {
         toast(err instanceof Error ? err.message : "Error al actualizar", "error");
       }
     },
-    [authFetch, recAccountId, fetchRecSummary, fetchRecTransactions],
+    [authFetch, toast, recAccountId, fetchRecSummary, fetchRecTransactions],
   );
 
   const searchMatches = useCallback(
@@ -510,7 +511,7 @@ export default function BancosPage() {
         setMatchLoading(false);
       }
     },
-    [authFetch],
+    [authFetch, toast],
   );
 
   // Load reconciliation data when account changes

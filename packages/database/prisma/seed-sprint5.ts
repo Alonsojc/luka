@@ -41,24 +41,24 @@ function dateOf(y: number, m: number, d: number, h = 12): Date {
 // ---------------------------------------------------------------------------
 
 async function main() {
-  console.log("=== Luka System — Sprint 5 Comprehensive Seed ===\n");
+  console.warn("=== Luka System — Sprint 5 Comprehensive Seed ===\n");
 
   // ==================================================================
   // 0. QUERY EXISTING REFERENCES
   // ==================================================================
   const org = await prisma.organization.findFirstOrThrow({ where: { rfc: "LUK240101AAA" } });
-  console.log("Organization:", org.name);
+  console.warn("Organization:", org.name);
 
   const branchRecords = await prisma.branch.findMany({ where: { organizationId: org.id } });
   if (branchRecords.length === 0) throw new Error("No branches found. Run seed.ts first.");
   const branches: Record<string, (typeof branchRecords)[0]> = {};
   for (const b of branchRecords) branches[b.code] = b;
-  console.log("Branches found:", branchRecords.length);
+  console.warn("Branches found:", branchRecords.length);
 
   // If no CEDIS branch exists, promote the first branch to CEDIS
   let cedisBranch = branchRecords.find((b) => b.branchType === "CEDIS");
   if (!cedisBranch) {
-    console.log("No CEDIS branch found — promoting first branch...");
+    console.warn("No CEDIS branch found — promoting first branch...");
     cedisBranch = await prisma.branch.update({
       where: { id: branchRecords[0].id },
       data: { branchType: "CEDIS" },
@@ -71,42 +71,42 @@ async function main() {
     include: { category: true },
   });
   if (productRecords.length === 0) throw new Error("No products found. Run seed-demo.ts first.");
-  console.log("Products found:", productRecords.length);
+  console.warn("Products found:", productRecords.length);
 
   const adminUser = await prisma.user.findFirstOrThrow({ where: { email: "admin@lukapoke.com" } });
-  console.log("Admin user:", adminUser.email);
+  console.warn("Admin user:", adminUser.email);
 
   const allUsers = await prisma.user.findMany({ where: { organizationId: org.id } });
 
   const supplierRecords = await prisma.supplier.findMany({ where: { organizationId: org.id } });
   if (supplierRecords.length === 0) throw new Error("No suppliers found. Run seed-demo.ts first.");
-  console.log("Suppliers found:", supplierRecords.length);
+  console.warn("Suppliers found:", supplierRecords.length);
 
   const employeeRecords = await prisma.employee.findMany({
     where: { organizationId: org.id, isActive: true },
   });
   if (employeeRecords.length === 0) throw new Error("No employees found. Run seed-demo.ts first.");
-  console.log("Employees found:", employeeRecords.length);
+  console.warn("Employees found:", employeeRecords.length);
 
   const bankAccountRecords = await prisma.bankAccount.findMany({
     where: { organizationId: org.id },
   });
-  console.log("Bank accounts found:", bankAccountRecords.length);
+  console.warn("Bank accounts found:", bankAccountRecords.length);
 
   const accountRecords = await prisma.accountCatalog.findMany({
     where: { organizationId: org.id },
   });
   const accounts: Record<string, string> = {};
   for (const a of accountRecords) accounts[a.code] = a.id;
-  console.log("Chart of accounts found:", accountRecords.length);
+  console.warn("Chart of accounts found:", accountRecords.length);
 
   const customerRecords = await prisma.customer.findMany({ where: { organizationId: org.id } });
-  console.log("Customers found:", customerRecords.length);
+  console.warn("Customers found:", customerRecords.length);
 
   // ==================================================================
   // 1. ADDITIONAL ACCOUNT CATALOG ENTRIES
   // ==================================================================
-  console.log("\n--- Ensuring Extended Chart of Accounts ---");
+  console.warn("\n--- Ensuring Extended Chart of Accounts ---");
 
   const extraAccounts = [
     {
@@ -185,7 +185,7 @@ async function main() {
         },
       });
       accounts[acc.code] = created.id;
-      console.log(`  Account created: ${acc.code} - ${acc.name}`);
+      console.warn(`  Account created: ${acc.code} - ${acc.name}`);
     } else {
       accounts[acc.code] = existing.id;
     }
@@ -194,7 +194,7 @@ async function main() {
   // ==================================================================
   // 2. PRODUCT PRESENTATIONS (additional)
   // ==================================================================
-  console.log("\n--- Creating Additional Product Presentations ---");
+  console.warn("\n--- Creating Additional Product Presentations ---");
 
   const presentationDefs = [
     {
@@ -278,19 +278,19 @@ async function main() {
       }
     }
   }
-  console.log(`  Product presentations created: ${presCount}`);
+  console.warn(`  Product presentations created: ${presCount}`);
 
   // ==================================================================
   // 3. INVENTORY MOVEMENTS (60+)
   // ==================================================================
-  console.log("\n--- Creating Inventory Movements ---");
+  console.warn("\n--- Creating Inventory Movements ---");
 
   const existingMovements = await prisma.inventoryMovement.count({
     where: { branchId: { in: branchRecords.map((b) => b.id) } },
   });
 
   if (existingMovements > 0) {
-    console.log(`  ${existingMovements} movements already exist — skipping`);
+    console.warn(`  ${existingMovements} movements already exist — skipping`);
   } else {
     const movementTypes: Array<
       "IN" | "OUT" | "ADJUSTMENT" | "TRANSFER_IN" | "TRANSFER_OUT" | "WASTE" | "SALE_DEDUCTION"
@@ -346,20 +346,20 @@ async function main() {
       });
       movCount++;
     }
-    console.log(`  Inventory movements created: ${movCount}`);
+    console.warn(`  Inventory movements created: ${movCount}`);
   }
 
   // ==================================================================
   // 4. INTER-BRANCH TRANSFERS (12)
   // ==================================================================
-  console.log("\n--- Creating Inter-Branch Transfers ---");
+  console.warn("\n--- Creating Inter-Branch Transfers ---");
 
   const existingTransfers = await prisma.interBranchTransfer.count({
     where: { fromBranchId: cedisBranch.id },
   });
 
   if (existingTransfers > 0) {
-    console.log(`  ${existingTransfers} transfers already exist — skipping`);
+    console.warn(`  ${existingTransfers} transfers already exist — skipping`);
   } else {
     const transferStatuses: Array<
       "PENDING" | "APPROVED" | "IN_TRANSIT" | "RECEIVED" | "CANCELLED"
@@ -407,18 +407,18 @@ async function main() {
         },
       });
     }
-    console.log("  Inter-branch transfers created: 12");
+    console.warn("  Inter-branch transfers created: 12");
   }
 
   // ==================================================================
   // 5. PURCHASE ORDERS (30+)
   // ==================================================================
-  console.log("\n--- Creating Additional Purchase Orders ---");
+  console.warn("\n--- Creating Additional Purchase Orders ---");
 
   const existingPOs = await prisma.purchaseOrder.count({ where: { organizationId: org.id } });
 
   if (existingPOs >= 20) {
-    console.log(`  ${existingPOs} purchase orders already exist — skipping`);
+    console.warn(`  ${existingPOs} purchase orders already exist — skipping`);
   } else {
     const poStatuses: Array<"DRAFT" | "SENT" | "PARTIALLY_RECEIVED" | "RECEIVED" | "CANCELLED"> = [
       "RECEIVED",
@@ -505,18 +505,18 @@ async function main() {
         },
       });
     }
-    console.log("  Additional purchase orders created: 25");
+    console.warn("  Additional purchase orders created: 25");
   }
 
   // ==================================================================
   // 6. POS SALES (120)
   // ==================================================================
-  console.log("\n--- Creating POS Sales ---");
+  console.warn("\n--- Creating POS Sales ---");
 
   const existingPosSales = await prisma.posSale.count({ where: { organizationId: org.id } });
 
   if (existingPosSales > 0) {
-    console.log(`  ${existingPosSales} POS sales already exist — skipping`);
+    console.warn(`  ${existingPosSales} POS sales already exist — skipping`);
   } else {
     const paymentMethods = ["CASH", "CASH", "CARD", "CARD", "CARD", "TRANSFER"];
     const menuItems = [
@@ -573,20 +573,20 @@ async function main() {
       });
       salesCreated++;
     }
-    console.log(`  POS sales created: ${salesCreated}`);
+    console.warn(`  POS sales created: ${salesCreated}`);
   }
 
   // ==================================================================
   // 7. CORNTECH SALES (120)
   // ==================================================================
-  console.log("\n--- Creating Corntech Sales ---");
+  console.warn("\n--- Creating Corntech Sales ---");
 
   const existingCorntechSales = await prisma.corntechSale.count({
     where: { branchId: { in: branchRecords.map((b) => b.id) } },
   });
 
   if (existingCorntechSales > 0) {
-    console.log(`  ${existingCorntechSales} Corntech sales already exist — skipping`);
+    console.warn(`  ${existingCorntechSales} Corntech sales already exist — skipping`);
   } else {
     const corntechPayments = ["EFECTIVO", "TARJETA_DEBITO", "TARJETA_CREDITO", "TRANSFERENCIA"];
     const corntechItems = [
@@ -629,23 +629,23 @@ async function main() {
       });
       ctSales++;
     }
-    console.log(`  Corntech sales created: ${ctSales}`);
+    console.warn(`  Corntech sales created: ${ctSales}`);
   }
 
   // ==================================================================
   // 8. BANK TRANSACTIONS (additional 40+)
   // ==================================================================
-  console.log("\n--- Creating Additional Bank Transactions ---");
+  console.warn("\n--- Creating Additional Bank Transactions ---");
 
   if (bankAccountRecords.length === 0) {
-    console.log("  No bank accounts found — skipping");
+    console.warn("  No bank accounts found — skipping");
   } else {
     const existingBankTxn = await prisma.bankTransaction.count({
       where: { bankAccountId: { in: bankAccountRecords.map((b) => b.id) } },
     });
 
     if (existingBankTxn >= 40) {
-      console.log(`  ${existingBankTxn} bank transactions already exist — skipping`);
+      console.warn(`  ${existingBankTxn} bank transactions already exist — skipping`);
     } else {
       const bankTxnTemplates = [
         {
@@ -698,19 +698,19 @@ async function main() {
           bankTxnCount++;
         }
       }
-      console.log(`  Bank transactions created: ${bankTxnCount}`);
+      console.warn(`  Bank transactions created: ${bankTxnCount}`);
     }
   }
 
   // ==================================================================
   // 9. ACCOUNTS PAYABLE (35)
   // ==================================================================
-  console.log("\n--- Creating Accounts Payable ---");
+  console.warn("\n--- Creating Accounts Payable ---");
 
   const existingAP = await prisma.accountPayable.count({ where: { organizationId: org.id } });
 
   if (existingAP > 0) {
-    console.log(`  ${existingAP} accounts payable already exist — skipping`);
+    console.warn(`  ${existingAP} accounts payable already exist — skipping`);
   } else {
     const apStatuses: Array<"PENDING" | "PARTIALLY_PAID" | "PAID" | "OVERDUE" | "CANCELLED"> = [
       "PAID",
@@ -771,18 +771,18 @@ async function main() {
       });
       apCount++;
     }
-    console.log(`  Accounts payable created: ${apCount}`);
+    console.warn(`  Accounts payable created: ${apCount}`);
   }
 
   // ==================================================================
   // 10. ACCOUNTS RECEIVABLE (25)
   // ==================================================================
-  console.log("\n--- Creating Accounts Receivable ---");
+  console.warn("\n--- Creating Accounts Receivable ---");
 
   const existingAR = await prisma.accountReceivable.count({ where: { organizationId: org.id } });
 
   if (existingAR > 0) {
-    console.log(`  ${existingAR} accounts receivable already exist — skipping`);
+    console.warn(`  ${existingAR} accounts receivable already exist — skipping`);
   } else {
     const arStatuses: Array<"PENDING" | "PARTIALLY_PAID" | "PAID" | "OVERDUE" | "CANCELLED"> = [
       "PAID",
@@ -834,18 +834,18 @@ async function main() {
       });
       arCount++;
     }
-    console.log(`  Accounts receivable created: ${arCount}`);
+    console.warn(`  Accounts receivable created: ${arCount}`);
   }
 
   // ==================================================================
   // 11. PAYMENTS (20)
   // ==================================================================
-  console.log("\n--- Creating Payments ---");
+  console.warn("\n--- Creating Payments ---");
 
   const existingPayments = await prisma.payment.count({ where: { organizationId: org.id } });
 
   if (existingPayments > 0) {
-    console.log(`  ${existingPayments} payments already exist — skipping`);
+    console.warn(`  ${existingPayments} payments already exist — skipping`);
   } else {
     // Fetch payables and receivables that are PAID or PARTIALLY_PAID
     const paidPayables = await prisma.accountPayable.findMany({
@@ -903,18 +903,18 @@ async function main() {
       });
       payCount++;
     }
-    console.log(`  Payments created: ${payCount}`);
+    console.warn(`  Payments created: ${payCount}`);
   }
 
   // ==================================================================
   // 12. JOURNAL ENTRIES (25)
   // ==================================================================
-  console.log("\n--- Creating Journal Entries ---");
+  console.warn("\n--- Creating Journal Entries ---");
 
   const existingJE = await prisma.journalEntry.count({ where: { organizationId: org.id } });
 
   if (existingJE > 0) {
-    console.log(`  ${existingJE} journal entries already exist — skipping`);
+    console.warn(`  ${existingJE} journal entries already exist — skipping`);
   } else {
     const journalTemplates = [
       {
@@ -1030,18 +1030,18 @@ async function main() {
       });
       jeCount++;
     }
-    console.log(`  Journal entries created: ${jeCount}`);
+    console.warn(`  Journal entries created: ${jeCount}`);
   }
 
   // ==================================================================
   // 13. PAYROLL PERIODS + RECEIPTS
   // ==================================================================
-  console.log("\n--- Creating Payroll Periods & Receipts ---");
+  console.warn("\n--- Creating Payroll Periods & Receipts ---");
 
   const existingPayrolls = await prisma.payrollPeriod.count({ where: { organizationId: org.id } });
 
   if (existingPayrolls > 0) {
-    console.log(`  ${existingPayrolls} payroll periods already exist — skipping`);
+    console.warn(`  ${existingPayrolls} payroll periods already exist — skipping`);
   } else {
     const payrollPeriods = [
       { start: "2026-03-01", end: "2026-03-15", status: "PAID" as const },
@@ -1147,7 +1147,7 @@ async function main() {
           },
         },
       });
-      console.log(
+      console.warn(
         `  Payroll period ${pp.start} to ${pp.end} (${pp.status}): ${receipts.length} receipts, gross $${totalGross.toLocaleString()}`,
       );
     }
@@ -1156,7 +1156,7 @@ async function main() {
   // ==================================================================
   // 14. SHIFT TEMPLATES
   // ==================================================================
-  console.log("\n--- Creating Shift Templates ---");
+  console.warn("\n--- Creating Shift Templates ---");
 
   const shiftDefs = [
     { name: "Matutino", startTime: "08:00", endTime: "16:00", breakMinutes: 30, color: "#3B82F6" },
@@ -1196,19 +1196,19 @@ async function main() {
         },
       });
       shiftTemplates[s.name] = created.id;
-      console.log(`  Shift template created: ${s.name} (${s.startTime}-${s.endTime})`);
+      console.warn(`  Shift template created: ${s.name} (${s.startTime}-${s.endTime})`);
     }
   }
 
   // ==================================================================
   // 15. SHIFT ASSIGNMENTS (2 weeks, 3 branches)
   // ==================================================================
-  console.log("\n--- Creating Shift Assignments ---");
+  console.warn("\n--- Creating Shift Assignments ---");
 
   const existingShifts = await prisma.shiftAssignment.count({ where: { organizationId: org.id } });
 
   if (existingShifts > 0) {
-    console.log(`  ${existingShifts} shift assignments already exist — skipping`);
+    console.warn(`  ${existingShifts} shift assignments already exist — skipping`);
   } else {
     const shiftBranches = ["CDMX01", "CDMX02", "GDL01"];
     const shiftNames = ["Matutino", "Vespertino", "Medio Turno"];
@@ -1254,20 +1254,20 @@ async function main() {
         }
       }
     }
-    console.log(`  Shift assignments created: ${assignCount}`);
+    console.warn(`  Shift assignments created: ${assignCount}`);
   }
 
   // ==================================================================
   // 16. ATTENDANCE RECORDS (2 weeks, 3 branches)
   // ==================================================================
-  console.log("\n--- Creating Attendance Records ---");
+  console.warn("\n--- Creating Attendance Records ---");
 
   const existingAttendance = await prisma.attendanceRecord.count({
     where: { organizationId: org.id },
   });
 
   if (existingAttendance > 0) {
-    console.log(`  ${existingAttendance} attendance records already exist — skipping`);
+    console.warn(`  ${existingAttendance} attendance records already exist — skipping`);
   } else {
     const attendanceBranches = ["CDMX01", "CDMX02", "GDL01"];
     const statusWeights = [
@@ -1347,18 +1347,18 @@ async function main() {
         }
       }
     }
-    console.log(`  Attendance records created: ${attCount}`);
+    console.warn(`  Attendance records created: ${attCount}`);
   }
 
   // ==================================================================
   // 17. BRANCH BUDGETS (3 branches x 12 months x 5 categories)
   // ==================================================================
-  console.log("\n--- Creating Branch Budgets ---");
+  console.warn("\n--- Creating Branch Budgets ---");
 
   const existingBudgets = await prisma.branchBudget.count({ where: { organizationId: org.id } });
 
   if (existingBudgets > 0) {
-    console.log(`  ${existingBudgets} budgets already exist — skipping`);
+    console.warn(`  ${existingBudgets} budgets already exist — skipping`);
   } else {
     const budgetBranches = ["CDMX01", "CDMX02", "GDL01"];
     const budgetCategories: Record<string, { min: number; max: number }> = {
@@ -1398,18 +1398,18 @@ async function main() {
         }
       }
     }
-    console.log(`  Branch budgets created: ${budgetCount}`);
+    console.warn(`  Branch budgets created: ${budgetCount}`);
   }
 
   // ==================================================================
   // 18. NOTIFICATIONS (25 for admin)
   // ==================================================================
-  console.log("\n--- Creating Notifications ---");
+  console.warn("\n--- Creating Notifications ---");
 
   const existingNotifs = await prisma.notification.count({ where: { userId: adminUser.id } });
 
   if (existingNotifs > 0) {
-    console.log(`  ${existingNotifs} notifications already exist — skipping`);
+    console.warn(`  ${existingNotifs} notifications already exist — skipping`);
   } else {
     const notifDefs = [
       {
@@ -1619,18 +1619,18 @@ async function main() {
         },
       });
     }
-    console.log(`  Notifications created: ${notifDefs.length}`);
+    console.warn(`  Notifications created: ${notifDefs.length}`);
   }
 
   // ==================================================================
   // 19. AUDIT LOGS (60)
   // ==================================================================
-  console.log("\n--- Creating Audit Logs ---");
+  console.warn("\n--- Creating Audit Logs ---");
 
   const existingAudit = await prisma.auditLog.count({ where: { organizationId: org.id } });
 
   if (existingAudit > 0) {
-    console.log(`  ${existingAudit} audit logs already exist — skipping`);
+    console.warn(`  ${existingAudit} audit logs already exist — skipping`);
   } else {
     const auditTemplates = [
       { action: "LOGIN", module: "AUTH", desc: "Inicio de sesion exitoso" },
@@ -1799,20 +1799,20 @@ async function main() {
       });
       auditCount++;
     }
-    console.log(`  Audit logs created: ${auditCount}`);
+    console.warn(`  Audit logs created: ${auditCount}`);
   }
 
   // ==================================================================
   // 20. CORNTECH CASH CLOSINGS (30 days x 3 branches)
   // ==================================================================
-  console.log("\n--- Creating Corntech Cash Closings ---");
+  console.warn("\n--- Creating Corntech Cash Closings ---");
 
   const existingClosings = await prisma.corntechCashClosing.count({
     where: { branchId: { in: branchRecords.map((b) => b.id) } },
   });
 
   if (existingClosings > 0) {
-    console.log(`  ${existingClosings} cash closings already exist — skipping`);
+    console.warn(`  ${existingClosings} cash closings already exist — skipping`);
   } else {
     const closingBranches = ["CDMX01", "CDMX02", "GDL01"];
     const cashierNames = [
@@ -1854,13 +1854,13 @@ async function main() {
         closingCount++;
       }
     }
-    console.log(`  Cash closings created: ${closingCount}`);
+    console.warn(`  Cash closings created: ${closingCount}`);
   }
 
   // ==================================================================
   // SUMMARY
   // ==================================================================
-  console.log("\n=== Sprint 5 Seed Summary ===");
+  console.warn("\n=== Sprint 5 Seed Summary ===");
 
   const counts = {
     "Product Presentations": await prisma.productPresentation.count(),
@@ -1886,10 +1886,10 @@ async function main() {
   };
 
   for (const [key, val] of Object.entries(counts)) {
-    console.log(`  ${key.padEnd(25)} ${val}`);
+    console.warn(`  ${key.padEnd(25)} ${val}`);
   }
 
-  console.log("\nSprint 5 seed completed successfully!");
+  console.warn("\nSprint 5 seed completed successfully!");
 }
 
 main()

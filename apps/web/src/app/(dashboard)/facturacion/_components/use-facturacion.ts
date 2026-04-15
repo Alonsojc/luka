@@ -129,7 +129,7 @@ export function useFacturacion() {
       toast(err instanceof Error ? err.message : "Error al cargar datos", "error");
       setCfdis([]);
     }
-  }, [authFetch]);
+  }, [authFetch, toast]);
 
   const fetchBranches = useCallback(async () => {
     try {
@@ -138,7 +138,7 @@ export function useFacturacion() {
     } catch (err) {
       toast(err instanceof Error ? err.message : "Error al cargar datos", "error");
     }
-  }, [authFetch]);
+  }, [authFetch, toast]);
 
   const fetchPendingPayments = useCallback(async () => {
     try {
@@ -148,7 +148,7 @@ export function useFacturacion() {
       toast(err instanceof Error ? err.message : "Error al cargar datos", "error");
       setPendingPayments([]);
     }
-  }, [authFetch]);
+  }, [authFetch, toast]);
 
   const fetchPaymentComplements = useCallback(async () => {
     try {
@@ -158,7 +158,7 @@ export function useFacturacion() {
       toast(err instanceof Error ? err.message : "Error al cargar datos", "error");
       setPaymentComplements([]);
     }
-  }, [authFetch]);
+  }, [authFetch, toast]);
 
   useEffect(() => {
     if (authLoading) return;

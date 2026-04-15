@@ -176,37 +176,37 @@ const WASTE_NOTES: Record<string, string[]> = {
 // ---------------------------------------------------------------------------
 
 async function main() {
-  console.log("=== Luka System — New Modules Seed (Merma, Delivery, Lealtad) ===\n");
+  console.warn("=== Luka System — New Modules Seed (Merma, Delivery, Lealtad) ===\n");
 
   // ------------------------------------------------------------------
   // 0. Query existing data
   // ------------------------------------------------------------------
   const org = await prisma.organization.findFirstOrThrow({ where: { rfc: "LUK240101AAA" } });
-  console.log("Organization:", org.name);
+  console.warn("Organization:", org.name);
 
   const branchRecords = await prisma.branch.findMany({ where: { organizationId: org.id } });
   if (branchRecords.length === 0) throw new Error("No branches found. Run seed.ts first.");
-  console.log("Branches found:", branchRecords.length);
+  console.warn("Branches found:", branchRecords.length);
 
   const productRecords = await prisma.product.findMany({ where: { organizationId: org.id } });
   if (productRecords.length === 0) throw new Error("No products found. Run seed-demo.ts first.");
-  console.log("Products found:", productRecords.length);
+  console.warn("Products found:", productRecords.length);
 
   const adminUser = await prisma.user.findFirstOrThrow({ where: { email: "admin@lukapoke.com" } });
-  console.log("Admin user:", adminUser.email);
+  console.warn("Admin user:", adminUser.email);
 
   const customers = await prisma.customer.findMany({ where: { organizationId: org.id } });
   if (customers.length === 0) throw new Error("No customers found. Run seed-demo.ts first.");
-  console.log("Customers found:", customers.length);
+  console.warn("Customers found:", customers.length);
 
   // ==================================================================
   // 1. WASTE LOGS (MERMA) — 65 records across 30 days
   // ==================================================================
-  console.log("\n--- Creating Waste Logs (Merma) ---");
+  console.warn("\n--- Creating Waste Logs (Merma) ---");
 
   const existingWaste = await prisma.wasteLog.count({ where: { organizationId: org.id } });
   if (existingWaste > 0) {
-    console.log(`  ${existingWaste} waste logs already exist — deleting for fresh seed`);
+    console.warn(`  ${existingWaste} waste logs already exist — deleting for fresh seed`);
     await prisma.wasteLog.deleteMany({ where: { organizationId: org.id } });
   }
 
@@ -238,23 +238,23 @@ async function main() {
       },
     });
   }
-  console.log(`  Waste logs created: ${wasteCount}`);
-  console.log(`  Total waste cost: $${totalWasteCost.toFixed(2)} MXN`);
+  console.warn(`  Waste logs created: ${wasteCount}`);
+  console.warn(`  Total waste cost: $${totalWasteCost.toFixed(2)} MXN`);
 
   // ==================================================================
   // 2. DELIVERY ORDERS — 85 records across 30 days
   // ==================================================================
-  console.log("\n--- Creating Delivery Orders ---");
+  console.warn("\n--- Creating Delivery Orders ---");
 
   const existingDelivery = await prisma.deliveryOrder.count({ where: { organizationId: org.id } });
   if (existingDelivery > 0) {
-    console.log(`  ${existingDelivery} delivery orders already exist — deleting for fresh seed`);
+    console.warn(`  ${existingDelivery} delivery orders already exist — deleting for fresh seed`);
     await prisma.deliveryOrder.deleteMany({ where: { organizationId: org.id } });
   }
 
   const deliveryCount = 85;
   let totalDeliveryRevenue = 0;
-  let platformStats: Record<string, number> = {};
+  const platformStats: Record<string, number> = {};
 
   for (let i = 0; i < deliveryCount; i++) {
     const platform = pick(DELIVERY_PLATFORMS_WEIGHTED);
@@ -322,12 +322,12 @@ async function main() {
     });
   }
 
-  console.log(`  Delivery orders created: ${deliveryCount}`);
-  console.log(`  Platform distribution:`, platformStats);
-  console.log(`  Total net revenue (delivered): $${totalDeliveryRevenue.toFixed(2)} MXN`);
+  console.warn(`  Delivery orders created: ${deliveryCount}`);
+  console.warn(`  Platform distribution:`, platformStats);
+  console.warn(`  Total net revenue (delivered): $${totalDeliveryRevenue.toFixed(2)} MXN`);
 
   // --- DeliveryConfig (3 platform configs for first branch) ---
-  console.log("\n--- Creating Delivery Configs ---");
+  console.warn("\n--- Creating Delivery Configs ---");
 
   const firstBranch = branchRecords[0];
   const configPlatforms = ["UBEREATS", "RAPPI", "DIDI_FOOD"];
@@ -352,14 +352,14 @@ async function main() {
       },
     });
   }
-  console.log(
+  console.warn(
     `  Delivery configs created for branch: ${firstBranch.name} (${configPlatforms.join(", ")})`,
   );
 
   // ==================================================================
   // 3. LOYALTY — Program + Rewards + Transactions
   // ==================================================================
-  console.log("\n--- Creating Loyalty Program ---");
+  console.warn("\n--- Creating Loyalty Program ---");
 
   const tiers = [
     { name: "Bronce", minPoints: 0, multiplier: 1.0 },
@@ -381,10 +381,10 @@ async function main() {
       tiers,
     },
   });
-  console.log(`  Loyalty program: ${loyaltyProgram.name} (${tiers.length} tiers)`);
+  console.warn(`  Loyalty program: ${loyaltyProgram.name} (${tiers.length} tiers)`);
 
   // --- Loyalty Rewards ---
-  console.log("\n--- Creating Loyalty Rewards ---");
+  console.warn("\n--- Creating Loyalty Rewards ---");
 
   const rewardDefs = [
     {
@@ -422,7 +422,7 @@ async function main() {
   // Delete existing rewards to avoid duplicates, then recreate
   const existingRewards = await prisma.loyaltyReward.count({ where: { organizationId: org.id } });
   if (existingRewards > 0) {
-    console.log(`  ${existingRewards} rewards already exist — deleting for fresh seed`);
+    console.warn(`  ${existingRewards} rewards already exist — deleting for fresh seed`);
     await prisma.loyaltyReward.deleteMany({ where: { organizationId: org.id } });
   }
 
@@ -438,15 +438,15 @@ async function main() {
       },
     });
   }
-  console.log(`  Loyalty rewards created: ${rewardDefs.length}`);
+  console.warn(`  Loyalty rewards created: ${rewardDefs.length}`);
 
   // --- Loyalty Transactions ---
-  console.log("\n--- Creating Loyalty Transactions ---");
+  console.warn("\n--- Creating Loyalty Transactions ---");
 
   // Delete existing transactions for clean state
   const existingTx = await prisma.loyaltyTransaction.count({ where: { organizationId: org.id } });
   if (existingTx > 0) {
-    console.log(`  ${existingTx} loyalty transactions already exist — deleting for fresh seed`);
+    console.warn(`  ${existingTx} loyalty transactions already exist — deleting for fresh seed`);
     await prisma.loyaltyTransaction.deleteMany({ where: { organizationId: org.id } });
   }
 
@@ -551,11 +551,11 @@ async function main() {
     });
   }
 
-  console.log(`  Loyalty transactions created: ${totalTransactions}`);
-  console.log(`  Customers updated: ${customers.length}`);
+  console.warn(`  Loyalty transactions created: ${totalTransactions}`);
+  console.warn(`  Customers updated: ${customers.length}`);
 
   // --- Summary ---
-  console.log("\n=== Seed Summary ===");
+  console.warn("\n=== Seed Summary ===");
   const finalWaste = await prisma.wasteLog.count({ where: { organizationId: org.id } });
   const finalDelivery = await prisma.deliveryOrder.count({ where: { organizationId: org.id } });
   const finalConfigs = await prisma.deliveryConfig.count({ where: { organizationId: org.id } });
@@ -563,14 +563,14 @@ async function main() {
   const finalRewards = await prisma.loyaltyReward.count({ where: { organizationId: org.id } });
   const finalTx = await prisma.loyaltyTransaction.count({ where: { organizationId: org.id } });
 
-  console.log(`  Waste Logs:            ${finalWaste}`);
-  console.log(`  Delivery Orders:       ${finalDelivery}`);
-  console.log(`  Delivery Configs:      ${finalConfigs}`);
-  console.log(`  Loyalty Programs:      ${finalProgram}`);
-  console.log(`  Loyalty Rewards:       ${finalRewards}`);
-  console.log(`  Loyalty Transactions:  ${finalTx}`);
+  console.warn(`  Waste Logs:            ${finalWaste}`);
+  console.warn(`  Delivery Orders:       ${finalDelivery}`);
+  console.warn(`  Delivery Configs:      ${finalConfigs}`);
+  console.warn(`  Loyalty Programs:      ${finalProgram}`);
+  console.warn(`  Loyalty Rewards:       ${finalRewards}`);
+  console.warn(`  Loyalty Transactions:  ${finalTx}`);
 
-  console.log("\nNew modules seed completed successfully!");
+  console.warn("\nNew modules seed completed successfully!");
 }
 
 main()

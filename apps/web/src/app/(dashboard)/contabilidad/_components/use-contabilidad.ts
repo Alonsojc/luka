@@ -23,18 +23,7 @@ import {
   emptyAccountForm,
   emptyJournalForm,
   safeNum,
-  fmt,
   TABS,
-  TYPE_LABELS,
-  NATURE_LABELS,
-  STATUS_VARIANT,
-  STATUS_LABEL,
-  ENTRY_TYPE_LABELS,
-  EVENT_TYPE_LABELS,
-  EVENT_TYPE_VARIANT,
-  REF_TYPE_LABELS,
-  DIOT_OP_LABELS,
-  months,
 } from "./types";
 
 export function useContabilidad() {
@@ -122,7 +111,7 @@ export function useContabilidad() {
     } finally {
       setAccountsLoading(false);
     }
-  }, [authFetch]);
+  }, [authFetch, toast]);
 
   const fetchEntries = useCallback(async () => {
     setEntriesLoading(true);
@@ -135,7 +124,7 @@ export function useContabilidad() {
     } finally {
       setEntriesLoading(false);
     }
-  }, [authFetch]);
+  }, [authFetch, toast]);
 
   const fetchBranches = useCallback(async () => {
     try {
@@ -145,7 +134,7 @@ export function useContabilidad() {
       toast(err instanceof Error ? err.message : "Error al cargar datos", "error");
       setBranches([]);
     }
-  }, [authFetch]);
+  }, [authFetch, toast]);
 
   const fetchPendingEvents = useCallback(async () => {
     setPendingLoading(true);
@@ -158,7 +147,7 @@ export function useContabilidad() {
     } finally {
       setPendingLoading(false);
     }
-  }, [authFetch]);
+  }, [authFetch, toast]);
 
   const fetchAutoEntries = useCallback(async () => {
     setAutoEntriesLoading(true);
@@ -171,7 +160,7 @@ export function useContabilidad() {
     } finally {
       setAutoEntriesLoading(false);
     }
-  }, [authFetch]);
+  }, [authFetch, toast]);
 
   useEffect(() => {
     if (authLoading) return;
@@ -450,7 +439,7 @@ export function useContabilidad() {
     } finally {
       setDeclSummaryLoading(false);
     }
-  }, [authFetch, declYear, declMonth]);
+  }, [authFetch, toast, declYear, declMonth]);
 
   const fetchDeclAnnual = useCallback(async () => {
     setDeclAnnualLoading(true);
@@ -466,7 +455,7 @@ export function useContabilidad() {
     } finally {
       setDeclAnnualLoading(false);
     }
-  }, [authFetch, declYear]);
+  }, [authFetch, toast, declYear]);
 
   function openFilingModal(type: string) {
     setDeclFilingType(type);

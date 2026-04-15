@@ -539,7 +539,7 @@ export default function InventariosPage() {
     } finally {
       setProductsLoading(false);
     }
-  }, [authFetch]);
+  }, [authFetch, toast]);
 
   const fetchBranches = useCallback(async () => {
     try {
@@ -551,7 +551,7 @@ export default function InventariosPage() {
     } catch (err) {
       toast(err instanceof Error ? err.message : "Error al cargar datos", "error");
     }
-  }, [authFetch, selectedBranchId]);
+  }, [authFetch, toast, selectedBranchId]);
 
   const fetchStock = useCallback(
     async (branchId: string) => {
@@ -569,7 +569,7 @@ export default function InventariosPage() {
         setStockLoading(false);
       }
     },
-    [authFetch],
+    [authFetch, toast],
   );
 
   const fetchRecipes = useCallback(async () => {
@@ -582,7 +582,7 @@ export default function InventariosPage() {
     } finally {
       setRecipesLoading(false);
     }
-  }, [authFetch]);
+  }, [authFetch, toast]);
 
   const fetchFoodCostSummary = useCallback(async () => {
     try {
@@ -594,7 +594,7 @@ export default function InventariosPage() {
     } catch (err) {
       toast(err instanceof Error ? err.message : "Error al cargar datos", "error");
     }
-  }, [authFetch]);
+  }, [authFetch, toast]);
 
   const fetchRecipeCostDetail = useCallback(
     async (recipeId: string) => {
@@ -612,7 +612,7 @@ export default function InventariosPage() {
         setCostDetailLoading(false);
       }
     },
-    [authFetch],
+    [authFetch, toast],
   );
 
   const handleRecalculateAll = useCallback(async () => {
@@ -626,7 +626,7 @@ export default function InventariosPage() {
     } finally {
       setRecalculating(false);
     }
-  }, [authFetch, fetchRecipes, fetchFoodCostSummary]);
+  }, [authFetch, toast, fetchRecipes, fetchFoodCostSummary]);
 
   const fetchTransfers = useCallback(async () => {
     setTransfersLoading(true);
@@ -646,7 +646,7 @@ export default function InventariosPage() {
     } finally {
       setTransfersLoading(false);
     }
-  }, [authFetch, transferStatusFilter, transferFromFilter, transferToFilter]);
+  }, [authFetch, toast, transferStatusFilter, transferFromFilter, transferToFilter]);
 
   // =======================================================================
   // Cargas CEDIS fetching helpers
@@ -665,7 +665,7 @@ export default function InventariosPage() {
         setCargasStockLoading(false);
       }
     },
-    [authFetch],
+    [authFetch, toast],
   );
 
   const fetchLoadHistory = useCallback(
@@ -688,7 +688,7 @@ export default function InventariosPage() {
         setLoadHistoryLoading(false);
       }
     },
-    [authFetch],
+    [authFetch, toast],
   );
 
   async function handleManualLoad() {

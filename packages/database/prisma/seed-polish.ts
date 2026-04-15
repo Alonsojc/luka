@@ -19,7 +19,7 @@ function daysAgo(days: number): Date {
 }
 
 async function main() {
-  console.log("=== Seed Polish — Professional Data ===\n");
+  console.warn("=== Seed Polish — Professional Data ===\n");
 
   const org = await prisma.organization.findFirstOrThrow({ where: { rfc: "LUK240101AAA" } });
   const branches = await prisma.branch.findMany({
@@ -30,7 +30,7 @@ async function main() {
   // ============================================================
   // 1. FIX CUSTOMER TIERS — distribute Gold/Silver/Bronze
   // ============================================================
-  console.log("1. Fixing customer tiers...");
+  console.warn("1. Fixing customer tiers...");
   const customers = await prisma.customer.findMany({ where: { organizationId: org.id } });
 
   // Sort by totalPointsEarned descending to assign tiers logically
@@ -72,7 +72,7 @@ async function main() {
       },
     });
   }
-  console.log(`  Updated ${customers.length} customers (3 Gold, 5 Silver, 7 Bronze)`);
+  console.warn(`  Updated ${customers.length} customers (3 Gold, 5 Silver, 7 Bronze)`);
 
   // ============================================================
   // 2. ADD MORE POS SALES for realistic ticket promedio
@@ -80,18 +80,18 @@ async function main() {
   //    Problem: POS sales exist but inversionistas.service uses corntechSales
   //    Let's ensure corntech sales have items for ticket promedio calc.
   // ============================================================
-  console.log("\n2. Verifying sales data coverage...");
+  console.warn("\n2. Verifying sales data coverage...");
   const corntechCount = await prisma.corntechSale.count({
     where: { branchId: { in: storeBranches.map((b) => b.id) } },
   });
   const posCount = await prisma.posSale.count({ where: { organizationId: org.id } });
-  console.log(`  Corntech sales: ${corntechCount}, POS sales: ${posCount}`);
+  console.warn(`  Corntech sales: ${corntechCount}, POS sales: ${posCount}`);
 
   // ============================================================
   // 3. ENSURE BUDGET DATA covers April 2026 for all store branches
   //    So Presupuesto vs Real shows meaningful data
   // ============================================================
-  console.log("\n3. Ensuring budget data for April 2026...");
+  console.warn("\n3. Ensuring budget data for April 2026...");
   const categories = [
     "LABOR",
     "FOOD_COST",
@@ -150,13 +150,13 @@ async function main() {
       }
     }
   }
-  console.log(`  Budgets created/updated: ${budgetsCreated}`);
+  console.warn(`  Budgets created/updated: ${budgetsCreated}`);
 
   // ============================================================
   // 4. ADD MORE LOYALTY TRANSACTIONS for richer dashboard
   //    Currently 103. Add recent earn/redeem activity.
   // ============================================================
-  console.log("\n4. Enriching loyalty transactions...");
+  console.warn("\n4. Enriching loyalty transactions...");
   const existingTxCount = await prisma.loyaltyTransaction.count({
     where: { organizationId: org.id },
   });
@@ -231,15 +231,15 @@ async function main() {
         data: { loyaltyPoints: Math.max(0, runningBalance) },
       });
     }
-    console.log(`  Loyalty transactions created: ${txCreated}`);
+    console.warn(`  Loyalty transactions created: ${txCreated}`);
   } else {
-    console.log(`  Already ${existingTxCount} transactions — skipping`);
+    console.warn(`  Already ${existingTxCount} transactions — skipping`);
   }
 
   // ============================================================
   // 5. ADD BANK TRANSACTIONS for April to show cash flow
   // ============================================================
-  console.log("\n5. Checking bank transaction coverage...");
+  console.warn("\n5. Checking bank transaction coverage...");
   const accounts = await prisma.bankAccount.findMany({ where: { organizationId: org.id } });
   const accountIds = accounts.map((a) => a.id);
   const aprilTxCount =
@@ -251,7 +251,7 @@ async function main() {
           },
         })
       : 0;
-  console.log(`  April 2026 bank transactions: ${aprilTxCount}`);
+  console.warn(`  April 2026 bank transactions: ${aprilTxCount}`);
 
   if (aprilTxCount < 30 && accounts.length > 0) {
     const incomeDescs = [
@@ -312,13 +312,13 @@ async function main() {
         txCount++;
       }
     }
-    console.log(`  Created ${txCount} April bank transactions`);
+    console.warn(`  Created ${txCount} April bank transactions`);
   }
 
   // ============================================================
   // 6. ENSURE REWARDS have varied redemptions
   // ============================================================
-  console.log("\n6. Updating reward redemption counts...");
+  console.warn("\n6. Updating reward redemption counts...");
   const rewards = await prisma.loyaltyReward.findMany({ where: { organizationId: org.id } });
   for (const reward of rewards) {
     await prisma.loyaltyReward.update({
@@ -326,12 +326,12 @@ async function main() {
       data: { currentRedemptions: randInt(5, 45) },
     });
   }
-  console.log(`  Updated ${rewards.length} rewards with redemption counts`);
+  console.warn(`  Updated ${rewards.length} rewards with redemption counts`);
 
   // ============================================================
   // SUMMARY
   // ============================================================
-  console.log("\n=== Seed Polish Complete ===");
+  console.warn("\n=== Seed Polish Complete ===");
   const finalCounts = {
     customers: await prisma.customer.count({ where: { organizationId: org.id } }),
     goldCustomers: await prisma.customer.count({ where: { organizationId: org.id, tier: "GOLD" } }),
@@ -349,7 +349,7 @@ async function main() {
       where: { bankAccountId: { in: accountIds } },
     }),
   };
-  console.log(finalCounts);
+  console.warn(finalCounts);
 }
 
 main()

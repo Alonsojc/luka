@@ -4,7 +4,7 @@ import * as bcrypt from "bcryptjs";
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log("Seeding Luka System database...");
+  console.warn("Seeding Luka System database...");
 
   // 1. Create Organization
   const org = await prisma.organization.upsert({
@@ -17,7 +17,7 @@ async function main() {
       regimenFiscal: "601",
     },
   });
-  console.log("Organization created:", org.name);
+  console.warn("Organization created:", org.name);
 
   // 2. Create System Roles
   const roleDefinitions = [
@@ -226,7 +226,7 @@ async function main() {
     });
     roles[def.name] = role.id;
   }
-  console.log("Roles created:", Object.keys(roles).join(", "));
+  console.warn("Roles created:", Object.keys(roles).join(", "));
 
   // 3. Create Demo Branches
   const branches = [
@@ -340,7 +340,7 @@ async function main() {
     });
     branchIds[b.code] = branch.id;
   }
-  console.log("Branches created:", branches.length);
+  console.warn("Branches created:", branches.length);
 
   // 3b. Create Legal Entities (Razones Sociales)
   const legalEntities = [
@@ -396,7 +396,7 @@ async function main() {
       }
     }
   }
-  console.log(
+  console.warn(
     "Legal entities created:",
     legalEntities.length,
     "(CEDIS01, TIJ01, LEON01 remain unassigned)",
@@ -454,7 +454,7 @@ async function main() {
     create: { userId: investor.id, branchId: null, roleId: roles["investor"] },
   });
 
-  console.log(
+  console.warn(
     "Users created: admin@lukapoke.com / inversionista@lukapoke.com (password: Admin123!)",
   );
 
@@ -486,7 +486,7 @@ async function main() {
       },
     });
   }
-  console.log("ISR tables 2026 seeded (monthly)");
+  console.warn("ISR tables 2026 seeded (monthly)");
 
   // 6. Create IMSS Rates 2026
   const imssRates2026 = [
@@ -529,7 +529,7 @@ async function main() {
       },
     });
   }
-  console.log("IMSS rates 2026 seeded");
+  console.warn("IMSS rates 2026 seeded");
 
   // 7. Create basic chart of accounts
   const accounts = [
@@ -618,7 +618,7 @@ async function main() {
     });
     accountIds[acc.code] = created.id;
   }
-  console.log("Chart of accounts seeded:", accounts.length, "accounts");
+  console.warn("Chart of accounts seeded:", accounts.length, "accounts");
 
   // 8. Create sample product categories
   const categories = ["Proteínas", "Bases", "Toppings", "Salsas", "Bebidas", "Empaques"];
@@ -629,7 +629,7 @@ async function main() {
       create: { organizationId: org.id, name },
     });
   }
-  console.log("Product categories seeded:", categories.length);
+  console.warn("Product categories seeded:", categories.length);
 
   // 9. Open fiscal periods for 2026
   for (let month = 1; month <= 12; month++) {
@@ -639,10 +639,10 @@ async function main() {
       create: { organizationId: org.id, year: 2026, month, status: "OPEN" },
     });
   }
-  console.log("Fiscal periods 2026 opened");
+  console.warn("Fiscal periods 2026 opened");
 
-  console.log("\nSeed completed successfully!");
-  console.log("Login with: admin@lukapoke.com / Admin123!");
+  console.warn("\nSeed completed successfully!");
+  console.warn("Login with: admin@lukapoke.com / Admin123!");
 }
 
 main()

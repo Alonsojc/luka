@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/components/ui/toast";
 import { DataTable } from "@/components/ui/data-table";
@@ -32,7 +32,6 @@ import {
   AlertTriangle,
   Loader2,
   Link2,
-  X,
 } from "lucide-react";
 import { exportToCSV } from "@/lib/export-csv";
 import { generatePayrollPDF } from "@/lib/pdf-generator";

@@ -26,20 +26,20 @@ function pick<T>(arr: T[]): T {
 // ---------------------------------------------------------------------------
 
 async function main() {
-  console.log("=== Luka System — Demo Data Seed ===\n");
+  console.warn("=== Luka System — Demo Data Seed ===\n");
 
   // ------------------------------------------------------------------
   // 0. Look up existing records created by seed.ts
   // ------------------------------------------------------------------
   const org = await prisma.organization.findFirstOrThrow({ where: { rfc: "LUK240101AAA" } });
-  console.log("Organization found:", org.name);
+  console.warn("Organization found:", org.name);
 
   const branchRecords = await prisma.branch.findMany({ where: { organizationId: org.id } });
   const branches: Record<string, string> = {};
   for (const b of branchRecords) {
     branches[b.code] = b.id;
   }
-  console.log("Branches found:", Object.keys(branches).length);
+  console.warn("Branches found:", Object.keys(branches).length);
 
   const categoryRecords = await prisma.productCategory.findMany({
     where: { organizationId: org.id },
@@ -48,10 +48,10 @@ async function main() {
   for (const c of categoryRecords) {
     categories[c.name] = c.id;
   }
-  console.log("Categories found:", Object.keys(categories).length);
+  console.warn("Categories found:", Object.keys(categories).length);
 
   const adminUser = await prisma.user.findFirstOrThrow({ where: { email: "admin@lukapoke.com" } });
-  console.log("Admin user found:", adminUser.email);
+  console.warn("Admin user found:", adminUser.email);
 
   const accountRecords = await prisma.accountCatalog.findMany({
     where: { organizationId: org.id },
@@ -60,12 +60,12 @@ async function main() {
   for (const a of accountRecords) {
     accounts[a.code] = a.id;
   }
-  console.log("Accounts found:", Object.keys(accounts).length);
+  console.warn("Accounts found:", Object.keys(accounts).length);
 
   // ------------------------------------------------------------------
   // 1. PRODUCTS (~33 items)
   // ------------------------------------------------------------------
-  console.log("\n--- Creating Products ---");
+  console.warn("\n--- Creating Products ---");
 
   const productDefs = [
     // Proteínas
@@ -391,12 +391,12 @@ async function main() {
     });
     products[p.sku] = prod.id;
   }
-  console.log(`Products created: ${Object.keys(products).length}`);
+  console.warn(`Products created: ${Object.keys(products).length}`);
 
   // ------------------------------------------------------------------
   // 2. RECIPES (4 poke bowls)
   // ------------------------------------------------------------------
-  console.log("\n--- Creating Recipes ---");
+  console.warn("\n--- Creating Recipes ---");
 
   const recipeDefs = [
     {
@@ -464,7 +464,7 @@ async function main() {
       where: { organizationId: org.id, menuItemName: r.name },
     });
     if (existing) {
-      console.log(`  Recipe "${r.name}" already exists — skipping`);
+      console.warn(`  Recipe "${r.name}" already exists — skipping`);
       continue;
     }
 
@@ -485,13 +485,13 @@ async function main() {
         },
       },
     });
-    console.log(`  Recipe created: ${r.name}`);
+    console.warn(`  Recipe created: ${r.name}`);
   }
 
   // ------------------------------------------------------------------
   // 2b. PRODUCT PRESENTATIONS
   // ------------------------------------------------------------------
-  console.log("\n--- Creating Product Presentations ---");
+  console.warn("\n--- Creating Product Presentations ---");
 
   const presentationDefs: Array<{
     sku: string;
@@ -592,7 +592,7 @@ async function main() {
   for (const pDef of presentationDefs) {
     const productId = products[pDef.sku];
     if (!productId) {
-      console.log(`  Product ${pDef.sku} not found — skipping presentations`);
+      console.warn(`  Product ${pDef.sku} not found — skipping presentations`);
       continue;
     }
 
@@ -601,7 +601,7 @@ async function main() {
         where: { productId, name: pres.name },
       });
       if (existing) {
-        console.log(`  Presentation "${pres.name}" for ${pDef.sku} already exists — skipping`);
+        console.warn(`  Presentation "${pres.name}" for ${pDef.sku} already exists — skipping`);
         continue;
       }
       await prisma.productPresentation.create({
@@ -616,14 +616,14 @@ async function main() {
           barcode: pres.barcode,
         },
       });
-      console.log(`  Presentation created: ${pres.name} for ${pDef.sku}`);
+      console.warn(`  Presentation created: ${pres.name} for ${pDef.sku}`);
     }
   }
 
   // ------------------------------------------------------------------
   // 3. SUPPLIERS (6)
   // ------------------------------------------------------------------
-  console.log("\n--- Creating Suppliers ---");
+  console.warn("\n--- Creating Suppliers ---");
 
   const supplierDefs = [
     {
@@ -689,7 +689,7 @@ async function main() {
     });
     if (existing) {
       suppliers[s.rfc] = existing.id;
-      console.log(`  Supplier "${s.name}" already exists — skipping`);
+      console.warn(`  Supplier "${s.name}" already exists — skipping`);
       continue;
     }
     const sup = await prisma.supplier.create({
@@ -705,13 +705,13 @@ async function main() {
       },
     });
     suppliers[s.rfc] = sup.id;
-    console.log(`  Supplier created: ${s.name}`);
+    console.warn(`  Supplier created: ${s.name}`);
   }
 
   // ------------------------------------------------------------------
   // 4. PURCHASE ORDERS (6)
   // ------------------------------------------------------------------
-  console.log("\n--- Creating Purchase Orders ---");
+  console.warn("\n--- Creating Purchase Orders ---");
 
   // Helper to build PO items and compute subtotal
   type POItemInput = {
@@ -814,7 +814,7 @@ async function main() {
   // Check if any PO already exist for this org (simple idempotency)
   const existingPOs = await prisma.purchaseOrder.count({ where: { organizationId: org.id } });
   if (existingPOs > 0) {
-    console.log(`  ${existingPOs} purchase orders already exist — skipping PO creation`);
+    console.warn(`  ${existingPOs} purchase orders already exist — skipping PO creation`);
   } else {
     for (const po of poDefs) {
       const { subtotal, tax, total } = buildPO(po.items);
@@ -840,7 +840,7 @@ async function main() {
           },
         },
       });
-      console.log(
+      console.warn(
         `  PO created: ${po.status} → ${po.branchCode} (${po.supplierRfc}) — $${total.toLocaleString()}`,
       );
     }
@@ -849,7 +849,7 @@ async function main() {
   // ------------------------------------------------------------------
   // 5. EMPLOYEES (30 — 3 per branch)
   // ------------------------------------------------------------------
-  console.log("\n--- Creating Employees ---");
+  console.warn("\n--- Creating Employees ---");
 
   const branchCodes = [
     "CDMX01",
@@ -972,12 +972,12 @@ async function main() {
       empIdx++;
     }
   }
-  console.log(`Employees created/verified: ${empIdx}`);
+  console.warn(`Employees created/verified: ${empIdx}`);
 
   // ------------------------------------------------------------------
   // 6. BANK ACCOUNTS (3)
   // ------------------------------------------------------------------
-  console.log("\n--- Creating Bank Accounts ---");
+  console.warn("\n--- Creating Bank Accounts ---");
 
   const bankDefs = [
     {
@@ -1007,7 +1007,7 @@ async function main() {
     });
     if (existing) {
       bankAccounts[ba.bankName] = existing.id;
-      console.log(`  Bank "${ba.bankName}" already exists — skipping`);
+      console.warn(`  Bank "${ba.bankName}" already exists — skipping`);
       continue;
     }
     const created = await prisma.bankAccount.create({
@@ -1020,19 +1020,19 @@ async function main() {
       },
     });
     bankAccounts[ba.bankName] = created.id;
-    console.log(`  Bank account created: ${ba.bankName} — $${ba.balance.toLocaleString()}`);
+    console.warn(`  Bank account created: ${ba.bankName} — $${ba.balance.toLocaleString()}`);
   }
 
   // ------------------------------------------------------------------
   // 7. BANK TRANSACTIONS (20)
   // ------------------------------------------------------------------
-  console.log("\n--- Creating Bank Transactions ---");
+  console.warn("\n--- Creating Bank Transactions ---");
 
   const existingTxns = await prisma.bankTransaction.count({
     where: { bankAccountId: { in: Object.values(bankAccounts) } },
   });
   if (existingTxns > 0) {
-    console.log(`  ${existingTxns} transactions already exist — skipping`);
+    console.warn(`  ${existingTxns} transactions already exist — skipping`);
   } else {
     const txnDefs: Array<{
       bank: string;
@@ -1220,13 +1220,13 @@ async function main() {
         },
       });
     }
-    console.log(`  Bank transactions created: ${txnDefs.length}`);
+    console.warn(`  Bank transactions created: ${txnDefs.length}`);
   }
 
   // ------------------------------------------------------------------
   // 8. CUSTOMERS CRM (15)
   // ------------------------------------------------------------------
-  console.log("\n--- Creating Customers ---");
+  console.warn("\n--- Creating Customers ---");
 
   const customerDefs = [
     // GOLD (3)
@@ -1356,7 +1356,7 @@ async function main() {
 
   const existingCustomers = await prisma.customer.count({ where: { organizationId: org.id } });
   if (existingCustomers > 0) {
-    console.log(`  ${existingCustomers} customers already exist — skipping`);
+    console.warn(`  ${existingCustomers} customers already exist — skipping`);
   } else {
     for (const c of customerDefs) {
       await prisma.customer.create({
@@ -1371,13 +1371,13 @@ async function main() {
         },
       });
     }
-    console.log(`  Customers created: ${customerDefs.length}`);
+    console.warn(`  Customers created: ${customerDefs.length}`);
   }
 
   // ------------------------------------------------------------------
   // 9. PROMOTIONS (3)
   // ------------------------------------------------------------------
-  console.log("\n--- Creating Promotions ---");
+  console.warn("\n--- Creating Promotions ---");
 
   const promoDefs = [
     {
@@ -1416,7 +1416,7 @@ async function main() {
       where: { organizationId: org.id, name: promo.name },
     });
     if (existing) {
-      console.log(`  Promotion "${promo.name}" already exists — skipping`);
+      console.warn(`  Promotion "${promo.name}" already exists — skipping`);
       continue;
     }
     await prisma.promotion.create({
@@ -1430,13 +1430,13 @@ async function main() {
         isActive: true,
       },
     });
-    console.log(`  Promotion created: ${promo.name}`);
+    console.warn(`  Promotion created: ${promo.name}`);
   }
 
   // ------------------------------------------------------------------
   // 10. BRANCH INVENTORY (all products × all branches)
   // ------------------------------------------------------------------
-  console.log("\n--- Creating Branch Inventory ---");
+  console.warn("\n--- Creating Branch Inventory ---");
 
   // Stock ranges by category
   const stockRanges: Record<string, { min: number; max: number; minStockRatio: number }> = {
@@ -1473,12 +1473,12 @@ async function main() {
       invCount++;
     }
   }
-  console.log(`Branch inventory records created/verified: ${invCount}`);
+  console.warn(`Branch inventory records created/verified: ${invCount}`);
 
   // ------------------------------------------------------------------
   // Done
   // ------------------------------------------------------------------
-  console.log("\n=== Demo data seeding completed successfully! ===");
+  console.warn("\n=== Demo data seeding completed successfully! ===");
 }
 
 main()

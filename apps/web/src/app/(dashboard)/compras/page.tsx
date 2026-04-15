@@ -26,8 +26,8 @@ import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { FormField, Input, Select, Textarea } from "@/components/ui/form-field";
-import { formatMXN, safeNum } from "@luka/shared";
-import type { Supplier, Product, Branch, POItem, PurchaseOrder } from "@luka/shared";
+import { formatMXN } from "@luka/shared";
+import type { Supplier, Product, Branch, PurchaseOrder } from "@luka/shared";
 
 // Local line-item shape used in the create/edit modal
 interface LineItem {
@@ -482,7 +482,7 @@ export default function ComprasPage() {
     } catch (err) {
       toast(err instanceof Error ? err.message : "Error al cargar datos", "error");
     }
-  }, [authFetch]);
+  }, [authFetch, toast]);
 
   useEffect(() => {
     if (activeTab === "Reabastecimiento" && !authLoading) {

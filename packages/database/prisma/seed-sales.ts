@@ -221,7 +221,7 @@ function generateSalesForDay(
 // ---------------------------------------------------------------------------
 
 async function main() {
-  console.log("=== Luka System — Sales Seed (CorntechSale + CorntechCashClosing) ===\n");
+  console.warn("=== Luka System — Sales Seed (CorntechSale + CorntechCashClosing) ===\n");
 
   // ==================================================================
   // 0. QUERY EXISTING REFERENCES
@@ -229,39 +229,39 @@ async function main() {
   const org = await prisma.organization.findFirstOrThrow({
     where: { rfc: "LUK240101AAA" },
   });
-  console.log("Organization:", org.name);
+  console.warn("Organization:", org.name);
 
   const branchRecords = await prisma.branch.findMany({
     where: { organizationId: org.id },
   });
   if (branchRecords.length === 0) throw new Error("No branches found. Run seed.ts first.");
 
-  console.log(`Branches found: ${branchRecords.length}`);
+  console.warn(`Branches found: ${branchRecords.length}`);
   for (const b of branchRecords) {
-    console.log(`  ${b.code.padEnd(10)} ${b.name}`);
+    console.warn(`  ${b.code.padEnd(10)} ${b.name}`);
   }
 
   // ==================================================================
   // 1. CLEANUP — delete existing Corntech records to allow re-run
   // ==================================================================
-  console.log("\n--- Cleaning up existing Corntech data ---");
+  console.warn("\n--- Cleaning up existing Corntech data ---");
 
   const branchIds = branchRecords.map((b) => b.id);
 
   const deletedClosings = await prisma.corntechCashClosing.deleteMany({
     where: { branchId: { in: branchIds } },
   });
-  console.log(`  Deleted ${deletedClosings.count} CorntechCashClosing records`);
+  console.warn(`  Deleted ${deletedClosings.count} CorntechCashClosing records`);
 
   const deletedSales = await prisma.corntechSale.deleteMany({
     where: { branchId: { in: branchIds } },
   });
-  console.log(`  Deleted ${deletedSales.count} CorntechSale records`);
+  console.warn(`  Deleted ${deletedSales.count} CorntechSale records`);
 
   // ==================================================================
   // 2. GENERATE SALES (~2,500 across all branches over 90 days)
   // ==================================================================
-  console.log("\n--- Generating CorntechSale records ---");
+  console.warn("\n--- Generating CorntechSale records ---");
 
   const DAYS = 90;
   // Base sales per branch per day — calibrated so total lands near 2,500
@@ -284,7 +284,7 @@ async function main() {
     }
   }
 
-  console.log(`  Generated ${allSales.length} sales in memory`);
+  console.warn(`  Generated ${allSales.length} sales in memory`);
 
   // Insert in batches using createMany for efficiency
   const BATCH_SIZE = 500;
@@ -308,12 +308,12 @@ async function main() {
     inserted += result.count;
   }
 
-  console.log(`  Inserted ${inserted} CorntechSale records`);
+  console.warn(`  Inserted ${inserted} CorntechSale records`);
 
   // ==================================================================
   // 3. GENERATE CASH CLOSINGS (1 per branch per day for 90 days)
   // ==================================================================
-  console.log("\n--- Generating CorntechCashClosing records ---");
+  console.warn("\n--- Generating CorntechCashClosing records ---");
 
   // Group sales by branch+date for aggregation
   const salesByBranchDate = new Map<string, GeneratedSale[]>();
@@ -409,25 +409,25 @@ async function main() {
     closingsInserted += result.count;
   }
 
-  console.log(`  Inserted ${closingsInserted} CorntechCashClosing records`);
+  console.warn(`  Inserted ${closingsInserted} CorntechCashClosing records`);
 
   // ==================================================================
   // 4. SUMMARY
   // ==================================================================
-  console.log("\n=== Sales Seed Summary ===\n");
+  console.warn("\n=== Sales Seed Summary ===\n");
 
   const totalRevenue = allSales.reduce((sum, s) => sum + s.total, 0);
-  console.log(`  Total sales:     ${allSales.length}`);
-  console.log(
+  console.warn(`  Total sales:     ${allSales.length}`);
+  console.warn(
     `  Total revenue:   $${totalRevenue.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
   );
-  console.log(`  Cash closings:   ${closingsInserted}`);
-  console.log(`  Date range:      last ${DAYS} days`);
+  console.warn(`  Cash closings:   ${closingsInserted}`);
+  console.warn(`  Date range:      last ${DAYS} days`);
 
   // Per-branch breakdown
-  console.log("\n  Per-branch breakdown:");
-  console.log(`  ${"Branch".padEnd(12)} ${"Sales".padStart(7)} ${"Revenue".padStart(14)}`);
-  console.log(`  ${"─".repeat(12)} ${"─".repeat(7)} ${"─".repeat(14)}`);
+  console.warn("\n  Per-branch breakdown:");
+  console.warn(`  ${"Branch".padEnd(12)} ${"Sales".padStart(7)} ${"Revenue".padStart(14)}`);
+  console.warn(`  ${"─".repeat(12)} ${"─".repeat(7)} ${"─".repeat(14)}`);
 
   const branchSales = new Map<string, { count: number; revenue: number }>();
   for (const sale of allSales) {
@@ -443,21 +443,21 @@ async function main() {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     });
-    console.log(`  ${code.padEnd(12)} ${String(data.count).padStart(7)} $${rev.padStart(13)}`);
+    console.warn(`  ${code.padEnd(12)} ${String(data.count).padStart(7)} $${rev.padStart(13)}`);
   }
 
   // Payment method breakdown
-  console.log("\n  Payment method breakdown:");
+  console.warn("\n  Payment method breakdown:");
   const paymentCounts = new Map<string, number>();
   for (const sale of allSales) {
     paymentCounts.set(sale.paymentMethod, (paymentCounts.get(sale.paymentMethod) || 0) + 1);
   }
   for (const [method, count] of paymentCounts.entries()) {
     const pct = ((count / allSales.length) * 100).toFixed(1);
-    console.log(`  ${method.padEnd(12)} ${String(count).padStart(6)} (${pct}%)`);
+    console.warn(`  ${method.padEnd(12)} ${String(count).padStart(6)} (${pct}%)`);
   }
 
-  console.log("\nSales seed completed successfully!");
+  console.warn("\nSales seed completed successfully!");
 }
 
 main()

@@ -262,7 +262,7 @@ export class WorkyService {
     const errors: Array<{ employee: string; error: string }> = [];
     let created = 0;
     let updated = 0;
-    let skipped = 0;
+    const skipped = 0;
     let failed = 0;
 
     try {
