@@ -15,7 +15,6 @@ import {
   LogIn,
   LogOut,
   AlertTriangle,
-  Calendar,
   BarChart3,
   Filter,
   Users,

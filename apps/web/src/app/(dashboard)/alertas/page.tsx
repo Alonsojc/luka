@@ -4,11 +4,9 @@ import { useState, useEffect, useMemo } from "react";
 import {
   Bell,
   Plus,
-  Play,
   Pencil,
   Power,
   RefreshCw,
-  Search,
   ChevronLeft,
   ChevronRight,
   Settings,
@@ -17,7 +15,6 @@ import {
   Send,
   Trash2,
   X,
-  Eye,
   MessageSquare,
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";

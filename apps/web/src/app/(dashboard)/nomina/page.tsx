@@ -222,7 +222,7 @@ export default function NominaPage() {
     } catch (err) {
       toast(err instanceof Error ? err.message : "Error al cargar datos", "error");
     }
-  }, [authFetch]);
+  }, [authFetch, toast]);
 
   // ── Fetch periods ──
   const fetchPeriods = useCallback(async () => {
@@ -516,7 +516,7 @@ export default function NominaPage() {
       toast(err instanceof Error ? err.message : "Error al cargar datos", "error");
       setSuaHistory([]);
     }
-  }, [authFetch]);
+  }, [authFetch, toast]);
 
   async function fetchSuaRawText(path: string): Promise<string> {
     const tokenCookie = document.cookie
@@ -606,7 +606,7 @@ export default function NominaPage() {
       toast(err instanceof Error ? err.message : "Error al cargar datos", "error");
       setWorkySyncHistory([]);
     }
-  }, [authFetch]);
+  }, [authFetch, toast]);
 
   async function saveWorkyConfig() {
     setLoadingWorky(true);

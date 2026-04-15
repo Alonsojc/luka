@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useApiQuery } from "@/hooks/use-api-query";
-import { hasRole } from "@/lib/auth";
+// hasRole removed (unused after refactor)
 import { DateRangePicker, type DateRange } from "@/components/dashboard/date-range-picker";
 import {
   Building2,
@@ -17,7 +17,6 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   AlertTriangle,
-  Clock,
   Truck,
   ClipboardList,
   DollarSign,
@@ -27,7 +26,6 @@ import {
   RefreshCw,
   Warehouse,
   PieChart as PieChartIcon,
-  Users,
   ArrowLeft,
 } from "lucide-react";
 import {
@@ -38,9 +36,6 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  LineChart,
-  Line,
-  Legend,
   PieChart,
   Pie,
   Cell,
@@ -176,15 +171,6 @@ function EmptyState({ message }: { message: string }) {
   return (
     <div className="flex h-40 items-center justify-center text-sm text-muted-foreground">
       {message}
-    </div>
-  );
-}
-
-function LoadingState() {
-  return (
-    <div className="flex h-40 items-center justify-center text-sm text-muted-foreground">
-      <RefreshCw className="h-4 w-4 animate-spin mr-2" />
-      Cargando...
     </div>
   );
 }
