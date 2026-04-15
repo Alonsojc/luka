@@ -7,11 +7,7 @@ import { AutoPurchaseController } from "./auto-purchase.controller";
 import { AutoPurchaseService } from "./auto-purchase.service";
 
 @Module({
-  controllers: [
-    SuppliersController,
-    PurchaseOrdersController,
-    AutoPurchaseController,
-  ],
+  controllers: [SuppliersController, PurchaseOrdersController, AutoPurchaseController],
   providers: [SuppliersService, PurchaseOrdersService, AutoPurchaseService],
   exports: [SuppliersService, PurchaseOrdersService, AutoPurchaseService],
 })

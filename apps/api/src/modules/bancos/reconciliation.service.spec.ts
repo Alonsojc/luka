@@ -26,10 +26,7 @@ describe("ReconciliationService", () => {
     };
 
     const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        ReconciliationService,
-        { provide: PrismaService, useValue: mockPrisma },
-      ],
+      providers: [ReconciliationService, { provide: PrismaService, useValue: mockPrisma }],
     }).compile();
 
     service = module.get<ReconciliationService>(ReconciliationService);
@@ -43,9 +40,9 @@ describe("ReconciliationService", () => {
     it("should throw NotFoundException for invalid account", async () => {
       mockPrisma.bankAccount.findFirst.mockResolvedValue(null);
 
-      await expect(
-        service.importStatement(ORG_ID, "bad-id", []),
-      ).rejects.toThrow(NotFoundException);
+      await expect(service.importStatement(ORG_ID, "bad-id", [])).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it("should import transactions and update bank balance", async () => {
@@ -89,9 +86,7 @@ describe("ReconciliationService", () => {
     it("should throw NotFoundException for invalid account", async () => {
       mockPrisma.bankAccount.findFirst.mockResolvedValue(null);
 
-      await expect(
-        service.autoReconcile(ORG_ID, "bad-id"),
-      ).rejects.toThrow(NotFoundException);
+      await expect(service.autoReconcile(ORG_ID, "bad-id")).rejects.toThrow(NotFoundException);
     });
 
     it("should return match count for empty transaction list", async () => {

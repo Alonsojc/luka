@@ -16,9 +16,7 @@ import { JwtPayload } from "../../common/decorators/current-user.decorator";
   },
   namespace: "/notifications",
 })
-export class NotificationsGateway
-  implements OnGatewayConnection, OnGatewayDisconnect
-{
+export class NotificationsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   private readonly logger = new Logger(NotificationsGateway.name);
 
   @WebSocketServer()
@@ -37,8 +35,7 @@ export class NotificationsGateway
 
   handleConnection(client: Socket) {
     const token =
-      (client.handshake.auth?.token as string) ||
-      (client.handshake.query?.token as string);
+      (client.handshake.auth?.token as string) || (client.handshake.query?.token as string);
 
     if (!token) {
       this.logger.warn(`Socket ${client.id} connected without token — disconnecting`);
@@ -97,9 +94,7 @@ export class NotificationsGateway
       for (const socketId of sockets) {
         this.server.to(socketId).emit("notification", notification);
       }
-      this.logger.debug(
-        `Sent notification to user ${userId} (${sockets.size} socket(s))`,
-      );
+      this.logger.debug(`Sent notification to user ${userId} (${sockets.size} socket(s))`);
     }
   }
 

@@ -1,7 +1,23 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { Plus, Pencil, Trash2, Send, PackageCheck, ShoppingCart, Download, Search, ChevronLeft, ChevronRight, AlertTriangle, PackagePlus, RefreshCw, Eye, Check } from "lucide-react";
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  Send,
+  PackageCheck,
+  ShoppingCart,
+  Download,
+  Search,
+  ChevronLeft,
+  ChevronRight,
+  AlertTriangle,
+  PackagePlus,
+  RefreshCw,
+  Eye,
+  Check,
+} from "lucide-react";
 import { exportToCSV } from "@/lib/export-csv";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/components/ui/toast";
@@ -24,7 +40,13 @@ interface LineItem {
 
 // Reorder/auto-purchase types
 interface ReorderAlert {
-  product: { id: string; sku: string; name: string; unitOfMeasure: string; costPerUnit: string | number };
+  product: {
+    id: string;
+    sku: string;
+    name: string;
+    unitOfMeasure: string;
+    costPerUnit: string | number;
+  };
   branch: { id: string; name: string; branchType: string };
   currentQuantity: number;
   minimumStock: number;
@@ -64,7 +86,13 @@ interface GenerateResult {
   ordersCreated: number;
   totalItems: number;
   totalValue: number;
-  orders: Array<{ id: string; supplierId: string; supplierName: string; itemCount: number; total: number }>;
+  orders: Array<{
+    id: string;
+    supplierId: string;
+    supplierName: string;
+    itemCount: number;
+    total: number;
+  }>;
 }
 
 // ---------------------------------------------------------------------------
@@ -90,7 +118,7 @@ const STATUS_VARIANT: Record<string, string> = {
 };
 
 function num(v: string | number): number {
-  return typeof v === "string" ? parseFloat(v) || 0 : (isNaN(v) ? 0 : v);
+  return typeof v === "string" ? parseFloat(v) || 0 : isNaN(v) ? 0 : v;
 }
 
 let _keyCounter = 0;
@@ -115,7 +143,11 @@ const EMPTY_SUPPLIER_FORM = {
 // Page Component
 // ---------------------------------------------------------------------------
 
-const normalize = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+const normalize = (s: string) =>
+  s
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
 
 export default function ComprasPage() {
   const { authFetch, loading: authLoading } = useAuth();
@@ -129,9 +161,14 @@ export default function ComprasPage() {
   const PAGE_SIZE = 10;
 
   // Reset page when search changes
-  useEffect(() => { setCurrentPage(1); }, [searchTerm]);
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
   // Reset search when tab changes
-  useEffect(() => { setSearchTerm(""); setCurrentPage(1); }, [activeTab]);
+  useEffect(() => {
+    setSearchTerm("");
+    setCurrentPage(1);
+  }, [activeTab]);
 
   // Data
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -151,7 +188,11 @@ export default function ComprasPage() {
   const [supplierErrors, setSupplierErrors] = useState<Record<string, string>>({});
 
   // Delete confirmation
-  const [deleteTarget, setDeleteTarget] = useState<{ type: "supplier" | "po"; id: string; label: string } | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{
+    type: "supplier" | "po";
+    id: string;
+    label: string;
+  } | null>(null);
 
   // PO modal
   const [poModalOpen, setPoModalOpen] = useState(false);
@@ -250,7 +291,11 @@ export default function ComprasPage() {
       };
 
       if (editingSupplier) {
-        const updated = await authFetch<Supplier>("patch", `/compras/suppliers/${editingSupplier.id}`, body);
+        const updated = await authFetch<Supplier>(
+          "patch",
+          `/compras/suppliers/${editingSupplier.id}`,
+          body,
+        );
         setSuppliers((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
       } else {
         const created = await authFetch<Supplier>("post", "/compras/suppliers", body);
@@ -284,15 +329,15 @@ export default function ComprasPage() {
 
   function openCreatePO() {
     setPoForm({ supplierId: "", branchId: "", notes: "" });
-    setPoItems([{ _key: nextKey(), productId: "", quantity: 1, unitPrice: 0, unitOfMeasure: "pza" }]);
+    setPoItems([
+      { _key: nextKey(), productId: "", quantity: 1, unitPrice: 0, unitOfMeasure: "pza" },
+    ]);
     setPoErrors({});
     setPoModalOpen(true);
   }
 
   function updateLineItem(key: string, field: keyof LineItem, value: string | number) {
-    setPoItems((prev) =>
-      prev.map((li) => (li._key === key ? { ...li, [field]: value } : li)),
-    );
+    setPoItems((prev) => prev.map((li) => (li._key === key ? { ...li, [field]: value } : li)));
   }
 
   function removeLineItem(key: string) {
@@ -300,7 +345,10 @@ export default function ComprasPage() {
   }
 
   function addLineItem() {
-    setPoItems((prev) => [...prev, { _key: nextKey(), productId: "", quantity: 1, unitPrice: 0, unitOfMeasure: "pza" }]);
+    setPoItems((prev) => [
+      ...prev,
+      { _key: nextKey(), productId: "", quantity: 1, unitPrice: 0, unitOfMeasure: "pza" },
+    ]);
   }
 
   // When product is selected, pre-fill cost & unit
@@ -363,7 +411,10 @@ export default function ComprasPage() {
 
   async function handleSendPO(id: string) {
     try {
-      const updated = await authFetch<PurchaseOrder>("patch", `/compras/purchase-orders/${id}/send`);
+      const updated = await authFetch<PurchaseOrder>(
+        "patch",
+        `/compras/purchase-orders/${id}/send`,
+      );
       setOrders((prev) => prev.map((o) => (o.id === updated.id ? updated : o)));
     } catch (err: any) {
       setError(err?.message ?? "Error al enviar orden");
@@ -378,7 +429,11 @@ export default function ComprasPage() {
         itemId: item.id,
         receivedQuantity: num(item.quantity) - num(item.receivedQuantity),
       }));
-      const updated = await authFetch<PurchaseOrder>("patch", `/compras/purchase-orders/${id}/receive`, { items: receiveItems });
+      const updated = await authFetch<PurchaseOrder>(
+        "patch",
+        `/compras/purchase-orders/${id}/receive`,
+        { items: receiveItems },
+      );
       setOrders((prev) => prev.map((o) => (o.id === updated.id ? updated : o)));
     } catch (err: any) {
       setError(err?.message ?? "Error al recibir orden");
@@ -403,19 +458,22 @@ export default function ComprasPage() {
   // Reabastecimiento helpers
   // -----------------------------------------------------------------------
 
-  const fetchReorderAlerts = useCallback(async (branchId?: string) => {
-    setReorderLoading(true);
-    try {
-      const query = branchId ? `?branchId=${branchId}` : "";
-      const alerts = await authFetch<ReorderAlert[]>("get", `/compras/reorder-alerts${query}`);
-      setReorderAlerts(alerts);
-      setSelectedAlerts(new Set(alerts.map((a) => a.product.id)));
-    } catch (err: any) {
-      setError(err?.message ?? "Error al cargar alertas de reabastecimiento");
-    } finally {
-      setReorderLoading(false);
-    }
-  }, [authFetch]);
+  const fetchReorderAlerts = useCallback(
+    async (branchId?: string) => {
+      setReorderLoading(true);
+      try {
+        const query = branchId ? `?branchId=${branchId}` : "";
+        const alerts = await authFetch<ReorderAlert[]>("get", `/compras/reorder-alerts${query}`);
+        setReorderAlerts(alerts);
+        setSelectedAlerts(new Set(alerts.map((a) => a.product.id)));
+      } catch (err: any) {
+        setError(err?.message ?? "Error al cargar alertas de reabastecimiento");
+      } finally {
+        setReorderLoading(false);
+      }
+    },
+    [authFetch],
+  );
 
   const fetchReorderSummary = useCallback(async () => {
     try {
@@ -460,7 +518,10 @@ export default function ComprasPage() {
     }
     setReorderLoading(true);
     try {
-      const data = await authFetch<PreviewData>("get", `/compras/auto-purchase/preview/${reorderBranchId}`);
+      const data = await authFetch<PreviewData>(
+        "get",
+        `/compras/auto-purchase/preview/${reorderBranchId}`,
+      );
       setPreviewData(data);
       setShowPreview(true);
       setGenerateResult(null);
@@ -479,9 +540,14 @@ export default function ComprasPage() {
     setReorderLoading(true);
     try {
       const selectedProductIds = Array.from(selectedAlerts);
-      const result = await authFetch<GenerateResult>("post", `/compras/auto-purchase/generate/${reorderBranchId}`, {
-        productIds: selectedProductIds.length < reorderAlerts.length ? selectedProductIds : undefined,
-      });
+      const result = await authFetch<GenerateResult>(
+        "post",
+        `/compras/auto-purchase/generate/${reorderBranchId}`,
+        {
+          productIds:
+            selectedProductIds.length < reorderAlerts.length ? selectedProductIds : undefined,
+        },
+      );
       setGenerateResult(result);
       setShowPreview(false);
       // Refresh orders list
@@ -503,7 +569,9 @@ export default function ComprasPage() {
       const price = a.lastPrice ?? num(a.product.costPerUnit);
       return sum + a.suggestedOrderQty * price;
     }, 0);
-    const supplierSet = new Set(selected.filter((a) => a.preferredSupplier).map((a) => a.preferredSupplier!.id));
+    const supplierSet = new Set(
+      selected.filter((a) => a.preferredSupplier).map((a) => a.preferredSupplier!.id),
+    );
     return {
       productsBelowMin: reorderAlerts.length,
       estimatedValue,
@@ -539,7 +607,11 @@ export default function ComprasPage() {
       className: "text-center",
       render: (s: Supplier) => (
         <div className="flex items-center justify-center gap-2">
-          <button onClick={() => openEditSupplier(s)} className="p-1 hover:bg-muted rounded" title="Editar">
+          <button
+            onClick={() => openEditSupplier(s)}
+            className="p-1 hover:bg-muted rounded"
+            title="Editar"
+          >
             <Pencil className="h-4 w-4 text-gray-500" />
           </button>
           <button
@@ -585,7 +657,7 @@ export default function ComprasPage() {
       render: (o: PurchaseOrder) => (
         <StatusBadge
           label={STATUS_LABEL[o.status] ?? o.status}
-          variant={STATUS_VARIANT[o.status] as any ?? "gray"}
+          variant={(STATUS_VARIANT[o.status] as any) ?? "gray"}
         />
       ),
     },
@@ -601,18 +673,28 @@ export default function ComprasPage() {
       render: (o: PurchaseOrder) => (
         <div className="flex items-center justify-center gap-1">
           {o.status === "DRAFT" && (
-            <button onClick={() => handleSendPO(o.id)} className="p-1 hover:bg-blue-50 rounded" title="Enviar">
+            <button
+              onClick={() => handleSendPO(o.id)}
+              className="p-1 hover:bg-blue-50 rounded"
+              title="Enviar"
+            >
               <Send className="h-4 w-4 text-blue-600" />
             </button>
           )}
           {(o.status === "SENT" || o.status === "PARTIALLY_RECEIVED") && (
-            <button onClick={() => handleReceivePO(o.id)} className="p-1 hover:bg-green-50 rounded" title="Recibir">
+            <button
+              onClick={() => handleReceivePO(o.id)}
+              className="p-1 hover:bg-green-50 rounded"
+              title="Recibir"
+            >
               <PackageCheck className="h-4 w-4 text-green-600" />
             </button>
           )}
           {o.status === "DRAFT" && (
             <button
-              onClick={() => setDeleteTarget({ type: "po", id: o.id, label: o.folio ?? o.id.slice(-6) })}
+              onClick={() =>
+                setDeleteTarget({ type: "po", id: o.id, label: o.folio ?? o.id.slice(-6) })
+              }
               className="p-1 hover:bg-red-50 rounded"
               title="Cancelar"
             >
@@ -633,7 +715,7 @@ export default function ComprasPage() {
     const q = normalize(searchTerm);
     return suppliers.filter(
       (s) =>
-        normalize(s.name || '').includes(q) ||
+        normalize(s.name || "").includes(q) ||
         (s.rfc && normalize(s.rfc).includes(q)) ||
         (s.contactName && normalize(s.contactName).includes(q)) ||
         (s.email && normalize(s.email).includes(q)),
@@ -647,17 +729,24 @@ export default function ComprasPage() {
       (o) =>
         (o.folio && normalize(o.folio).includes(q)) ||
         normalize(o.id.slice(-6)).includes(q) ||
-        normalize(o.supplier?.name || '').includes(q) ||
-        normalize(o.branch?.name || '').includes(q),
+        normalize(o.supplier?.name || "").includes(q) ||
+        normalize(o.branch?.name || "").includes(q),
     );
   }, [orders, searchTerm]);
 
   const currentFilteredCompras = activeTab === "Proveedores" ? filteredSuppliers : filteredOrders;
   const totalPagesCompras = Math.ceil(currentFilteredCompras.length / PAGE_SIZE);
-  const paginatedSuppliers = filteredSuppliers.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
-  const paginatedOrders = filteredOrders.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  const paginatedSuppliers = filteredSuppliers.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE,
+  );
+  const paginatedOrders = filteredOrders.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE,
+  );
 
-  const paginationStartCompras = currentFilteredCompras.length === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1;
+  const paginationStartCompras =
+    currentFilteredCompras.length === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1;
   const paginationEndCompras = Math.min(currentPage * PAGE_SIZE, currentFilteredCompras.length);
 
   // -----------------------------------------------------------------------
@@ -679,23 +768,25 @@ export default function ComprasPage() {
         <div className="flex gap-3">
           {activeTab === "Proveedores" && (
             <button
-              onClick={() => exportToCSV(
-                suppliers.map(s => ({
-                  name: s.name,
-                  rfc: s.rfc || "",
-                  email: s.email || "",
-                  phone: s.phone || "",
-                  contactName: s.contactName || "",
-                })),
-                "proveedores",
-                [
-                  { key: "name", label: "Nombre" },
-                  { key: "rfc", label: "RFC" },
-                  { key: "email", label: "Email" },
-                  { key: "phone", label: "Telefono" },
-                  { key: "contactName", label: "Contacto" },
-                ]
-              )}
+              onClick={() =>
+                exportToCSV(
+                  suppliers.map((s) => ({
+                    name: s.name,
+                    rfc: s.rfc || "",
+                    email: s.email || "",
+                    phone: s.phone || "",
+                    contactName: s.contactName || "",
+                  })),
+                  "proveedores",
+                  [
+                    { key: "name", label: "Nombre" },
+                    { key: "rfc", label: "RFC" },
+                    { key: "email", label: "Email" },
+                    { key: "phone", label: "Telefono" },
+                    { key: "contactName", label: "Contacto" },
+                  ],
+                )
+              }
               className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
             >
               <Download className="h-4 w-4" />
@@ -708,7 +799,12 @@ export default function ComprasPage() {
               Nuevo Proveedor
             </Button>
           ) : activeTab === "Reabastecimiento" ? (
-            <Button onClick={() => { fetchReorderAlerts(reorderBranchId || undefined); fetchReorderSummary(); }}>
+            <Button
+              onClick={() => {
+                fetchReorderAlerts(reorderBranchId || undefined);
+                fetchReorderSummary();
+              }}
+            >
               <RefreshCw className="h-4 w-4" />
               Actualizar
             </Button>
@@ -744,7 +840,10 @@ export default function ComprasPage() {
       {error && (
         <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 flex items-center justify-between">
           <span>{error}</span>
-          <button onClick={() => setError(null)} className="text-red-500 hover:text-red-700 font-medium">
+          <button
+            onClick={() => setError(null)}
+            className="text-red-500 hover:text-red-700 font-medium"
+          >
             Cerrar
           </button>
         </div>
@@ -762,8 +861,8 @@ export default function ComprasPage() {
               activeTab === "Proveedores"
                 ? "Buscar por nombre, RFC o contacto..."
                 : activeTab === "Reabastecimiento"
-                ? "Buscar por producto o SKU..."
-                : "Buscar por folio o proveedor..."
+                  ? "Buscar por producto o SKU..."
+                  : "Buscar por folio o proveedor..."
             }
             className="w-full rounded-lg border border-gray-200 bg-white py-2 pl-10 pr-4 text-sm focus:border-gray-400 focus:outline-none focus:ring-0"
           />
@@ -773,7 +872,12 @@ export default function ComprasPage() {
       {/* Content */}
       <div className="mt-4">
         {activeTab === "Proveedores" ? (
-          <DataTable columns={supplierColumns} data={paginatedSuppliers} loading={loadingData} emptyMessage="No hay proveedores registrados" />
+          <DataTable
+            columns={supplierColumns}
+            data={paginatedSuppliers}
+            loading={loadingData}
+            emptyMessage="No hay proveedores registrados"
+          />
         ) : activeTab === "Reabastecimiento" ? (
           <ReabastecimientoTab
             branches={branches}
@@ -797,14 +901,20 @@ export default function ComprasPage() {
             searchTerm={searchTerm}
           />
         ) : (
-          <DataTable columns={orderColumns} data={paginatedOrders} loading={loadingData} emptyMessage="No hay ordenes de compra" />
+          <DataTable
+            columns={orderColumns}
+            data={paginatedOrders}
+            loading={loadingData}
+            emptyMessage="No hay ordenes de compra"
+          />
         )}
 
         {/* Pagination controls (not for Reabastecimiento — it has its own layout) */}
         {activeTab !== "Reabastecimiento" && currentFilteredCompras.length > 0 && (
           <div className="mt-4 flex items-center justify-between">
             <p className="text-sm text-gray-500">
-              Mostrando {paginationStartCompras}-{paginationEndCompras} de {currentFilteredCompras.length}
+              Mostrando {paginationStartCompras}-{paginationEndCompras} de{" "}
+              {currentFilteredCompras.length}
             </p>
             <div className="flex items-center gap-2">
               <button
@@ -895,7 +1005,12 @@ export default function ComprasPage() {
               <Input
                 type="number"
                 value={supplierForm.paymentTermsDays}
-                onChange={(e) => setSupplierForm((f) => ({ ...f, paymentTermsDays: parseInt(e.target.value) || 0 }))}
+                onChange={(e) =>
+                  setSupplierForm((f) => ({
+                    ...f,
+                    paymentTermsDays: parseInt(e.target.value) || 0,
+                  }))
+                }
               />
             </FormField>
             <FormField label="Cuenta Bancaria">
@@ -934,9 +1049,7 @@ export default function ComprasPage() {
         wide
       >
         <div className="space-y-5">
-          {poErrors._form && (
-            <p className="text-sm text-destructive">{poErrors._form}</p>
-          )}
+          {poErrors._form && <p className="text-sm text-destructive">{poErrors._form}</p>}
 
           <div className="grid grid-cols-2 gap-4">
             <FormField label="Proveedor" required error={poErrors.supplierId}>
@@ -994,8 +1107,12 @@ export default function ComprasPage() {
                     <th className="px-3 py-2 font-medium text-muted-foreground">Producto</th>
                     <th className="px-3 py-2 font-medium text-muted-foreground w-24">Cantidad</th>
                     <th className="px-3 py-2 font-medium text-muted-foreground w-20">Unidad</th>
-                    <th className="px-3 py-2 font-medium text-muted-foreground w-32">Precio Unit.</th>
-                    <th className="px-3 py-2 font-medium text-muted-foreground w-32 text-right">Subtotal</th>
+                    <th className="px-3 py-2 font-medium text-muted-foreground w-32">
+                      Precio Unit.
+                    </th>
+                    <th className="px-3 py-2 font-medium text-muted-foreground w-32 text-right">
+                      Subtotal
+                    </th>
                     <th className="px-3 py-2 w-10"></th>
                   </tr>
                 </thead>
@@ -1024,14 +1141,18 @@ export default function ComprasPage() {
                             min={0}
                             step="any"
                             value={li.quantity}
-                            onChange={(e) => updateLineItem(li._key, "quantity", parseFloat(e.target.value) || 0)}
+                            onChange={(e) =>
+                              updateLineItem(li._key, "quantity", parseFloat(e.target.value) || 0)
+                            }
                             className={poErrors[`item_${idx}_qty`] ? "border-red-400" : ""}
                           />
                         </td>
                         <td className="px-3 py-2">
                           <Input
                             value={li.unitOfMeasure}
-                            onChange={(e) => updateLineItem(li._key, "unitOfMeasure", e.target.value)}
+                            onChange={(e) =>
+                              updateLineItem(li._key, "unitOfMeasure", e.target.value)
+                            }
                           />
                         </td>
                         <td className="px-3 py-2">
@@ -1040,7 +1161,9 @@ export default function ComprasPage() {
                             min={0}
                             step="any"
                             value={li.unitPrice}
-                            onChange={(e) => updateLineItem(li._key, "unitPrice", parseFloat(e.target.value) || 0)}
+                            onChange={(e) =>
+                              updateLineItem(li._key, "unitPrice", parseFloat(e.target.value) || 0)
+                            }
                             className={poErrors[`item_${idx}_price`] ? "border-red-400" : ""}
                           />
                         </td>
@@ -1184,7 +1307,11 @@ function ReabastecimientoTab({
   setGenerateResult: (v: GenerateResult | null) => void;
   searchTerm: string;
 }) {
-  const normalizeStr = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  const normalizeStr = (s: string) =>
+    s
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase();
   const q = normalizeStr(searchTerm);
 
   const filteredAlerts = searchTerm
@@ -1202,13 +1329,12 @@ function ReabastecimientoTab({
       <div className="flex items-end gap-4">
         <div className="w-64">
           <label className="block text-sm font-medium mb-1">Sucursal</label>
-          <Select
-            value={reorderBranchId}
-            onChange={(e) => setReorderBranchId(e.target.value)}
-          >
+          <Select value={reorderBranchId} onChange={(e) => setReorderBranchId(e.target.value)}>
             <option value="">CEDIS (por defecto)</option>
             {branches.map((b) => (
-              <option key={b.id} value={b.id}>{b.name}</option>
+              <option key={b.id} value={b.id}>
+                {b.name}
+              </option>
             ))}
           </Select>
         </div>
@@ -1228,7 +1354,9 @@ function ReabastecimientoTab({
             <ShoppingCart className="h-5 w-5" />
             <span className="text-sm font-medium">Valor estimado de compra</span>
           </div>
-          <p className="mt-2 text-2xl font-bold text-amber-900">{formatMXN(reorderKPIs.estimatedValue)}</p>
+          <p className="mt-2 text-2xl font-bold text-amber-900">
+            {formatMXN(reorderKPIs.estimatedValue)}
+          </p>
         </div>
         <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
           <div className="flex items-center gap-2 text-blue-700">
@@ -1246,17 +1374,22 @@ function ReabastecimientoTab({
             <div className="flex items-center gap-2 text-green-700">
               <Check className="h-5 w-5" />
               <span className="font-medium">
-                Se crearon {generateResult.ordersCreated} ordenes de compra ({generateResult.totalItems} articulos) por {formatMXN(generateResult.totalValue)}
+                Se crearon {generateResult.ordersCreated} ordenes de compra (
+                {generateResult.totalItems} articulos) por {formatMXN(generateResult.totalValue)}
               </span>
             </div>
-            <button onClick={() => setGenerateResult(null)} className="text-green-600 hover:text-green-800 text-sm font-medium">
+            <button
+              onClick={() => setGenerateResult(null)}
+              className="text-green-600 hover:text-green-800 text-sm font-medium"
+            >
               Cerrar
             </button>
           </div>
           <div className="mt-2 space-y-1">
             {generateResult.orders.map((o) => (
               <p key={o.id} className="text-sm text-green-700">
-                {o.supplierName}: {o.itemCount} articulos - {formatMXN(o.total)} (OC: {o.id.slice(-6).toUpperCase()})
+                {o.supplierName}: {o.itemCount} articulos - {formatMXN(o.total)} (OC:{" "}
+                {o.id.slice(-6).toUpperCase()})
               </p>
             ))}
           </div>
@@ -1268,11 +1401,20 @@ function ReabastecimientoTab({
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-base font-semibold text-gray-900">Alertas de Reabastecimiento</h3>
           <div className="flex items-center gap-2">
-            <Button size="sm" variant="outline" onClick={handlePreview} disabled={reorderLoading || selectedAlerts.size === 0 || !reorderBranchId}>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handlePreview}
+              disabled={reorderLoading || selectedAlerts.size === 0 || !reorderBranchId}
+            >
               <Eye className="h-4 w-4" />
               Vista Previa
             </Button>
-            <Button size="sm" onClick={handleGenerate} disabled={reorderLoading || selectedAlerts.size === 0 || !reorderBranchId}>
+            <Button
+              size="sm"
+              onClick={handleGenerate}
+              disabled={reorderLoading || selectedAlerts.size === 0 || !reorderBranchId}
+            >
               <PackagePlus className="h-4 w-4" />
               Generar Ordenes de Compra
             </Button>
@@ -1280,10 +1422,14 @@ function ReabastecimientoTab({
         </div>
 
         {reorderLoading ? (
-          <div className="border rounded-lg p-8 text-center text-muted-foreground">Cargando alertas...</div>
+          <div className="border rounded-lg p-8 text-center text-muted-foreground">
+            Cargando alertas...
+          </div>
         ) : filteredAlerts.length === 0 ? (
           <div className="border rounded-lg p-8 text-center text-muted-foreground">
-            {reorderAlerts.length === 0 ? "No hay productos bajo el minimo de stock" : "Sin resultados para la busqueda"}
+            {reorderAlerts.length === 0
+              ? "No hay productos bajo el minimo de stock"
+              : "Sin resultados para la busqueda"}
           </div>
         ) : (
           <div className="border rounded-lg overflow-hidden">
@@ -1293,7 +1439,9 @@ function ReabastecimientoTab({
                   <th className="px-3 py-2 w-10">
                     <input
                       type="checkbox"
-                      checked={selectedAlerts.size === reorderAlerts.length && reorderAlerts.length > 0}
+                      checked={
+                        selectedAlerts.size === reorderAlerts.length && reorderAlerts.length > 0
+                      }
                       onChange={toggleAllAlerts}
                       className="rounded"
                     />
@@ -1301,21 +1449,39 @@ function ReabastecimientoTab({
                   <th className="px-3 py-2 font-medium text-muted-foreground">Producto</th>
                   <th className="px-3 py-2 font-medium text-muted-foreground">SKU</th>
                   <th className="px-3 py-2 font-medium text-muted-foreground">Sucursal</th>
-                  <th className="px-3 py-2 font-medium text-muted-foreground text-right">Stock Actual</th>
+                  <th className="px-3 py-2 font-medium text-muted-foreground text-right">
+                    Stock Actual
+                  </th>
                   <th className="px-3 py-2 font-medium text-muted-foreground text-right">Minimo</th>
-                  <th className="px-3 py-2 font-medium text-muted-foreground text-right">Deficit</th>
-                  <th className="px-3 py-2 font-medium text-muted-foreground text-right">Cant. Sugerida</th>
+                  <th className="px-3 py-2 font-medium text-muted-foreground text-right">
+                    Deficit
+                  </th>
+                  <th className="px-3 py-2 font-medium text-muted-foreground text-right">
+                    Cant. Sugerida
+                  </th>
                   <th className="px-3 py-2 font-medium text-muted-foreground">Proveedor</th>
-                  <th className="px-3 py-2 font-medium text-muted-foreground text-right">Precio Unit.</th>
-                  <th className="px-3 py-2 font-medium text-muted-foreground text-right">Subtotal</th>
+                  <th className="px-3 py-2 font-medium text-muted-foreground text-right">
+                    Precio Unit.
+                  </th>
+                  <th className="px-3 py-2 font-medium text-muted-foreground text-right">
+                    Subtotal
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {filteredAlerts.map((alert) => {
-                  const unitPrice = (alert.lastPrice ?? (typeof alert.product.costPerUnit === "string" ? parseFloat(alert.product.costPerUnit) : alert.product.costPerUnit)) || 0;
+                  const unitPrice =
+                    (alert.lastPrice ??
+                      (typeof alert.product.costPerUnit === "string"
+                        ? parseFloat(alert.product.costPerUnit)
+                        : alert.product.costPerUnit)) ||
+                    0;
                   const lineSubtotal = alert.suggestedOrderQty * unitPrice;
                   return (
-                    <tr key={`${alert.branch.id}-${alert.product.id}`} className={`border-b last:border-0 ${getAlertRowClass(alert)}`}>
+                    <tr
+                      key={`${alert.branch.id}-${alert.product.id}`}
+                      className={`border-b last:border-0 ${getAlertRowClass(alert)}`}
+                    >
                       <td className="px-3 py-2">
                         <input
                           type="checkbox"
@@ -1328,13 +1494,19 @@ function ReabastecimientoTab({
                       <td className="px-3 py-2 font-mono text-xs">{alert.product.sku}</td>
                       <td className="px-3 py-2">{alert.branch.name}</td>
                       <td className="px-3 py-2 text-right font-mono">
-                        <span className={alert.currentQuantity === 0 ? "text-red-600 font-bold" : ""}>
+                        <span
+                          className={alert.currentQuantity === 0 ? "text-red-600 font-bold" : ""}
+                        >
                           {alert.currentQuantity}
                         </span>
                       </td>
                       <td className="px-3 py-2 text-right font-mono">{alert.minimumStock}</td>
-                      <td className="px-3 py-2 text-right font-mono text-red-600 font-semibold">{alert.deficit}</td>
-                      <td className="px-3 py-2 text-right font-mono text-blue-600 font-semibold">{alert.suggestedOrderQty}</td>
+                      <td className="px-3 py-2 text-right font-mono text-red-600 font-semibold">
+                        {alert.deficit}
+                      </td>
+                      <td className="px-3 py-2 text-right font-mono text-blue-600 font-semibold">
+                        {alert.suggestedOrderQty}
+                      </td>
                       <td className="px-3 py-2">
                         {alert.preferredSupplier ? (
                           <span className="text-sm">{alert.preferredSupplier.name}</span>
@@ -1343,7 +1515,9 @@ function ReabastecimientoTab({
                         )}
                       </td>
                       <td className="px-3 py-2 text-right">{formatMXN(unitPrice)}</td>
-                      <td className="px-3 py-2 text-right font-medium">{formatMXN(lineSubtotal)}</td>
+                      <td className="px-3 py-2 text-right font-medium">
+                        {formatMXN(lineSubtotal)}
+                      </td>
                     </tr>
                   );
                 })}
@@ -1358,18 +1532,26 @@ function ReabastecimientoTab({
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-base font-semibold text-gray-900">Vista Previa de Ordenes</h3>
-            <button onClick={() => setShowPreview(false)} className="text-sm text-gray-500 hover:text-gray-700">
+            <button
+              onClick={() => setShowPreview(false)}
+              className="text-sm text-gray-500 hover:text-gray-700"
+            >
               Cerrar vista previa
             </button>
           </div>
 
           {previewData.supplierGroups.map((group) => (
-            <div key={group.supplier.id || "__no_supplier__"} className="border rounded-lg overflow-hidden">
+            <div
+              key={group.supplier.id || "__no_supplier__"}
+              className="border rounded-lg overflow-hidden"
+            >
               <div className="bg-muted/50 px-4 py-3 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <PackagePlus className="h-4 w-4 text-primary" />
                   <span className="font-semibold">{group.supplier.name}</span>
-                  <span className="text-xs text-muted-foreground">({group.items.length} articulos)</span>
+                  <span className="text-xs text-muted-foreground">
+                    ({group.items.length} articulos)
+                  </span>
                 </div>
                 <span className="font-semibold">{formatMXN(group.total)}</span>
               </div>
@@ -1378,9 +1560,15 @@ function ReabastecimientoTab({
                   <tr className="border-b text-left">
                     <th className="px-4 py-2 font-medium text-muted-foreground">Producto</th>
                     <th className="px-4 py-2 font-medium text-muted-foreground">SKU</th>
-                    <th className="px-4 py-2 font-medium text-muted-foreground text-right">Cantidad</th>
-                    <th className="px-4 py-2 font-medium text-muted-foreground text-right">Precio Unit.</th>
-                    <th className="px-4 py-2 font-medium text-muted-foreground text-right">Subtotal</th>
+                    <th className="px-4 py-2 font-medium text-muted-foreground text-right">
+                      Cantidad
+                    </th>
+                    <th className="px-4 py-2 font-medium text-muted-foreground text-right">
+                      Precio Unit.
+                    </th>
+                    <th className="px-4 py-2 font-medium text-muted-foreground text-right">
+                      Subtotal
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1388,9 +1576,13 @@ function ReabastecimientoTab({
                     <tr key={item.product.id} className="border-b last:border-0">
                       <td className="px-4 py-2">{item.product.name}</td>
                       <td className="px-4 py-2 font-mono text-xs">{item.product.sku}</td>
-                      <td className="px-4 py-2 text-right">{item.quantity} {item.product.unitOfMeasure}</td>
+                      <td className="px-4 py-2 text-right">
+                        {item.quantity} {item.product.unitOfMeasure}
+                      </td>
                       <td className="px-4 py-2 text-right">{formatMXN(item.unitPrice)}</td>
-                      <td className="px-4 py-2 text-right font-medium">{formatMXN(item.subtotal)}</td>
+                      <td className="px-4 py-2 text-right font-medium">
+                        {formatMXN(item.subtotal)}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -1402,7 +1594,9 @@ function ReabastecimientoTab({
                   </tr>
                   <tr className="bg-muted/30">
                     <td colSpan={3}></td>
-                    <td className="px-4 py-2 text-right text-xs text-muted-foreground">IVA (16%)</td>
+                    <td className="px-4 py-2 text-right text-xs text-muted-foreground">
+                      IVA (16%)
+                    </td>
                     <td className="px-4 py-2 text-right text-sm">{formatMXN(group.tax)}</td>
                   </tr>
                   <tr className="bg-muted/30 font-semibold">
@@ -1419,14 +1613,20 @@ function ReabastecimientoTab({
           <div className="flex justify-end">
             <div className="w-72 rounded-lg border border-primary/30 bg-primary/5 p-4">
               <div className="flex justify-between items-center">
-                <span className="text-sm font-medium text-gray-700">Total General ({previewData.supplierGroups.length} ordenes)</span>
-                <span className="text-lg font-bold text-primary">{formatMXN(previewData.grandTotal)}</span>
+                <span className="text-sm font-medium text-gray-700">
+                  Total General ({previewData.supplierGroups.length} ordenes)
+                </span>
+                <span className="text-lg font-bold text-primary">
+                  {formatMXN(previewData.grandTotal)}
+                </span>
               </div>
             </div>
           </div>
 
           <div className="flex justify-end gap-3">
-            <Button variant="outline" onClick={() => setShowPreview(false)}>Cancelar</Button>
+            <Button variant="outline" onClick={() => setShowPreview(false)}>
+              Cancelar
+            </Button>
             <Button onClick={handleGenerate} disabled={reorderLoading}>
               <PackagePlus className="h-4 w-4" />
               {reorderLoading ? "Generando..." : "Confirmar y Generar Ordenes"}
@@ -1443,7 +1643,9 @@ function ReabastecimientoTab({
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {/* Bar chart: products below minimum by branch */}
             <div className="border rounded-lg p-4">
-              <h4 className="text-sm font-medium text-gray-700 mb-3">Productos bajo minimo por sucursal</h4>
+              <h4 className="text-sm font-medium text-gray-700 mb-3">
+                Productos bajo minimo por sucursal
+              </h4>
               {reorderSummary.byBranch.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-4">Sin datos</p>
               ) : (
@@ -1471,14 +1673,24 @@ function ReabastecimientoTab({
 
             {/* Pie chart simulation: reorder value by supplier */}
             <div className="border rounded-lg p-4">
-              <h4 className="text-sm font-medium text-gray-700 mb-3">Valor de reorden por proveedor</h4>
+              <h4 className="text-sm font-medium text-gray-700 mb-3">
+                Valor de reorden por proveedor
+              </h4>
               {reorderSummary.topSuppliers.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-4">Sin datos</p>
               ) : (
                 <div className="space-y-2">
                   {(() => {
                     const totalValue = reorderSummary.topSuppliers.reduce((s, x) => s + x.value, 0);
-                    const colors = ["bg-blue-500", "bg-emerald-500", "bg-amber-500", "bg-violet-500", "bg-rose-500", "bg-cyan-500", "bg-orange-500"];
+                    const colors = [
+                      "bg-blue-500",
+                      "bg-emerald-500",
+                      "bg-amber-500",
+                      "bg-violet-500",
+                      "bg-rose-500",
+                      "bg-cyan-500",
+                      "bg-orange-500",
+                    ];
                     return (
                       <>
                         {/* Stacked bar */}
@@ -1498,11 +1710,17 @@ function ReabastecimientoTab({
                         {/* Legend */}
                         <div className="space-y-1.5 mt-3">
                           {reorderSummary.topSuppliers.map((sup, i) => {
-                            const pct = totalValue > 0 ? ((sup.value / totalValue) * 100).toFixed(1) : "0";
+                            const pct =
+                              totalValue > 0 ? ((sup.value / totalValue) * 100).toFixed(1) : "0";
                             return (
-                              <div key={sup.supplierId} className="flex items-center justify-between text-sm">
+                              <div
+                                key={sup.supplierId}
+                                className="flex items-center justify-between text-sm"
+                              >
                                 <div className="flex items-center gap-2">
-                                  <div className={`w-3 h-3 rounded-sm ${colors[i % colors.length]}`} />
+                                  <div
+                                    className={`w-3 h-3 rounded-sm ${colors[i % colors.length]}`}
+                                  />
                                   <span className="text-gray-600">{sup.supplierName}</span>
                                 </div>
                                 <div className="flex items-center gap-3">
@@ -1528,7 +1746,9 @@ function ReabastecimientoTab({
                 <tr className="border-b bg-muted/50 text-left">
                   <th className="px-4 py-3 font-medium text-muted-foreground">#</th>
                   <th className="px-4 py-3 font-medium text-muted-foreground">Sucursal</th>
-                  <th className="px-4 py-3 font-medium text-muted-foreground text-right">Productos bajo minimo</th>
+                  <th className="px-4 py-3 font-medium text-muted-foreground text-right">
+                    Productos bajo minimo
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -1537,9 +1757,15 @@ function ReabastecimientoTab({
                     <td className="px-4 py-3 text-muted-foreground">{idx + 1}</td>
                     <td className="px-4 py-3 font-medium">{b.branchName}</td>
                     <td className="px-4 py-3 text-right">
-                      <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                        b.count > 10 ? "bg-red-100 text-red-700" : b.count > 5 ? "bg-amber-100 text-amber-700" : "bg-green-100 text-green-700"
-                      }`}>
+                      <span
+                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                          b.count > 10
+                            ? "bg-red-100 text-red-700"
+                            : b.count > 5
+                              ? "bg-amber-100 text-amber-700"
+                              : "bg-green-100 text-green-700"
+                        }`}
+                      >
                         {b.count}
                       </span>
                     </td>

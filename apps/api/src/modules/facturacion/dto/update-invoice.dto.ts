@@ -1,10 +1,4 @@
-import {
-  IsString,
-  IsOptional,
-  IsArray,
-  ValidateNested,
-  Allow,
-} from "class-validator";
+import { IsString, IsOptional, IsArray, ValidateNested, Allow } from "class-validator";
 import { Type } from "class-transformer";
 import { InvoiceConceptDto } from "./create-invoice.dto";
 

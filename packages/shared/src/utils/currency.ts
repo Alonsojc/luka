@@ -19,6 +19,6 @@ export function sumAmounts(...amounts: (number | string)[]): number {
     amounts.reduce((sum: number, a) => {
       const num = typeof a === "string" ? parseFloat(a) : a;
       return sum + (isNaN(num) ? 0 : num);
-    }, 0)
+    }, 0),
   );
 }

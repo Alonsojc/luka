@@ -231,12 +231,11 @@ export class AlertEngineService {
     tomorrow.setDate(tomorrow.getDate() + 1);
 
     // Gather summary data
-    const [pendingRequisitions, lowStockCount, expiringLots, activeTransfers] =
-      await Promise.all([
-        this.prisma.requisition.count({
-          where: { organizationId, status: { in: ["SUBMITTED", "APPROVED"] } },
-        }),
-        this.prisma.$queryRaw<[{ count: bigint }]>`
+    const [pendingRequisitions, lowStockCount, expiringLots, activeTransfers] = await Promise.all([
+      this.prisma.requisition.count({
+        where: { organizationId, status: { in: ["SUBMITTED", "APPROVED"] } },
+      }),
+      this.prisma.$queryRaw<[{ count: bigint }]>`
           SELECT COUNT(*) as count
           FROM branch_inventory bi
           JOIN branches b ON b.id = bi.branch_id
@@ -244,23 +243,23 @@ export class AlertEngineService {
             AND bi.current_quantity < bi.minimum_stock
             AND bi.minimum_stock > 0
         `.then((r) => Number(r[0]?.count ?? 0)),
-        this.prisma.productLot.count({
-          where: {
-            organization: { id: organizationId },
-            status: "ACTIVE",
-            expirationDate: {
-              lte: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-            },
-            quantity: { gt: 0 },
+      this.prisma.productLot.count({
+        where: {
+          organization: { id: organizationId },
+          status: "ACTIVE",
+          expirationDate: {
+            lte: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
           },
-        }),
-        this.prisma.interBranchTransfer.count({
-          where: {
-            fromBranch: { organizationId },
-            status: { in: ["PENDING", "IN_TRANSIT"] },
-          },
-        }),
-      ]);
+          quantity: { gt: 0 },
+        },
+      }),
+      this.prisma.interBranchTransfer.count({
+        where: {
+          fromBranch: { organizationId },
+          status: { in: ["PENDING", "IN_TRANSIT"] },
+        },
+      }),
+    ]);
 
     // Try to get sales total (from Corntech or POS sales)
     let totalSales = "0.00";

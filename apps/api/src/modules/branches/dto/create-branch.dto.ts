@@ -1,15 +1,5 @@
-import {
-  IsString,
-  IsOptional,
-  IsEmail,
-  IsIn,
-  MinLength,
-  Matches,
-} from "class-validator";
-import {
-  IsPhoneMX,
-  IsPostalCodeMX,
-} from "../../../common/validators/mexican-validators";
+import { IsString, IsOptional, IsEmail, IsIn, MinLength, Matches } from "class-validator";
+import { IsPhoneMX, IsPostalCodeMX } from "../../../common/validators/mexican-validators";
 
 export class CreateBranchDto {
   @IsString()

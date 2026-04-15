@@ -167,10 +167,7 @@ export default function InversionistasPage() {
   const [endDate, setEndDate] = useState(defaults.endDate);
 
   // --- React Query fetchers --------------------------------------------------
-  const { data: branches = [] } = useApiQuery<Branch[]>(
-    "/branches",
-    ["branches"],
-  );
+  const { data: branches = [] } = useApiQuery<Branch[]>("/branches", ["branches"]);
 
   const { data: profitability = [], isLoading: loadingProfit } = useApiQuery<BranchProfitability[]>(
     `/inversionistas/profitability/by-branch?startDate=${startDate}&endDate=${endDate}`,
@@ -192,21 +189,16 @@ export default function InversionistasPage() {
     ["analytics-trends"],
   );
 
-  const { data: analyticsKpis } = useApiQuery<KpisData>(
-    "/reportes/analytics/kpis",
-    ["analytics-kpis"],
-  );
+  const { data: analyticsKpis } = useApiQuery<KpisData>("/reportes/analytics/kpis", [
+    "analytics-kpis",
+  ]);
 
   // --- derived KPIs ---------------------------------------------------------
   const kpis = useMemo(() => {
     const totalRevenue = profitability.reduce((s, b) => s + b.revenue, 0);
     const totalNetProfit = profitability.reduce((s, b) => s + b.netProfit, 0);
-    const totalTransactions = profitability.reduce(
-      (s, b) => s + (b.transactions || 0),
-      0
-    );
-    const avgTicket =
-      totalTransactions > 0 ? totalRevenue / totalTransactions : 0;
+    const totalTransactions = profitability.reduce((s, b) => s + (b.transactions || 0), 0);
+    const avgTicket = totalTransactions > 0 ? totalRevenue / totalTransactions : 0;
     const roiValue = roi?.roi ?? 0;
 
     return [
@@ -280,13 +272,11 @@ export default function InversionistasPage() {
         header: "Margen",
         className: "text-right",
         render: (row: BranchProfitability) => (
-          <span className="font-medium text-black">
-            {fmtPct(row.margin)}
-          </span>
+          <span className="font-medium text-black">{fmtPct(row.margin)}</span>
         ),
       },
     ],
-    []
+    [],
   );
 
   // --- refresh --------------------------------------------------------------
@@ -298,11 +288,7 @@ export default function InversionistasPage() {
 
   // --- loading guard --------------------------------------------------------
   if (authLoading) {
-    return (
-      <div className="flex h-96 items-center justify-center text-gray-400">
-        Cargando...
-      </div>
-    );
+    return <div className="flex h-96 items-center justify-center text-gray-400">Cargando...</div>;
   }
 
   // --- render ---------------------------------------------------------------
@@ -311,20 +297,14 @@ export default function InversionistasPage() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            Dashboard de Inversionistas
-          </h1>
-          <p className="mt-1 text-sm text-gray-500">
-            Indicadores clave de rendimiento
-          </p>
+          <h1 className="text-2xl font-bold text-gray-900">Dashboard de Inversionistas</h1>
+          <p className="mt-1 text-sm text-gray-500">Indicadores clave de rendimiento</p>
         </div>
 
         {/* Date range + refresh */}
         <div className="flex items-end gap-3">
           <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">
-              Desde
-            </label>
+            <label className="block text-xs font-medium text-gray-500 mb-1">Desde</label>
             <Input
               type="date"
               value={startDate}
@@ -333,9 +313,7 @@ export default function InversionistasPage() {
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">
-              Hasta
-            </label>
+            <label className="block text-xs font-medium text-gray-500 mb-1">Hasta</label>
             <Input
               type="date"
               value={endDate}
@@ -416,12 +394,8 @@ export default function InversionistasPage() {
         {activeTab === "rentabilidad" && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-gray-900">
-                Rentabilidad por Sucursal
-              </h2>
-              <span className="text-sm text-gray-500">
-                {branches.length} sucursales
-              </span>
+              <h2 className="text-lg font-semibold text-gray-900">Rentabilidad por Sucursal</h2>
+              <span className="text-sm text-gray-500">{branches.length} sucursales</span>
             </div>
             <DataTable
               columns={profitColumns}
@@ -440,9 +414,7 @@ export default function InversionistasPage() {
             </h2>
 
             {loadingPnl ? (
-              <div className="rounded-lg border p-8 text-center text-gray-400">
-                Cargando...
-              </div>
+              <div className="rounded-lg border p-8 text-center text-gray-400">Cargando...</div>
             ) : !pnl ? (
               <div className="rounded-lg border p-8 text-center text-gray-400">
                 Sin datos para el periodo seleccionado
@@ -474,14 +446,10 @@ export default function InversionistasPage() {
         {/* ---- ROI ---- */}
         {activeTab === "roi" && (
           <div className="space-y-6">
-            <h2 className="text-lg font-semibold text-gray-900">
-              Retorno sobre Inversion
-            </h2>
+            <h2 className="text-lg font-semibold text-gray-900">Retorno sobre Inversion</h2>
 
             {loadingRoi ? (
-              <div className="rounded-lg border p-8 text-center text-gray-400">
-                Cargando...
-              </div>
+              <div className="rounded-lg border p-8 text-center text-gray-400">Cargando...</div>
             ) : !roi ? (
               <div className="rounded-lg border p-8 text-center text-gray-400">
                 Sin datos de ROI para el periodo seleccionado
@@ -490,27 +458,16 @@ export default function InversionistasPage() {
               <>
                 {/* ROI summary cards */}
                 <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-                  <MetricCard
-                    label="Inversion Total"
-                    value={fmtMXN(roi.totalInvested)}
-                  />
-                  <MetricCard
-                    label="Retorno Total"
-                    value={fmtMXN(roi.totalReturn)}
-                  />
+                  <MetricCard label="Inversion Total" value={fmtMXN(roi.totalInvested)} />
+                  <MetricCard label="Retorno Total" value={fmtMXN(roi.totalReturn)} />
                   <MetricCard label="ROI" value={fmtPct(roi.roi)} />
-                  <MetricCard
-                    label="ROI Anualizado"
-                    value={fmtPct(roi.annualizedRoi)}
-                  />
+                  <MetricCard label="ROI Anualizado" value={fmtPct(roi.annualizedRoi)} />
                 </div>
 
                 {roi.paybackMonths > 0 && (
                   <p className="text-sm text-gray-500">
                     Periodo estimado de recuperacion:{" "}
-                    <span className="font-semibold text-gray-900">
-                      {roi.paybackMonths} meses
-                    </span>
+                    <span className="font-semibold text-gray-900">{roi.paybackMonths} meses</span>
                   </p>
                 )}
 
@@ -518,9 +475,7 @@ export default function InversionistasPage() {
                 {roi.byBranch && roi.byBranch.length > 0 && (
                   <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
                     <div className="px-4 py-3 border-b border-gray-200">
-                      <h3 className="text-sm font-semibold text-gray-900">
-                        ROI por Sucursal
-                      </h3>
+                      <h3 className="text-sm font-semibold text-gray-900">ROI por Sucursal</h3>
                     </div>
                     <table className="w-full">
                       <thead>
@@ -541,10 +496,7 @@ export default function InversionistasPage() {
                       </thead>
                       <tbody className="divide-y divide-gray-100">
                         {roi.byBranch.map((b) => (
-                          <tr
-                            key={b.branchId}
-                            className="hover:bg-gray-50 transition-colors"
-                          >
+                          <tr key={b.branchId} className="hover:bg-gray-50 transition-colors">
                             <td className="px-4 py-3 text-sm font-medium text-gray-900">
                               {b.branchName}
                             </td>
@@ -553,11 +505,7 @@ export default function InversionistasPage() {
                             </td>
                             <td className="px-4 py-3 text-right text-sm text-gray-700">
                               <span
-                                className={
-                                  b.netReturn >= 0
-                                    ? "text-green-600"
-                                    : "text-red-600"
-                                }
+                                className={b.netReturn >= 0 ? "text-green-600" : "text-red-600"}
                               >
                                 {fmtMXN(b.netReturn)}
                               </span>
@@ -581,9 +529,7 @@ export default function InversionistasPage() {
       {/* Analytics Charts Section                                          */}
       {/* ================================================================ */}
       <div className="mt-8">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">
-          Analytics Avanzado
-        </h2>
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">Analytics Avanzado</h2>
 
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           {/* Monthly P&L Trend */}
@@ -613,7 +559,20 @@ export default function InversionistasPage() {
                       tick={{ fontSize: 10, fill: "#888" }}
                       tickFormatter={(v: string) => {
                         const parts = v.split("-");
-                        const names = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+                        const names = [
+                          "Ene",
+                          "Feb",
+                          "Mar",
+                          "Abr",
+                          "May",
+                          "Jun",
+                          "Jul",
+                          "Ago",
+                          "Sep",
+                          "Oct",
+                          "Nov",
+                          "Dic",
+                        ];
                         return names[parseInt(parts[1], 10) - 1] || v;
                       }}
                     />
@@ -629,18 +588,44 @@ export default function InversionistasPage() {
                     <Tooltip
                       formatter={(value: number, name: string) => [
                         fmtMXN(value),
-                        name === "ingresos" ? "Ingresos" : name === "costos" ? "Costos" : "Utilidad",
+                        name === "ingresos"
+                          ? "Ingresos"
+                          : name === "costos"
+                            ? "Costos"
+                            : "Utilidad",
                       ]}
                       contentStyle={{ borderRadius: 8, border: "1px solid #e5e5e5" }}
                     />
                     <Legend
                       formatter={(value: string) =>
-                        value === "ingresos" ? "Ingresos" : value === "costos" ? "Costos" : "Utilidad"
+                        value === "ingresos"
+                          ? "Ingresos"
+                          : value === "costos"
+                            ? "Costos"
+                            : "Utilidad"
                       }
                     />
-                    <Line type="monotone" dataKey="ingresos" stroke="#000000" strokeWidth={2} dot={{ r: 2 }} />
-                    <Line type="monotone" dataKey="costos" stroke="#9ca3af" strokeWidth={2} dot={{ r: 2 }} />
-                    <Line type="monotone" dataKey="utilidad" stroke="#22c55e" strokeWidth={2} dot={{ r: 2 }} />
+                    <Line
+                      type="monotone"
+                      dataKey="ingresos"
+                      stroke="#000000"
+                      strokeWidth={2}
+                      dot={{ r: 2 }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="costos"
+                      stroke="#9ca3af"
+                      strokeWidth={2}
+                      dot={{ r: 2 }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="utilidad"
+                      stroke="#22c55e"
+                      strokeWidth={2}
+                      dot={{ r: 2 }}
+                    />
                   </LineChart>
                 </ResponsiveContainer>
               ) : (
@@ -679,7 +664,10 @@ export default function InversionistasPage() {
                     <span className="text-sm text-gray-600">Retorno Estimado Anual</span>
                     <span className="text-lg font-bold text-green-600">
                       {fmtMXN(
-                        (analyticsKpis.currentMonthSales - analyticsKpis.previousMonthSales * (analyticsKpis.employeeCostRatio / 100 + 0.55)) * 12
+                        (analyticsKpis.currentMonthSales -
+                          analyticsKpis.previousMonthSales *
+                            (analyticsKpis.employeeCostRatio / 100 + 0.55)) *
+                          12,
                       )}
                     </span>
                   </div>
@@ -688,15 +676,20 @@ export default function InversionistasPage() {
                     <span className="text-2xl font-bold text-black">
                       {analyticsKpis.cashPosition > 0
                         ? fmtPct(
-                            ((analyticsKpis.currentMonthSales * 12 * 0.15) / analyticsKpis.cashPosition) * 100
+                            ((analyticsKpis.currentMonthSales * 12 * 0.15) /
+                              analyticsKpis.cashPosition) *
+                              100,
                           )
                         : "--"}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-600">Crecimiento de Ventas</span>
-                    <span className={`text-lg font-bold ${analyticsKpis.salesGrowth >= 0 ? "text-green-600" : "text-red-600"}`}>
-                      {analyticsKpis.salesGrowth >= 0 ? "+" : ""}{fmtPct(analyticsKpis.salesGrowth)}
+                    <span
+                      className={`text-lg font-bold ${analyticsKpis.salesGrowth >= 0 ? "text-green-600" : "text-red-600"}`}
+                    >
+                      {analyticsKpis.salesGrowth >= 0 ? "+" : ""}
+                      {fmtPct(analyticsKpis.salesGrowth)}
                     </span>
                   </div>
                 </>
@@ -735,7 +728,20 @@ export default function InversionistasPage() {
                     tick={{ fontSize: 10, fill: "#888" }}
                     tickFormatter={(v: string) => {
                       const parts = v.split("-");
-                      const names = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+                      const names = [
+                        "Ene",
+                        "Feb",
+                        "Mar",
+                        "Abr",
+                        "May",
+                        "Jun",
+                        "Jul",
+                        "Ago",
+                        "Sep",
+                        "Oct",
+                        "Nov",
+                        "Dic",
+                      ];
                       return names[parseInt(parts[1], 10) - 1] || v;
                     }}
                   />
@@ -806,11 +812,7 @@ function PnlSection({
       </span>
       <span
         className={`text-sm tabular-nums ${bold ? "font-semibold" : ""} ${
-          accent
-            ? "text-gray-900 font-bold"
-            : item.amount < 0
-              ? "text-red-600"
-              : "text-gray-900"
+          accent ? "text-gray-900 font-bold" : item.amount < 0 ? "text-red-600" : "text-gray-900"
         }`}
       >
         {fmtMXN(item.amount)}

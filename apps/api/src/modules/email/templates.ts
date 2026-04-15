@@ -74,10 +74,7 @@ export function passwordResetTemplate(resetUrl: string): string {
   `);
 }
 
-export function welcomeTemplate(
-  firstName: string,
-  tempPassword?: string,
-): string {
+export function welcomeTemplate(firstName: string, tempPassword?: string): string {
   const passwordSection = tempPassword
     ? `
     <p style="color:#555; font-size:15px; line-height:1.6; margin:0 0 8px;">
@@ -265,11 +262,7 @@ export function requisitionAlertTemplate(data: {
   requestedBy: string;
 }): string {
   const priorityColor =
-    data.priority === "URGENT"
-      ? "#dc2626"
-      : data.priority === "HIGH"
-        ? "#ea580c"
-        : "#333";
+    data.priority === "URGENT" ? "#dc2626" : data.priority === "HIGH" ? "#ea580c" : "#333";
 
   return baseTemplate(`
     <h2 style="color:#333; margin:0 0 16px; font-size:22px; font-weight:600;">

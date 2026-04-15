@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-} from "@nestjs/common";
+import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
 import { PrismaService } from "../../common/prisma/prisma.service";
 
 interface TierConfig {
@@ -132,9 +128,7 @@ export class LoyaltyService {
       ...customer,
       currentTier,
       nextTier,
-      pointsToNextTier: nextTier
-        ? nextTier.minPoints - customer.totalPointsEarned
-        : 0,
+      pointsToNextTier: nextTier ? nextTier.minPoints - customer.totalPointsEarned : 0,
     };
   }
 
@@ -175,9 +169,7 @@ export class LoyaltyService {
 
     const expiresAt =
       program.expirationDays != null
-        ? new Date(
-            Date.now() + program.expirationDays * 24 * 60 * 60 * 1000,
-          )
+        ? new Date(Date.now() + program.expirationDays * 24 * 60 * 60 * 1000)
         : null;
 
     return this.prisma.$transaction(async (tx) => {
@@ -189,9 +181,7 @@ export class LoyaltyService {
           type: "EARN",
           points: earnedPoints,
           balance: newBalance,
-          description:
-            data.description ||
-            `Puntos por compra de $${data.amount.toFixed(2)}`,
+          description: data.description || `Puntos por compra de $${data.amount.toFixed(2)}`,
           referenceType: "SALE",
           expiresAt,
         },
@@ -254,13 +244,8 @@ export class LoyaltyService {
       if (!reward) {
         throw new NotFoundException("Recompensa no encontrada");
       }
-      if (
-        reward.maxRedemptions != null &&
-        reward.currentRedemptions >= reward.maxRedemptions
-      ) {
-        throw new BadRequestException(
-          "Esta recompensa ha alcanzado su limite de canjes",
-        );
+      if (reward.maxRedemptions != null && reward.currentRedemptions >= reward.maxRedemptions) {
+        throw new BadRequestException("Esta recompensa ha alcanzado su limite de canjes");
       }
       if (reward.validUntil && new Date(reward.validUntil) < new Date()) {
         throw new BadRequestException("Esta recompensa ha expirado");
@@ -272,15 +257,11 @@ export class LoyaltyService {
       pointsToRedeem = data.points;
       description = `Canje de ${data.points} puntos`;
     } else {
-      throw new BadRequestException(
-        "Debe especificar rewardId o points para canjear",
-      );
+      throw new BadRequestException("Debe especificar rewardId o points para canjear");
     }
 
     if (pointsToRedeem < program.minRedemption) {
-      throw new BadRequestException(
-        `Minimo de canje: ${program.minRedemption} puntos`,
-      );
+      throw new BadRequestException(`Minimo de canje: ${program.minRedemption} puntos`);
     }
 
     if (customer.loyaltyPoints < pointsToRedeem) {
@@ -344,15 +325,11 @@ export class LoyaltyService {
 
     const newBalance = customer.loyaltyPoints + data.points;
     if (newBalance < 0) {
-      throw new BadRequestException(
-        "El ajuste resultaria en un balance negativo",
-      );
+      throw new BadRequestException("El ajuste resultaria en un balance negativo");
     }
 
     const newTotalEarned =
-      data.points > 0
-        ? customer.totalPointsEarned + data.points
-        : customer.totalPointsEarned;
+      data.points > 0 ? customer.totalPointsEarned + data.points : customer.totalPointsEarned;
 
     return this.prisma.$transaction(async (tx) => {
       const transaction = await tx.loyaltyTransaction.create({
@@ -363,15 +340,13 @@ export class LoyaltyService {
           points: data.points,
           balance: newBalance,
           description:
-            data.description ||
-            `Ajuste manual: ${data.points > 0 ? "+" : ""}${data.points} puntos`,
+            data.description || `Ajuste manual: ${data.points > 0 ? "+" : ""}${data.points} puntos`,
           referenceType: "MANUAL",
         },
       });
 
       const program = await this.getProgram(organizationId);
-      const tiers =
-        (program.tiers as TierConfig[] | null) || DEFAULT_TIERS;
+      const tiers = (program.tiers as TierConfig[] | null) || DEFAULT_TIERS;
       const newTier = this.getCustomerTier(newTotalEarned, tiers);
 
       await tx.customer.update({
@@ -628,10 +603,7 @@ export class LoyaltyService {
   // Helpers
   // ---------------------------------------------------------------
 
-  private getCustomerTier(
-    totalPointsEarned: number,
-    tiers: TierConfig[],
-  ): TierConfig | null {
+  private getCustomerTier(totalPointsEarned: number, tiers: TierConfig[]): TierConfig | null {
     const sorted = [...tiers].sort((a, b) => b.minPoints - a.minPoints);
     for (const tier of sorted) {
       if (totalPointsEarned >= tier.minPoints) {
@@ -641,10 +613,7 @@ export class LoyaltyService {
     return tiers[0] || null;
   }
 
-  private getNextTier(
-    totalPointsEarned: number,
-    tiers: TierConfig[],
-  ): TierConfig | null {
+  private getNextTier(totalPointsEarned: number, tiers: TierConfig[]): TierConfig | null {
     const sorted = [...tiers].sort((a, b) => a.minPoints - b.minPoints);
     for (const tier of sorted) {
       if (totalPointsEarned < tier.minPoints) {

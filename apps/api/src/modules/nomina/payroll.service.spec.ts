@@ -35,10 +35,7 @@ describe("PayrollService", () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        PayrollService,
-        { provide: PrismaService, useValue: mockPrisma },
-      ],
+      providers: [PayrollService, { provide: PrismaService, useValue: mockPrisma }],
     }).compile();
 
     service = module.get<PayrollService>(PayrollService);
@@ -54,9 +51,7 @@ describe("PayrollService", () => {
   // -----------------------------------------------------------------------
   describe("findAllPeriods", () => {
     it("should return all periods for an organization", async () => {
-      const periods = [
-        { id: "per-1", periodType: "QUINCENAL", startDate: "2026-04-01" },
-      ];
+      const periods = [{ id: "per-1", periodType: "QUINCENAL", startDate: "2026-04-01" }];
       mockPrisma.payrollPeriod.findMany.mockResolvedValue(periods);
 
       const result = await service.findAllPeriods("org-1");
@@ -86,9 +81,7 @@ describe("PayrollService", () => {
     it("should throw NotFoundException when period is not found", async () => {
       mockPrisma.payrollPeriod.findFirst.mockResolvedValue(null);
 
-      await expect(service.findPeriod("org-1", "nope")).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(service.findPeriod("org-1", "nope")).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -144,9 +137,7 @@ describe("PayrollService", () => {
         status: "APPROVED",
       });
 
-      await expect(
-        service.calculatePayroll("org-1", "per-1"),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.calculatePayroll("org-1", "per-1")).rejects.toThrow(BadRequestException);
     });
 
     it("should calculate gross, ISR (fallback 10%), IMSS, and net for each employee", async () => {
@@ -298,9 +289,7 @@ describe("PayrollService", () => {
         receipts: [],
       });
 
-      await expect(
-        service.approvePeriod("org-1", "per-1"),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.approvePeriod("org-1", "per-1")).rejects.toThrow(BadRequestException);
     });
 
     it("should throw BadRequestException when period is still DRAFT", async () => {
@@ -311,9 +300,7 @@ describe("PayrollService", () => {
         receipts: [],
       });
 
-      await expect(
-        service.approvePeriod("org-1", "per-1"),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.approvePeriod("org-1", "per-1")).rejects.toThrow(BadRequestException);
     });
   });
 });

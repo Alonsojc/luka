@@ -27,7 +27,11 @@ export function useAuth() {
   }, [router]);
 
   const authFetch = useCallback(
-    async <T>(method: "get" | "post" | "patch" | "put" | "delete", path: string, body?: unknown): Promise<T> => {
+    async <T>(
+      method: "get" | "post" | "patch" | "put" | "delete",
+      path: string,
+      body?: unknown,
+    ): Promise<T> => {
       try {
         if (method === "get" || method === "delete") {
           return await api[method]<T>(path);
@@ -41,7 +45,7 @@ export function useAuth() {
         throw err;
       }
     },
-    [router]
+    [router],
   );
 
   return { user, loading, logout, authFetch };

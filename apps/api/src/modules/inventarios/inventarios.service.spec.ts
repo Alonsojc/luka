@@ -124,9 +124,7 @@ describe("ProductsService", () => {
     it("should throw NotFoundException when product does not exist", async () => {
       mockPrisma.product.findFirst.mockResolvedValue(null);
 
-      await expect(service.findOne("org-1", "nonexistent")).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(service.findOne("org-1", "nonexistent")).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -227,9 +225,9 @@ describe("ProductsService", () => {
     it("should throw NotFoundException when updating a non-existent product", async () => {
       mockPrisma.product.findFirst.mockResolvedValue(null);
 
-      await expect(
-        service.update("org-1", "nonexistent", { name: "New Name" }),
-      ).rejects.toThrow(NotFoundException);
+      await expect(service.update("org-1", "nonexistent", { name: "New Name" })).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it("should log audit changes when caller is provided", async () => {
@@ -260,10 +258,7 @@ describe("InventoryService", () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        InventoryService,
-        { provide: PrismaService, useValue: mockPrisma },
-      ],
+      providers: [InventoryService, { provide: PrismaService, useValue: mockPrisma }],
     }).compile();
 
     service = module.get<InventoryService>(InventoryService);
@@ -279,9 +274,7 @@ describe("InventoryService", () => {
   // -----------------------------------------------------------------------
   describe("getStockByBranch", () => {
     it("should return inventory for a branch", async () => {
-      const mockInventory = [
-        { branchId: "b1", productId: "p1", currentQuantity: 10 },
-      ];
+      const mockInventory = [{ branchId: "b1", productId: "p1", currentQuantity: 10 }];
       mockPrisma.branchInventory.findMany.mockResolvedValue(mockInventory);
 
       const result = await service.getStockByBranch("b1");

@@ -1,10 +1,6 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { randomUUID } from "crypto";
-import {
-  PacProvider,
-  PacStampResponse,
-  PacCancelResponse,
-} from "./pac.interface";
+import { PacProvider, PacStampResponse, PacCancelResponse } from "./pac.interface";
 
 /**
  * Sandbox PAC provider for development and testing.
@@ -23,11 +19,12 @@ export class PacSandboxProvider implements PacProvider {
     const fechaTimbrado = new Date().toISOString().replace(/\.\d{3}Z$/, "");
     const sello =
       "SANDBOX" +
-      Buffer.from(uuid + fechaTimbrado).toString("base64").slice(0, 80);
+      Buffer.from(uuid + fechaTimbrado)
+        .toString("base64")
+        .slice(0, 80);
     const noCertificadoSAT = "30001000000400002495";
 
-    const cadenaOriginal =
-      `||1.1|${uuid}|${fechaTimbrado}|${sello.slice(0, 40)}|${noCertificadoSAT}||`;
+    const cadenaOriginal = `||1.1|${uuid}|${fechaTimbrado}|${sello.slice(0, 40)}|${noCertificadoSAT}||`;
 
     // Append a simulated TimbreFiscalDigital to the XML
     const timbreFiscal = [
@@ -70,13 +67,9 @@ export class PacSandboxProvider implements PacProvider {
     motivo: string,
     folioSustitucion?: string,
   ): Promise<PacCancelResponse> {
-    this.logger.log(
-      `[SANDBOX] Cancelling UUID: ${uuid} for RFC: ${rfc} - Motivo: ${motivo}`,
-    );
+    this.logger.log(`[SANDBOX] Cancelling UUID: ${uuid} for RFC: ${rfc} - Motivo: ${motivo}`);
 
-    const fechaCancelacion = new Date()
-      .toISOString()
-      .replace(/\.\d{3}Z$/, "");
+    const fechaCancelacion = new Date().toISOString().replace(/\.\d{3}Z$/, "");
 
     const acuse = [
       `<?xml version="1.0" encoding="UTF-8"?>`,
@@ -91,9 +84,7 @@ export class PacSandboxProvider implements PacProvider {
       `            <UUID>${uuid}</UUID>`,
       `            <EstatusUUID>201</EstatusUUID>`,
       `          </Folios>`,
-      folioSustitucion
-        ? `          <FolioSustitucion>${folioSustitucion}</FolioSustitucion>`
-        : "",
+      folioSustitucion ? `          <FolioSustitucion>${folioSustitucion}</FolioSustitucion>` : "",
       `        </Acuse>`,
       `      </CancelaCFDResult>`,
       `    </CancelaCFDResponse>`,
@@ -112,13 +103,8 @@ export class PacSandboxProvider implements PacProvider {
     };
   }
 
-  async getStatus(
-    uuid: string,
-    rfc: string,
-  ): Promise<{ status: string; cancellable: boolean }> {
-    this.logger.log(
-      `[SANDBOX] Checking status for UUID: ${uuid}, RFC: ${rfc}`,
-    );
+  async getStatus(uuid: string, rfc: string): Promise<{ status: string; cancellable: boolean }> {
+    this.logger.log(`[SANDBOX] Checking status for UUID: ${uuid}, RFC: ${rfc}`);
     return { status: "Vigente", cancellable: true };
   }
 }

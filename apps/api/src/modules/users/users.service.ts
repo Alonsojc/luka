@@ -20,14 +20,10 @@ export class UsersService {
 
   private assertAdminOrOwner(caller: JwtPayload) {
     const allowed = caller.roles.some(
-      (r) =>
-        r.roleName.toUpperCase() === "OWNER" ||
-        r.roleName.toUpperCase() === "ADMIN",
+      (r) => r.roleName.toUpperCase() === "OWNER" || r.roleName.toUpperCase() === "ADMIN",
     );
     if (!allowed) {
-      throw new ForbiddenException(
-        "Solo OWNER o ADMIN pueden gestionar usuarios",
-      );
+      throw new ForbiddenException("Solo OWNER o ADMIN pueden gestionar usuarios");
     }
   }
 
@@ -281,11 +277,7 @@ export class UsersService {
     return this.findOne(caller, id);
   }
 
-  async changePassword(
-    caller: JwtPayload,
-    id: string,
-    newPassword: string,
-  ) {
+  async changePassword(caller: JwtPayload, id: string, newPassword: string) {
     this.assertAdminOrOwner(caller);
 
     const existing = await this.prisma.user.findFirst({

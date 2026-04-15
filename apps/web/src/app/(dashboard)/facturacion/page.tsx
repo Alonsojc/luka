@@ -28,7 +28,13 @@ import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { FormField, Input, Select } from "@/components/ui/form-field";
 import { formatMXN } from "@luka/shared";
-import type { Cfdi, Concepto, CfdiAttachment, PendingPayment, PaymentComplement } from "./_components/types";
+import type {
+  Cfdi,
+  Concepto,
+  CfdiAttachment,
+  PendingPayment,
+  PaymentComplement,
+} from "./_components/types";
 import {
   REGIMEN_FISCAL,
   USO_CFDI,
@@ -258,15 +264,11 @@ export default function FacturacionPage() {
 
   const createSubtotal = useMemo(
     () => formConceptos.reduce((s, c) => s + c.quantity * c.unitPrice, 0),
-    [formConceptos]
+    [formConceptos],
   );
   const createIva = useMemo(
-    () =>
-      formConceptos.reduce(
-        (s, c) => s + (c.withIva ? c.quantity * c.unitPrice * 0.16 : 0),
-        0
-      ),
-    [formConceptos]
+    () => formConceptos.reduce((s, c) => s + (c.withIva ? c.quantity * c.unitPrice * 0.16 : 0), 0),
+    [formConceptos],
   );
   const createTotal = createSubtotal + createIva;
 
@@ -291,19 +293,20 @@ export default function FacturacionPage() {
   // Edit form concepto helpers
   const editSubtotal = useMemo(
     () => editFormConceptos.reduce((s, c) => s + c.quantity * c.unitPrice, 0),
-    [editFormConceptos]
+    [editFormConceptos],
   );
   const editIva = useMemo(
     () =>
-      editFormConceptos.reduce(
-        (s, c) => s + (c.withIva ? c.quantity * c.unitPrice * 0.16 : 0),
-        0
-      ),
-    [editFormConceptos]
+      editFormConceptos.reduce((s, c) => s + (c.withIva ? c.quantity * c.unitPrice * 0.16 : 0), 0),
+    [editFormConceptos],
   );
   const editTotal = editSubtotal + editIva;
 
-  function updateEditConcepto(index: number, field: keyof Concepto, value: string | number | boolean) {
+  function updateEditConcepto(
+    index: number,
+    field: keyof Concepto,
+    value: string | number | boolean,
+  ) {
     setEditFormConceptos((prev) => {
       const next = [...prev];
       const updated = { ...next[index], [field]: value };
@@ -383,7 +386,10 @@ export default function FacturacionPage() {
         satClaveProdServ: c.satClaveProdServ.trim(),
         quantity: c.quantity,
         satClaveUnidad: c.satClaveUnidad,
-        unitOfMeasure: c.unitOfMeasure || CLAVE_UNIDAD.find((u) => u.clave === c.satClaveUnidad)?.descripcion || "",
+        unitOfMeasure:
+          c.unitOfMeasure ||
+          CLAVE_UNIDAD.find((u) => u.clave === c.satClaveUnidad)?.descripcion ||
+          "",
         description: c.description.trim(),
         unitPrice: c.unitPrice,
         withIva: c.withIva,
@@ -409,7 +415,10 @@ export default function FacturacionPage() {
         satClaveProdServ: c.satClaveProdServ.trim(),
         quantity: c.quantity,
         satClaveUnidad: c.satClaveUnidad,
-        unitOfMeasure: c.unitOfMeasure || CLAVE_UNIDAD.find((u) => u.clave === c.satClaveUnidad)?.descripcion || "",
+        unitOfMeasure:
+          c.unitOfMeasure ||
+          CLAVE_UNIDAD.find((u) => u.clave === c.satClaveUnidad)?.descripcion ||
+          "",
         description: c.description.trim(),
         unitPrice: c.unitPrice,
         withIva: c.withIva,
@@ -530,7 +539,7 @@ export default function FacturacionPage() {
             importe: num(c.amount),
             withIva: true,
           }))
-        : [{ ...EMPTY_CONCEPTO }]
+        : [{ ...EMPTY_CONCEPTO }],
     );
     setEditFormErrors({});
     setEditModalOpen(true);
@@ -575,7 +584,7 @@ export default function FacturacionPage() {
         { key: "moneda", label: "Moneda" },
         { key: "estado", label: "Estado" },
         { key: "uuid", label: "UUID" },
-      ]
+      ],
     );
   }
 
@@ -610,13 +619,13 @@ export default function FacturacionPage() {
 
   function updateDocAmount(cfdiId: string, amount: number) {
     setCompSelectedDocs((prev) =>
-      prev.map((d) => (d.cfdiId === cfdiId ? { ...d, amountPaid: amount } : d))
+      prev.map((d) => (d.cfdiId === cfdiId ? { ...d, amountPaid: amount } : d)),
     );
   }
 
   const compTotalAmount = useMemo(
     () => compSelectedDocs.reduce((sum, d) => sum + d.amountPaid, 0),
-    [compSelectedDocs]
+    [compSelectedDocs],
   );
 
   function validateComplementForm(): boolean {
@@ -685,7 +694,7 @@ export default function FacturacionPage() {
         (p.folio && normalize(p.folio).includes(q)) ||
         (p.series && normalize(p.series).includes(q)) ||
         normalize(p.receiverName || "").includes(q) ||
-        normalize(p.receiverRfc || "").includes(q)
+        normalize(p.receiverRfc || "").includes(q),
     );
   }, [pendingPayments, pendingSearchTerm]);
 
@@ -696,7 +705,7 @@ export default function FacturacionPage() {
       (c) =>
         (c.folio && normalize(c.folio).includes(q)) ||
         normalize(c.receiverName || "").includes(q) ||
-        normalize(c.receiverRfc || "").includes(q)
+        normalize(c.receiverRfc || "").includes(q),
     );
   }, [paymentComplements, complementSearchTerm]);
 
@@ -805,17 +814,13 @@ export default function FacturacionPage() {
       {
         key: "receiverRfc",
         header: "RFC",
-        render: (row: Cfdi) => (
-          <span className="font-mono text-xs">{row.receiverRfc}</span>
-        ),
+        render: (row: Cfdi) => <span className="font-mono text-xs">{row.receiverRfc}</span>,
       },
       {
         key: "total",
         header: "Total",
         className: "text-right",
-        render: (row: Cfdi) => (
-          <span className="font-medium">{formatMXN(num(row.total))}</span>
-        ),
+        render: (row: Cfdi) => <span className="font-medium">{formatMXN(num(row.total))}</span>,
       },
       {
         key: "status",
@@ -824,7 +829,7 @@ export default function FacturacionPage() {
         render: (row: Cfdi) => (
           <StatusBadge
             label={STATUS_LABEL[row.status] ?? row.status}
-            variant={STATUS_VARIANT[row.status] as any ?? "gray"}
+            variant={(STATUS_VARIANT[row.status] as any) ?? "gray"}
           />
         ),
       },
@@ -915,7 +920,7 @@ export default function FacturacionPage() {
       },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [cfdis, branches]
+    [cfdis, branches],
   );
 
   // -------------------------------------------------------------------
@@ -928,9 +933,7 @@ export default function FacturacionPage() {
     if (!catalogSearch) return catalog.data;
     const q = normalize(catalogSearch);
     return catalog.data.filter(
-      (item) =>
-        normalize(item.clave).includes(q) ||
-        normalize(item.descripcion).includes(q)
+      (item) => normalize(item.clave).includes(q) || normalize(item.descripcion).includes(q),
     );
   }, [activeCatalog, catalogSearch]);
 
@@ -944,7 +947,7 @@ export default function FacturacionPage() {
     conceptos: Concepto[],
     updateFn: (i: number, f: keyof Concepto, v: string | number | boolean) => void,
     removeFn: (i: number) => void,
-    errors: Record<string, string>
+    errors: Record<string, string>,
   ) {
     return (
       <div
@@ -1113,21 +1116,15 @@ export default function FacturacionPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             <div className="rounded-lg border bg-white p-4">
               <p className="text-sm text-gray-500">Total Facturas</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {summaryData.totalFacturas}
-              </p>
+              <p className="text-2xl font-bold text-gray-900">{summaryData.totalFacturas}</p>
             </div>
             <div className="rounded-lg border bg-white p-4">
               <p className="text-sm text-gray-500">Facturas Timbradas</p>
-              <p className="text-2xl font-bold text-green-600">
-                {summaryData.timbradas}
-              </p>
+              <p className="text-2xl font-bold text-green-600">{summaryData.timbradas}</p>
             </div>
             <div className="rounded-lg border bg-white p-4">
               <p className="text-sm text-gray-500">Facturas Canceladas</p>
-              <p className="text-2xl font-bold text-red-600">
-                {summaryData.canceladas}
-              </p>
+              <p className="text-2xl font-bold text-red-600">{summaryData.canceladas}</p>
             </div>
             <div className="rounded-lg border bg-white p-4">
               <p className="text-sm text-gray-500">Total Facturado</p>
@@ -1170,8 +1167,7 @@ export default function FacturacionPage() {
           {filteredCfdis.length > 0 && (
             <div className="mt-4 flex items-center justify-between">
               <p className="text-sm text-gray-500">
-                Mostrando {paginationStart}-{paginationEnd} de{" "}
-                {filteredCfdis.length}
+                Mostrando {paginationStart}-{paginationEnd} de {filteredCfdis.length}
               </p>
               <div className="flex items-center gap-2">
                 <button
@@ -1185,9 +1181,7 @@ export default function FacturacionPage() {
                   {currentPage} / {totalPages || 1}
                 </span>
                 <button
-                  onClick={() =>
-                    setCurrentPage((p) => Math.min(totalPages, p + 1))
-                  }
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                   disabled={currentPage === totalPages || totalPages === 0}
                   className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm disabled:opacity-50"
                 >
@@ -1212,9 +1206,7 @@ export default function FacturacionPage() {
 
           {/* Section 1: Datos Generales */}
           <div className="rounded-lg border bg-white p-6">
-            <h2 className="text-sm font-semibold text-gray-900 mb-4">
-              Datos Generales
-            </h2>
+            <h2 className="text-sm font-semibold text-gray-900 mb-4">Datos Generales</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <FormField label="Serie">
                 <Input
@@ -1234,10 +1226,7 @@ export default function FacturacionPage() {
                 />
               </FormField>
               <FormField label="Forma de Pago" required>
-                <Select
-                  value={formFormaPago}
-                  onChange={(e) => setFormFormaPago(e.target.value)}
-                >
+                <Select value={formFormaPago} onChange={(e) => setFormFormaPago(e.target.value)}>
                   {FORMA_PAGO.map((fp) => (
                     <option key={fp.clave} value={fp.clave}>
                       {fp.clave} - {fp.descripcion}
@@ -1246,10 +1235,7 @@ export default function FacturacionPage() {
                 </Select>
               </FormField>
               <FormField label="Metodo de Pago" required>
-                <Select
-                  value={formMetodoPago}
-                  onChange={(e) => setFormMetodoPago(e.target.value)}
-                >
+                <Select value={formMetodoPago} onChange={(e) => setFormMetodoPago(e.target.value)}>
                   {METODO_PAGO.map((mp) => (
                     <option key={mp.clave} value={mp.clave}>
                       {mp.clave} - {mp.descripcion}
@@ -1258,10 +1244,7 @@ export default function FacturacionPage() {
                 </Select>
               </FormField>
               <FormField label="Moneda">
-                <Select
-                  value={formMoneda}
-                  onChange={(e) => setFormMoneda(e.target.value)}
-                >
+                <Select value={formMoneda} onChange={(e) => setFormMoneda(e.target.value)}>
                   {MONEDA.map((m) => (
                     <option key={m.clave} value={m.clave}>
                       {m.clave} - {m.descripcion}
@@ -1295,10 +1278,7 @@ export default function FacturacionPage() {
               </FormField>
               {branches.length > 0 && (
                 <FormField label="Sucursal">
-                  <Select
-                    value={formBranchId}
-                    onChange={(e) => setFormBranchId(e.target.value)}
-                  >
+                  <Select value={formBranchId} onChange={(e) => setFormBranchId(e.target.value)}>
                     <option value="">Seleccionar sucursal</option>
                     {branches.map((b) => (
                       <option key={b.id} value={b.id}>
@@ -1313,9 +1293,7 @@ export default function FacturacionPage() {
 
           {/* Section 2: Emisor */}
           <div className="rounded-lg border bg-white p-6">
-            <h2 className="text-sm font-semibold text-gray-900 mb-4">
-              Emisor
-            </h2>
+            <h2 className="text-sm font-semibold text-gray-900 mb-4">Emisor</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <FormField label="RFC Emisor">
                 <Input
@@ -1348,26 +1326,16 @@ export default function FacturacionPage() {
 
           {/* Section 3: Receptor */}
           <div className="rounded-lg border bg-white p-6">
-            <h2 className="text-sm font-semibold text-gray-900 mb-4">
-              Receptor
-            </h2>
+            <h2 className="text-sm font-semibold text-gray-900 mb-4">Receptor</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <FormField
-                label="RFC Receptor"
-                required
-                error={formErrors.receptorRfc}
-              >
+              <FormField label="RFC Receptor" required error={formErrors.receptorRfc}>
                 <Input
                   value={formReceptorRfc}
                   onChange={(e) => setFormReceptorRfc(e.target.value)}
                   placeholder="XAXX010101000"
                 />
               </FormField>
-              <FormField
-                label="Nombre Receptor"
-                required
-                error={formErrors.receptorNombre}
-              >
+              <FormField label="Nombre Receptor" required error={formErrors.receptorNombre}>
                 <Input
                   value={formReceptorNombre}
                   onChange={(e) => setFormReceptorNombre(e.target.value)}
@@ -1412,9 +1380,7 @@ export default function FacturacionPage() {
           {/* Section 4: Conceptos */}
           <div className="rounded-lg border bg-white p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm font-semibold text-gray-900">
-                Conceptos
-              </h2>
+              <h2 className="text-sm font-semibold text-gray-900">Conceptos</h2>
               {formErrors.conceptos && (
                 <p className="text-destructive text-xs">{formErrors.conceptos}</p>
               )}
@@ -1427,16 +1393,11 @@ export default function FacturacionPage() {
                   formConceptos,
                   updateConcepto,
                   removeConcepto,
-                  formErrors
-                )
+                  formErrors,
+                ),
               )}
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              className="mt-3"
-              onClick={addConcepto}
-            >
+            <Button variant="outline" size="sm" className="mt-3" onClick={addConcepto}>
               <Plus className="h-4 w-4" />
               Agregar Concepto
             </Button>
@@ -1444,45 +1405,29 @@ export default function FacturacionPage() {
 
           {/* Section 5: Totals */}
           <div className="rounded-lg border bg-white p-6">
-            <h2 className="text-sm font-semibold text-gray-900 mb-4">
-              Totales
-            </h2>
+            <h2 className="text-sm font-semibold text-gray-900 mb-4">Totales</h2>
             <div className="space-y-2 text-right">
               <div className="flex justify-end gap-8">
                 <span className="text-sm text-gray-500">Subtotal:</span>
-                <span className="text-sm font-medium w-32">
-                  {formatMXN(createSubtotal)}
-                </span>
+                <span className="text-sm font-medium w-32">{formatMXN(createSubtotal)}</span>
               </div>
               <div className="flex justify-end gap-8">
                 <span className="text-sm text-gray-500">IVA (16%):</span>
-                <span className="text-sm font-medium w-32">
-                  {formatMXN(createIva)}
-                </span>
+                <span className="text-sm font-medium w-32">{formatMXN(createIva)}</span>
               </div>
               <div className="flex justify-end gap-8 border-t pt-2">
                 <span className="text-base font-semibold">Total:</span>
-                <span className="text-base font-bold w-32">
-                  {formatMXN(createTotal)}
-                </span>
+                <span className="text-base font-bold w-32">{formatMXN(createTotal)}</span>
               </div>
             </div>
           </div>
 
           {/* Action Buttons */}
           <div className="flex justify-end gap-3">
-            <Button
-              variant="outline"
-              onClick={() => resetCreateForm()}
-              disabled={saving}
-            >
+            <Button variant="outline" onClick={() => resetCreateForm()} disabled={saving}>
               Limpiar
             </Button>
-            <Button
-              variant="outline"
-              onClick={() => handleCreate(false)}
-              disabled={saving}
-            >
+            <Button variant="outline" onClick={() => handleCreate(false)} disabled={saving}>
               <FileText className="h-4 w-4" />
               {saving ? "Guardando..." : "Guardar Borrador"}
             </Button>
@@ -1582,9 +1527,7 @@ export default function FacturacionPage() {
                         <td className="px-4 py-2.5 text-sm max-w-[200px] truncate">
                           {pp.receiverName}
                         </td>
-                        <td className="px-4 py-2.5 text-sm font-mono text-xs">
-                          {pp.receiverRfc}
-                        </td>
+                        <td className="px-4 py-2.5 text-sm font-mono text-xs">{pp.receiverRfc}</td>
                         <td className="px-4 py-2.5 text-sm text-right font-medium">
                           {formatMXN(pp.total)}
                         </td>
@@ -1594,9 +1537,7 @@ export default function FacturacionPage() {
                         <td className="px-4 py-2.5 text-sm text-right font-semibold text-yellow-600">
                           {formatMXN(pp.saldoPendiente)}
                         </td>
-                        <td className="px-4 py-2.5 text-sm">
-                          {formatDate(pp.createdAt)}
-                        </td>
+                        <td className="px-4 py-2.5 text-sm">{formatDate(pp.createdAt)}</td>
                         <td className="px-4 py-2.5 text-center">
                           <button
                             onClick={() => {
@@ -1622,9 +1563,7 @@ export default function FacturacionPage() {
           <div>
             <div className="flex items-center gap-2 mb-4">
               <CheckCircle className="h-5 w-5 text-green-600" />
-              <h2 className="text-lg font-semibold text-gray-900">
-                Complementos Emitidos
-              </h2>
+              <h2 className="text-lg font-semibold text-gray-900">Complementos Emitidos</h2>
             </div>
 
             {/* Search complements */}
@@ -1682,11 +1621,19 @@ export default function FacturacionPage() {
                       const relDocs: PaymentComplementRelatedDoc[] = Array.isArray(rawDocs)
                         ? rawDocs
                         : typeof rawDocs === "string"
-                          ? (() => { try { return JSON.parse(rawDocs); } catch { return []; } })()
+                          ? (() => {
+                              try {
+                                return JSON.parse(rawDocs);
+                              } catch {
+                                return [];
+                              }
+                            })()
                           : [];
                       const formaPagoLabel =
                         FORMA_PAGO.find((fp) => fp.clave === comp.complement?.paymentForm)
-                          ?.descripcion || comp.complement?.paymentForm || "---";
+                          ?.descripcion ||
+                        comp.complement?.paymentForm ||
+                        "---";
                       return (
                         <tr
                           key={comp.id}
@@ -1704,9 +1651,7 @@ export default function FacturacionPage() {
                           </td>
                           <td className="px-4 py-2.5 text-sm">{formaPagoLabel}</td>
                           <td className="px-4 py-2.5 text-sm text-right font-medium">
-                            {comp.complement
-                              ? formatMXN(num(comp.complement.amount))
-                              : "---"}
+                            {comp.complement ? formatMXN(num(comp.complement.amount)) : "---"}
                           </td>
                           <td className="px-4 py-2.5 text-sm max-w-[150px] truncate">
                             {comp.receiverName}
@@ -1715,10 +1660,7 @@ export default function FacturacionPage() {
                             {relDocs.length > 0 ? (
                               <span className="text-xs text-gray-500">
                                 {relDocs
-                                  .map(
-                                    (d: PaymentComplementRelatedDoc) =>
-                                      `${d.serie}-${d.folio}`
-                                  )
+                                  .map((d: PaymentComplementRelatedDoc) => `${d.serie}-${d.folio}`)
                                   .join(", ")}
                               </span>
                             ) : (
@@ -1728,7 +1670,7 @@ export default function FacturacionPage() {
                           <td className="px-4 py-2.5 text-center">
                             <StatusBadge
                               label={STATUS_LABEL[comp.status] ?? comp.status}
-                              variant={STATUS_VARIANT[comp.status] as any ?? "gray"}
+                              variant={(STATUS_VARIANT[comp.status] as any) ?? "gray"}
                             />
                           </td>
                           <td className="px-4 py-2.5 text-center">
@@ -1783,26 +1725,16 @@ export default function FacturacionPage() {
 
           {/* Payment info */}
           <div>
-            <h3 className="text-sm font-semibold text-gray-900 mb-3">
-              Datos del Pago
-            </h3>
+            <h3 className="text-sm font-semibold text-gray-900 mb-3">Datos del Pago</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <FormField
-                label="Fecha de Pago"
-                required
-                error={compErrors.paymentDate}
-              >
+              <FormField label="Fecha de Pago" required error={compErrors.paymentDate}>
                 <Input
                   type="date"
                   value={compPaymentDate}
                   onChange={(e) => setCompPaymentDate(e.target.value)}
                 />
               </FormField>
-              <FormField
-                label="Forma de Pago"
-                required
-                error={compErrors.paymentForm}
-              >
+              <FormField label="Forma de Pago" required error={compErrors.paymentForm}>
                 <Select
                   value={compPaymentForm}
                   onChange={(e) => setCompPaymentForm(e.target.value)}
@@ -1815,10 +1747,7 @@ export default function FacturacionPage() {
                 </Select>
               </FormField>
               <FormField label="Moneda">
-                <Select
-                  value={compCurrency}
-                  onChange={(e) => setCompCurrency(e.target.value)}
-                >
+                <Select value={compCurrency} onChange={(e) => setCompCurrency(e.target.value)}>
                   {MONEDA.map((m) => (
                     <option key={m.clave} value={m.clave}>
                       {m.clave} - {m.descripcion}
@@ -1831,24 +1760,16 @@ export default function FacturacionPage() {
 
           {/* Select related invoices */}
           <div>
-            <h3 className="text-sm font-semibold text-gray-900 mb-3">
-              Facturas Relacionadas
-            </h3>
-            {compErrors.docs && (
-              <p className="text-destructive text-xs mb-2">{compErrors.docs}</p>
-            )}
+            <h3 className="text-sm font-semibold text-gray-900 mb-3">Facturas Relacionadas</h3>
+            {compErrors.docs && <p className="text-destructive text-xs mb-2">{compErrors.docs}</p>}
 
             {/* Add from pending list */}
             {pendingPayments.length > 0 && (
               <div className="mb-4">
-                <p className="text-xs text-gray-500 mb-2">
-                  Seleccione facturas PPD pendientes:
-                </p>
+                <p className="text-xs text-gray-500 mb-2">Seleccione facturas PPD pendientes:</p>
                 <div className="max-h-40 overflow-y-auto border rounded-lg">
                   {pendingPayments
-                    .filter(
-                      (pp) => !compSelectedDocs.some((d) => d.cfdiId === pp.id)
-                    )
+                    .filter((pp) => !compSelectedDocs.some((d) => d.cfdiId === pp.id))
                     .map((pp, i) => (
                       <button
                         key={pp.id}
@@ -1868,9 +1789,8 @@ export default function FacturacionPage() {
                         </span>
                       </button>
                     ))}
-                  {pendingPayments.filter(
-                    (pp) => !compSelectedDocs.some((d) => d.cfdiId === pp.id)
-                  ).length === 0 && (
+                  {pendingPayments.filter((pp) => !compSelectedDocs.some((d) => d.cfdiId === pp.id))
+                    .length === 0 && (
                     <p className="text-xs text-gray-400 px-3 py-4 text-center">
                       Todas las facturas pendientes ya fueron seleccionadas
                     </p>
@@ -1894,19 +1814,14 @@ export default function FacturacionPage() {
                       </p>
                     </div>
                     <div className="w-40">
-                      <FormField
-                        label="Monto a Aplicar"
-                        error={compErrors[`doc_${idx}_amount`]}
-                      >
+                      <FormField label="Monto a Aplicar" error={compErrors[`doc_${idx}_amount`]}>
                         <Input
                           type="number"
                           min={0.01}
                           max={doc.maxAmount}
                           step="0.01"
                           value={doc.amountPaid}
-                          onChange={(e) =>
-                            updateDocAmount(doc.cfdiId, Number(e.target.value))
-                          }
+                          onChange={(e) => updateDocAmount(doc.cfdiId, Number(e.target.value))}
                         />
                       </FormField>
                     </div>
@@ -1914,7 +1829,7 @@ export default function FacturacionPage() {
                       <p className="text-xs text-gray-500">Saldo insoluto</p>
                       <p className="text-sm font-medium">
                         {formatMXN(
-                          Math.max(0, Math.round((doc.maxAmount - doc.amountPaid) * 100) / 100)
+                          Math.max(0, Math.round((doc.maxAmount - doc.amountPaid) * 100) / 100),
                         )}
                       </p>
                     </div>
@@ -1982,7 +1897,7 @@ export default function FacturacionPage() {
             <div className="flex items-center gap-3">
               <StatusBadge
                 label={STATUS_LABEL[viewingComplement.status] ?? viewingComplement.status}
-                variant={STATUS_VARIANT[viewingComplement.status] as any ?? "gray"}
+                variant={(STATUS_VARIANT[viewingComplement.status] as any) ?? "gray"}
               />
               {viewingComplement.uuid && (
                 <span className="text-xs font-mono text-gray-400">
@@ -2003,9 +1918,8 @@ export default function FacturacionPage() {
                 <div>
                   <p className="text-gray-500">Forma de Pago</p>
                   <p className="font-medium">
-                    {FORMA_PAGO.find(
-                      (fp) => fp.clave === viewingComplement.complement?.paymentForm
-                    )?.descripcion || viewingComplement.complement.paymentForm}
+                    {FORMA_PAGO.find((fp) => fp.clave === viewingComplement.complement?.paymentForm)
+                      ?.descripcion || viewingComplement.complement.paymentForm}
                   </p>
                 </div>
                 <div>
@@ -2089,7 +2003,7 @@ export default function FacturacionPage() {
                                 {formatMXN(doc.saldoInsoluto)}
                               </td>
                             </tr>
-                          )
+                          ),
                         )}
                       </tbody>
                     </table>
@@ -2175,10 +2089,7 @@ export default function FacturacionPage() {
               <tbody>
                 {filteredCatalogData.length === 0 ? (
                   <tr>
-                    <td
-                      colSpan={2}
-                      className="px-4 py-8 text-center text-muted-foreground"
-                    >
+                    <td colSpan={2} className="px-4 py-8 text-center text-muted-foreground">
                       No se encontraron resultados
                     </td>
                   </tr>
@@ -2190,12 +2101,8 @@ export default function FacturacionPage() {
                         i % 2 === 0 ? "bg-white" : "bg-gray-50"
                       }`}
                     >
-                      <td className="px-4 py-2.5 text-sm font-mono font-medium">
-                        {item.clave}
-                      </td>
-                      <td className="px-4 py-2.5 text-sm text-gray-700">
-                        {item.descripcion}
-                      </td>
+                      <td className="px-4 py-2.5 text-sm font-mono font-medium">{item.clave}</td>
+                      <td className="px-4 py-2.5 text-sm text-gray-700">{item.descripcion}</td>
                     </tr>
                   ))
                 )}
@@ -2223,12 +2130,10 @@ export default function FacturacionPage() {
             <div className="flex items-center gap-3">
               <StatusBadge
                 label={STATUS_LABEL[viewingCfdi.status] ?? viewingCfdi.status}
-                variant={STATUS_VARIANT[viewingCfdi.status] as any ?? "gray"}
+                variant={(STATUS_VARIANT[viewingCfdi.status] as any) ?? "gray"}
               />
               {viewingCfdi.uuid && (
-                <span className="text-xs font-mono text-gray-400">
-                  UUID: {viewingCfdi.uuid}
-                </span>
+                <span className="text-xs font-mono text-gray-400">UUID: {viewingCfdi.uuid}</span>
               )}
             </div>
 
@@ -2242,14 +2147,16 @@ export default function FacturacionPage() {
                 <p className="text-gray-500">Forma de Pago</p>
                 <p className="font-medium">
                   {FORMA_PAGO.find((fp) => fp.clave === viewingCfdi.paymentForm)?.descripcion ||
-                    viewingCfdi.paymentForm || "---"}
+                    viewingCfdi.paymentForm ||
+                    "---"}
                 </p>
               </div>
               <div>
                 <p className="text-gray-500">Metodo de Pago</p>
                 <p className="font-medium">
                   {METODO_PAGO.find((mp) => mp.clave === viewingCfdi.paymentMethod)?.descripcion ||
-                    viewingCfdi.paymentMethod || "---"}
+                    viewingCfdi.paymentMethod ||
+                    "---"}
                 </p>
               </div>
               <div>
@@ -2277,8 +2184,8 @@ export default function FacturacionPage() {
                 <div>
                   <p className="text-gray-500">Regimen Fiscal</p>
                   <p className="font-medium">
-                    {REGIMEN_FISCAL.find((rf) => rf.clave === viewingCfdi.issuerRegimen)?.descripcion ||
-                      viewingCfdi.issuerRegimen}
+                    {REGIMEN_FISCAL.find((rf) => rf.clave === viewingCfdi.issuerRegimen)
+                      ?.descripcion || viewingCfdi.issuerRegimen}
                   </p>
                 </div>
               </div>
@@ -2299,8 +2206,10 @@ export default function FacturacionPage() {
                 <div>
                   <p className="text-gray-500">Regimen Fiscal</p>
                   <p className="font-medium">
-                    {REGIMEN_FISCAL.find((rf) => rf.clave === viewingCfdi.receiverRegimen)?.descripcion ||
-                      viewingCfdi.receiverRegimen || "---"}
+                    {REGIMEN_FISCAL.find((rf) => rf.clave === viewingCfdi.receiverRegimen)
+                      ?.descripcion ||
+                      viewingCfdi.receiverRegimen ||
+                      "---"}
                   </p>
                 </div>
                 <div>
@@ -2340,13 +2249,9 @@ export default function FacturacionPage() {
                   <tbody>
                     {(viewingCfdi.concepts || []).map((c, i) => (
                       <tr key={i} className="border-b last:border-0">
-                        <td className="px-3 py-2 text-xs font-mono">
-                          {c.satClaveProdServ}
-                        </td>
+                        <td className="px-3 py-2 text-xs font-mono">{c.satClaveProdServ}</td>
                         <td className="px-3 py-2 text-xs">{c.description}</td>
-                        <td className="px-3 py-2 text-xs text-right">
-                          {num(c.quantity)}
-                        </td>
+                        <td className="px-3 py-2 text-xs text-right">{num(c.quantity)}</td>
                         <td className="px-3 py-2 text-xs text-right">
                           {formatMXN(num(c.unitPrice))}
                         </td>
@@ -2364,9 +2269,7 @@ export default function FacturacionPage() {
             <div className="border-t pt-4 space-y-1 text-sm text-right">
               <div>
                 Subtotal:{" "}
-                <span className="font-medium">
-                  {formatMXN(num(viewingCfdi.subtotal))}
-                </span>
+                <span className="font-medium">{formatMXN(num(viewingCfdi.subtotal))}</span>
               </div>
               <div className="text-base font-semibold">
                 Total: {formatMXN(num(viewingCfdi.total))}
@@ -2435,17 +2338,11 @@ export default function FacturacionPage() {
             <div className="flex justify-end gap-3 pt-2">
               {viewingCfdi.status === "STAMPED" && (
                 <>
-                  <Button
-                    variant="outline"
-                    onClick={() => handleDownloadXml(viewingCfdi)}
-                  >
+                  <Button variant="outline" onClick={() => handleDownloadXml(viewingCfdi)}>
                     <Download className="h-4 w-4" />
                     Descargar XML
                   </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => generateInvoicePDF(viewingCfdi)}
-                  >
+                  <Button variant="outline" onClick={() => generateInvoicePDF(viewingCfdi)}>
                     <FileText className="h-4 w-4" />
                     Descargar PDF
                   </Button>
@@ -2499,10 +2396,7 @@ export default function FacturacionPage() {
             <h3 className="text-sm font-semibold mb-3">Datos Generales</h3>
             <div className="grid grid-cols-2 gap-4">
               <FormField label="Serie">
-                <Input
-                  value={editFormSerie}
-                  onChange={(e) => setEditFormSerie(e.target.value)}
-                />
+                <Input value={editFormSerie} onChange={(e) => setEditFormSerie(e.target.value)} />
               </FormField>
               <FormField label="Fecha">
                 <Input
@@ -2536,10 +2430,7 @@ export default function FacturacionPage() {
                 </Select>
               </FormField>
               <FormField label="Moneda">
-                <Select
-                  value={editFormMoneda}
-                  onChange={(e) => setEditFormMoneda(e.target.value)}
-                >
+                <Select value={editFormMoneda} onChange={(e) => setEditFormMoneda(e.target.value)}>
                   {MONEDA.map((m) => (
                     <option key={m.clave} value={m.clave}>
                       {m.clave} - {m.descripcion}
@@ -2574,22 +2465,14 @@ export default function FacturacionPage() {
           <div>
             <h3 className="text-sm font-semibold mb-3">Receptor</h3>
             <div className="grid grid-cols-2 gap-4">
-              <FormField
-                label="RFC Receptor"
-                required
-                error={editFormErrors.receptorRfc}
-              >
+              <FormField label="RFC Receptor" required error={editFormErrors.receptorRfc}>
                 <Input
                   value={editFormReceptorRfc}
                   onChange={(e) => setEditFormReceptorRfc(e.target.value)}
                   placeholder="XAXX010101000"
                 />
               </FormField>
-              <FormField
-                label="Nombre Receptor"
-                required
-                error={editFormErrors.receptorNombre}
-              >
+              <FormField label="Nombre Receptor" required error={editFormErrors.receptorNombre}>
                 <Input
                   value={editFormReceptorNombre}
                   onChange={(e) => setEditFormReceptorNombre(e.target.value)}
@@ -2636,9 +2519,7 @@ export default function FacturacionPage() {
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-sm font-semibold">Conceptos</h3>
               {editFormErrors.conceptos && (
-                <p className="text-destructive text-xs">
-                  {editFormErrors.conceptos}
-                </p>
+                <p className="text-destructive text-xs">{editFormErrors.conceptos}</p>
               )}
             </div>
             <div className="space-y-3">
@@ -2649,16 +2530,11 @@ export default function FacturacionPage() {
                   editFormConceptos,
                   updateEditConcepto,
                   removeEditConcepto,
-                  editFormErrors
-                )
+                  editFormErrors,
+                ),
               )}
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              className="mt-3"
-              onClick={addEditConcepto}
-            >
+            <Button variant="outline" size="sm" className="mt-3" onClick={addEditConcepto}>
               <Plus className="h-4 w-4" />
               Agregar Concepto
             </Button>
@@ -2667,16 +2543,12 @@ export default function FacturacionPage() {
           {/* Totals */}
           <div className="border-t pt-4 space-y-1 text-sm text-right">
             <div>
-              Subtotal:{" "}
-              <span className="font-medium">{formatMXN(editSubtotal)}</span>
+              Subtotal: <span className="font-medium">{formatMXN(editSubtotal)}</span>
             </div>
             <div>
-              IVA 16%:{" "}
-              <span className="font-medium">{formatMXN(editIva)}</span>
+              IVA 16%: <span className="font-medium">{formatMXN(editIva)}</span>
             </div>
-            <div className="text-base font-semibold">
-              Total: {formatMXN(editTotal)}
-            </div>
+            <div className="text-base font-semibold">Total: {formatMXN(editTotal)}</div>
           </div>
 
           {/* Actions */}
@@ -2721,10 +2593,7 @@ export default function FacturacionPage() {
             </p>
 
             <FormField label="Motivo de Cancelacion" required>
-              <Select
-                value={cancelMotivo}
-                onChange={(e) => setCancelMotivo(e.target.value)}
-              >
+              <Select value={cancelMotivo} onChange={(e) => setCancelMotivo(e.target.value)}>
                 {MOTIVOS_CANCELACION.map((m) => (
                   <option key={m.clave} value={m.clave}>
                     {m.clave} - {m.descripcion}
@@ -2744,11 +2613,7 @@ export default function FacturacionPage() {
               >
                 No, regresar
               </Button>
-              <Button
-                variant="destructive"
-                onClick={handleCancel}
-                disabled={saving}
-              >
+              <Button variant="destructive" onClick={handleCancel} disabled={saving}>
                 <XCircle className="h-4 w-4" />
                 {saving ? "Cancelando..." : "Si, cancelar factura"}
               </Button>

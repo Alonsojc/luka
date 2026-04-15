@@ -15,8 +15,32 @@ import { WorkyController } from "./worky.controller";
 import { WorkyService } from "./worky.service";
 
 @Module({
-  controllers: [EmployeesController, PayrollController, SuaController, NominaCfdiController, ShiftsController, AttendanceController, WorkyController],
-  providers: [EmployeesService, PayrollService, SuaService, NominaCfdiService, ShiftsService, AttendanceService, WorkyService],
-  exports: [EmployeesService, PayrollService, SuaService, NominaCfdiService, ShiftsService, AttendanceService, WorkyService],
+  controllers: [
+    EmployeesController,
+    PayrollController,
+    SuaController,
+    NominaCfdiController,
+    ShiftsController,
+    AttendanceController,
+    WorkyController,
+  ],
+  providers: [
+    EmployeesService,
+    PayrollService,
+    SuaService,
+    NominaCfdiService,
+    ShiftsService,
+    AttendanceService,
+    WorkyService,
+  ],
+  exports: [
+    EmployeesService,
+    PayrollService,
+    SuaService,
+    NominaCfdiService,
+    ShiftsService,
+    AttendanceService,
+    WorkyService,
+  ],
 })
 export class NominaModule {}

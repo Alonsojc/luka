@@ -1,21 +1,9 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Patch,
-  Delete,
-  Param,
-  Body,
-  UseGuards,
-} from "@nestjs/common";
+import { Controller, Get, Post, Patch, Delete, Param, Body, UseGuards } from "@nestjs/common";
 import { ApiTags, ApiBearerAuth } from "@nestjs/swagger";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
 import { Permissions } from "../../common/decorators/roles.decorator";
-import {
-  CurrentUser,
-  JwtPayload,
-} from "../../common/decorators/current-user.decorator";
+import { CurrentUser, JwtPayload } from "../../common/decorators/current-user.decorator";
 import { CfdiService } from "./cfdi.service";
 import { CreateInvoiceDto } from "./dto/create-invoice.dto";
 import { UpdateInvoiceDto } from "./dto/update-invoice.dto";
@@ -41,20 +29,13 @@ export class CfdiController {
 
   @Post()
   @Permissions("facturacion:create")
-  create(
-    @CurrentUser() user: JwtPayload,
-    @Body() dto: CreateInvoiceDto,
-  ) {
+  create(@CurrentUser() user: JwtPayload, @Body() dto: CreateInvoiceDto) {
     return this.cfdiService.create(user.organizationId, user.sub, dto);
   }
 
   @Patch(":id")
   @Permissions("facturacion:edit")
-  update(
-    @CurrentUser() user: JwtPayload,
-    @Param("id") id: string,
-    @Body() dto: UpdateInvoiceDto,
-  ) {
+  update(@CurrentUser() user: JwtPayload, @Param("id") id: string, @Body() dto: UpdateInvoiceDto) {
     return this.cfdiService.update(user.organizationId, id, dto);
   }
 

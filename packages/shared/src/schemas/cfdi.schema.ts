@@ -3,10 +3,7 @@ import { z } from "zod";
 export const createCFDISchema = z.object({
   branchId: z.string(),
   cfdiType: z.enum(["INGRESO", "EGRESO", "TRASLADO", "NOMINA", "PAGO"]),
-  receiverRfc: z
-    .string()
-    .min(12, "RFC debe tener al menos 12 caracteres")
-    .max(13),
+  receiverRfc: z.string().min(12, "RFC debe tener al menos 12 caracteres").max(13),
   receiverName: z.string().min(1, "Nombre del receptor requerido"),
   receiverRegimen: z.string().optional(),
   receiverUsoCfdi: z.string().min(1, "Uso de CFDI requerido"),
@@ -25,7 +22,7 @@ export const createCFDISchema = z.object({
         unitPrice: z.number().min(0),
         discount: z.number().min(0).default(0),
         taxDetails: z.record(z.unknown()).default({}),
-      })
+      }),
     )
     .min(1, "Al menos un concepto requerido"),
   relatedCfdis: z
@@ -33,7 +30,7 @@ export const createCFDISchema = z.object({
       z.object({
         relatedCfdiUuid: z.string().uuid(),
         relationshipType: z.string(),
-      })
+      }),
     )
     .optional(),
 });

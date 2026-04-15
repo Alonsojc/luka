@@ -26,9 +26,7 @@ export default function LoginPage() {
       setAuth(res.user);
       router.push("/dashboard");
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Error al iniciar sesion"
-      );
+      setError(err instanceof Error ? err.message : "Error al iniciar sesion");
     } finally {
       setLoading(false);
     }
@@ -48,11 +46,7 @@ export default function LoginPage() {
       <div className="relative w-full max-w-md px-4">
         {/* Logo */}
         <div className="text-center mb-10">
-          <img
-            src="/luka-logo.png"
-            alt="Luka Poke House"
-            className="mx-auto h-32 w-auto"
-          />
+          <img src="/luka-logo.png" alt="Luka Poke House" className="mx-auto h-32 w-auto" />
           <p className="mt-4 text-white/50 text-sm tracking-[0.3em] uppercase font-light">
             Sistema de Gestion
           </p>
@@ -124,7 +118,12 @@ export default function LoginPage() {
 
         {/* Footer wave */}
         <div className="mt-8 flex justify-center opacity-30">
-          <svg width="60" height="20" viewBox="0 0 60 20" className="fill-none stroke-white stroke-[1.5]">
+          <svg
+            width="60"
+            height="20"
+            viewBox="0 0 60 20"
+            className="fill-none stroke-white stroke-[1.5]"
+          >
             <path d="M5,15 Q15,5 25,10 T45,10 Q50,10 55,8" />
           </svg>
         </div>

@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-} from "@nestjs/common";
+import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
 import { PrismaService } from "../../common/prisma/prisma.service";
 
 @Injectable()
@@ -53,9 +49,7 @@ export class PayrollService {
   async calculatePayroll(organizationId: string, periodId: string) {
     const period = await this.findPeriod(organizationId, periodId);
     if (period.status !== "DRAFT") {
-      throw new BadRequestException(
-        "Solo se puede calcular nómina de períodos en borrador",
-      );
+      throw new BadRequestException("Solo se puede calcular nómina de períodos en borrador");
     }
 
     const employees = await this.prisma.employee.findMany({
@@ -64,8 +58,7 @@ export class PayrollService {
 
     const startDate = new Date(period.startDate);
     const endDate = new Date(period.endDate);
-    const totalDays =
-      (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24) + 1;
+    const totalDays = (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24) + 1;
 
     // Load ISR table for the period
     const isrTable = await this.prisma.iSRTable.findMany({
@@ -87,15 +80,11 @@ export class PayrollService {
       let isrWithheld = 0;
       if (isrTable.length > 0) {
         const bracket = isrTable.find(
-          (row) =>
-            grossSalary >= Number(row.lowerLimit) &&
-            grossSalary <= Number(row.upperLimit),
+          (row) => grossSalary >= Number(row.lowerLimit) && grossSalary <= Number(row.upperLimit),
         );
         if (bracket) {
           const excess = grossSalary - Number(bracket.lowerLimit);
-          isrWithheld =
-            Number(bracket.fixedFee) +
-            excess * Number(bracket.ratePercentage);
+          isrWithheld = Number(bracket.fixedFee) + excess * Number(bracket.ratePercentage);
         }
       } else {
         // Fallback: approximate ISR at ~10% for basic calc
@@ -139,18 +128,10 @@ export class PayrollService {
       }
 
       const totalGross = receipts.reduce((s, r) => s + r.grossSalary, 0);
-      const totalDeductions = receipts.reduce(
-        (s, r) => s + r.isrWithheld + r.imssEmployee,
-        0,
-      );
+      const totalDeductions = receipts.reduce((s, r) => s + r.isrWithheld + r.imssEmployee, 0);
       const totalNet = receipts.reduce((s, r) => s + r.netSalary, 0);
       const totalEmployerCost = receipts.reduce(
-        (s, r) =>
-          s +
-          r.grossSalary +
-          r.employerImss +
-          r.employerRcv +
-          r.employerInfonavit,
+        (s, r) => s + r.grossSalary + r.employerImss + r.employerRcv + r.employerInfonavit,
         0,
       );
 
@@ -173,9 +154,7 @@ export class PayrollService {
   async approvePeriod(organizationId: string, periodId: string) {
     const period = await this.findPeriod(organizationId, periodId);
     if (period.status !== "CALCULATED") {
-      throw new BadRequestException(
-        "Solo se puede aprobar nómina calculada",
-      );
+      throw new BadRequestException("Solo se puede aprobar nómina calculada");
     }
     return this.prisma.payrollPeriod.update({
       where: { id: periodId },

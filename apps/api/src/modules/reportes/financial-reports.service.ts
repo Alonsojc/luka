@@ -9,12 +9,7 @@ export class FinancialReportsService {
   // A) Estado de Resultados (P&L / Income Statement)
   // ====================================================================
 
-  async getPnl(
-    organizationId: string,
-    startDate: string,
-    endDate: string,
-    branchId?: string,
-  ) {
+  async getPnl(organizationId: string, startDate: string, endDate: string, branchId?: string) {
     const start = new Date(startDate);
     const end = new Date(endDate);
 
@@ -98,7 +93,16 @@ export class FinancialReportsService {
     };
 
     const rentKeywords = ["renta", "alquiler", "arrendamiento", "rent"];
-    const utilityKeywords = ["luz", "agua", "gas", "telefono", "internet", "electricidad", "servicios", "utilit"];
+    const utilityKeywords = [
+      "luz",
+      "agua",
+      "gas",
+      "telefono",
+      "internet",
+      "electricidad",
+      "servicios",
+      "utilit",
+    ];
     const marketingKeywords = ["marketing", "publicidad", "mercadotecnia", "promo"];
     const maintenanceKeywords = ["mantenimiento", "reparacion", "manten", "mainten"];
 
@@ -195,11 +199,7 @@ export class FinancialReportsService {
   // B) Flujo de Efectivo (Cash Flow Statement)
   // ====================================================================
 
-  async getCashFlow(
-    organizationId: string,
-    startDate: string,
-    endDate: string,
-  ) {
+  async getCashFlow(organizationId: string, startDate: string, endDate: string) {
     const start = new Date(startDate);
     const end = new Date(endDate);
 
@@ -251,10 +251,7 @@ export class FinancialReportsService {
       select: { currentBalance: true },
     });
 
-    const currentBankBalance = bankAccounts.reduce(
-      (sum, b) => sum + Number(b.currentBalance),
-      0,
-    );
+    const currentBankBalance = bankAccounts.reduce((sum, b) => sum + Number(b.currentBalance), 0);
 
     // Approximate beginning balance as current - net cash flow
     const beginningBalance = currentBankBalance - netCashFlow;
@@ -338,8 +335,7 @@ export class FinancialReportsService {
       });
     }
 
-    const total =
-      buckets.current + buckets.days31to60 + buckets.days61to90 + buckets.days90plus;
+    const total = buckets.current + buckets.days31to60 + buckets.days61to90 + buckets.days90plus;
 
     return {
       total: round2(total),
@@ -417,8 +413,7 @@ export class FinancialReportsService {
       });
     }
 
-    const total =
-      buckets.current + buckets.days31to60 + buckets.days61to90 + buckets.days90plus;
+    const total = buckets.current + buckets.days31to60 + buckets.days61to90 + buckets.days90plus;
 
     return {
       total: round2(total),
@@ -471,10 +466,7 @@ export class FinancialReportsService {
     return rows.map((row) => row.map(escapeCSV).join(";")).join("\n");
   }
 
-  async exportAgingExcel(
-    organizationId: string,
-    type: "receivable" | "payable",
-  ): Promise<string> {
+  async exportAgingExcel(organizationId: string, type: "receivable" | "payable"): Promise<string> {
     const aging =
       type === "receivable"
         ? await this.getReceivableAging(organizationId)
@@ -490,15 +482,7 @@ export class FinancialReportsService {
       [title, "", "", "", "", "", ""],
       [`Fecha: ${new Date().toISOString().split("T")[0]}`, "", "", "", "", "", ""],
       ["", "", "", "", "", "", ""],
-      [
-        "Resumen por Antigüedad",
-        "",
-        "",
-        "",
-        "",
-        "",
-        "",
-      ],
+      ["Resumen por Antigüedad", "", "", "", "", "", ""],
       ["Corriente (0-30 dias)", String(aging.buckets.current), "", "", "", "", ""],
       ["31-60 dias", String(aging.buckets.days31to60), "", "", "", "", ""],
       ["61-90 dias", String(aging.buckets.days61to90), "", "", "", "", ""],
@@ -518,9 +502,7 @@ export class FinancialReportsService {
       d.bucket,
     ]);
 
-    return [...headerRows, ...detailRows]
-      .map((row) => row.map(escapeCSV).join(";"))
-      .join("\n");
+    return [...headerRows, ...detailRows].map((row) => row.map(escapeCSV).join(";")).join("\n");
   }
 }
 

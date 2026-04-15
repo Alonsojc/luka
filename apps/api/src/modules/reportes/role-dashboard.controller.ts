@@ -1,18 +1,9 @@
-import {
-  Controller,
-  Get,
-  Param,
-  Query,
-  UseGuards,
-} from "@nestjs/common";
+import { Controller, Get, Param, Query, UseGuards } from "@nestjs/common";
 import { ApiTags, ApiBearerAuth } from "@nestjs/swagger";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
 import { Permissions } from "../../common/decorators/roles.decorator";
-import {
-  CurrentUser,
-  JwtPayload,
-} from "../../common/decorators/current-user.decorator";
+import { CurrentUser, JwtPayload } from "../../common/decorators/current-user.decorator";
 import { RoleDashboardService } from "./role-dashboard.service";
 
 @ApiTags("Reportes - Dashboard por Rol")
@@ -30,9 +21,8 @@ export class RoleDashboardController {
     @Query("startDate") startDate?: string,
     @Query("endDate") endDate?: string,
   ) {
-    const dateRange = startDate && endDate
-      ? { start: new Date(startDate), end: new Date(endDate) }
-      : undefined;
+    const dateRange =
+      startDate && endDate ? { start: new Date(startDate), end: new Date(endDate) } : undefined;
     return this.roleDashboardService.getStoreDashboard(
       user.organizationId,
       branchId,
@@ -48,9 +38,8 @@ export class RoleDashboardController {
     @Query("startDate") startDate?: string,
     @Query("endDate") endDate?: string,
   ) {
-    const dateRange = startDate && endDate
-      ? { start: new Date(startDate), end: new Date(endDate) }
-      : undefined;
+    const dateRange =
+      startDate && endDate ? { start: new Date(startDate), end: new Date(endDate) } : undefined;
     return this.roleDashboardService.getCedisDashboard(user.organizationId, dateRange);
   }
 
@@ -61,9 +50,8 @@ export class RoleDashboardController {
     @Query("startDate") startDate?: string,
     @Query("endDate") endDate?: string,
   ) {
-    const dateRange = startDate && endDate
-      ? { start: new Date(startDate), end: new Date(endDate) }
-      : undefined;
+    const dateRange =
+      startDate && endDate ? { start: new Date(startDate), end: new Date(endDate) } : undefined;
     return this.roleDashboardService.getInvestorDashboard(user.organizationId, dateRange);
   }
 
@@ -74,9 +62,8 @@ export class RoleDashboardController {
     @Query("startDate") startDate?: string,
     @Query("endDate") endDate?: string,
   ) {
-    const dateRange = startDate && endDate
-      ? { start: new Date(startDate), end: new Date(endDate) }
-      : undefined;
+    const dateRange =
+      startDate && endDate ? { start: new Date(startDate), end: new Date(endDate) } : undefined;
     return this.roleDashboardService.getAccountantDashboard(user.organizationId, dateRange);
   }
 
@@ -87,9 +74,8 @@ export class RoleDashboardController {
     @Query("startDate") startDate?: string,
     @Query("endDate") endDate?: string,
   ) {
-    const dateRange = startDate && endDate
-      ? { start: new Date(startDate), end: new Date(endDate) }
-      : undefined;
+    const dateRange =
+      startDate && endDate ? { start: new Date(startDate), end: new Date(endDate) } : undefined;
     return this.roleDashboardService.getMyDashboard(
       user.organizationId,
       user.sub,

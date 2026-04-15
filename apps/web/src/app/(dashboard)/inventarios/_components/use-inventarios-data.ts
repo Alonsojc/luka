@@ -135,9 +135,7 @@ export function useInvalidateInventarios() {
       queryClient.invalidateQueries({ queryKey: ["inventarios", "transfers"] }),
     invalidateStock: (branchId?: string) =>
       queryClient.invalidateQueries({
-        queryKey: branchId
-          ? ["inventarios", "stock", branchId]
-          : ["inventarios", "stock"],
+        queryKey: branchId ? ["inventarios", "stock", branchId] : ["inventarios", "stock"],
       }),
     invalidateCedisStock: (branchId?: string) =>
       queryClient.invalidateQueries({
@@ -147,7 +145,6 @@ export function useInvalidateInventarios() {
       }),
     invalidateLoadHistory: () =>
       queryClient.invalidateQueries({ queryKey: ["inventarios", "load-history"] }),
-    invalidateAll: () =>
-      queryClient.invalidateQueries({ queryKey: ["inventarios"] }),
+    invalidateAll: () => queryClient.invalidateQueries({ queryKey: ["inventarios"] }),
   };
 }

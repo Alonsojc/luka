@@ -55,9 +55,7 @@ export class InventoryService {
         },
       });
 
-      const previousQty = inventory
-        ? Number(inventory.currentQuantity)
-        : 0;
+      const previousQty = inventory ? Number(inventory.currentQuantity) : 0;
       const diff = adjustedQuantity - previousQty;
 
       await tx.inventoryMovement.create({

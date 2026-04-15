@@ -44,15 +44,11 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       } else if (typeof exceptionResponse === "object") {
         const resp = exceptionResponse as Record<string, any>;
         // NestJS ValidationPipe returns { message: string[] }
-        message = Array.isArray(resp.message)
-          ? resp.message.join("; ")
-          : resp.message || message;
+        message = Array.isArray(resp.message) ? resp.message.join("; ") : resp.message || message;
         error = resp.error || error;
       }
     } else if (exception instanceof Error) {
-      message = isProduction
-        ? "Error interno del servidor"
-        : exception.message;
+      message = isProduction ? "Error interno del servidor" : exception.message;
     }
 
     // Log server errors with full details
@@ -62,9 +58,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         exception instanceof Error ? exception.stack : String(exception),
       );
     } else if (status >= 400) {
-      this.logger.warn(
-        `${request.method} ${request.url} → ${status}: ${message}`,
-      );
+      this.logger.warn(`${request.method} ${request.url} → ${status}: ${message}`);
     }
 
     response.status(status).json({

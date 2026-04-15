@@ -153,23 +153,9 @@ const UNIT_OPTIONS = [
   { value: "caja", label: "Caja" },
 ];
 
-const PIE_COLORS = [
-  "#ef4444",
-  "#f97316",
-  "#eab308",
-  "#a855f7",
-  "#6b7280",
-];
+const PIE_COLORS = ["#ef4444", "#f97316", "#eab308", "#a855f7", "#6b7280"];
 
-const BAR_COLORS = [
-  "#000000",
-  "#333333",
-  "#555555",
-  "#777777",
-  "#999999",
-  "#bbbbbb",
-  "#dddddd",
-];
+const BAR_COLORS = ["#000000", "#333333", "#555555", "#777777", "#999999", "#bbbbbb", "#dddddd"];
 
 const EMPTY_FORM = {
   productId: "",
@@ -222,10 +208,9 @@ export default function MermaPage() {
 
   // ---- Shared data (React Query) ----
   const { data: branches = [] } = useApiQuery<Branch[]>("/branches", ["branches"]);
-  const { data: products = [] } = useApiQuery<Product[]>(
-    "/inventarios/products",
-    ["merma-products"],
-  );
+  const { data: products = [] } = useApiQuery<Product[]>("/inventarios/products", [
+    "merma-products",
+  ]);
 
   // ---- Registro tab state ----
   const [filterBranch, setFilterBranch] = useState("");
@@ -389,8 +374,7 @@ export default function MermaPage() {
       {
         key: "quantity",
         header: "Cantidad",
-        render: (row: WasteLog) =>
-          `${safeNum(row.quantity).toFixed(2)} ${row.unit}`,
+        render: (row: WasteLog) => `${safeNum(row.quantity).toFixed(2)} ${row.unit}`,
       },
       {
         key: "reason",
@@ -406,14 +390,12 @@ export default function MermaPage() {
       {
         key: "cost",
         header: "Costo",
-        render: (row: WasteLog) =>
-          row.cost !== null ? fmtCurrency(safeNum(row.cost)) : "-",
+        render: (row: WasteLog) => (row.cost !== null ? fmtCurrency(safeNum(row.cost)) : "-"),
       },
       {
         key: "reporter",
         header: "Reportado por",
-        render: (row: WasteLog) =>
-          `${row.reporter.firstName} ${row.reporter.lastName}`,
+        render: (row: WasteLog) => `${row.reporter.firstName} ${row.reporter.lastName}`,
       },
       {
         key: "actions",
@@ -448,9 +430,7 @@ export default function MermaPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Merma</h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Control y seguimiento de merma por sucursal
-          </p>
+          <p className="text-sm text-gray-500 mt-1">Control y seguimiento de merma por sucursal</p>
         </div>
         {activeTab === "registro" && (
           <Button
@@ -554,25 +534,19 @@ export default function MermaPage() {
             {pagination.totalPages > 1 && (
               <div className="flex items-center justify-between border-t border-gray-200 px-4 py-3">
                 <p className="text-sm text-gray-500">
-                  {pagination.total} registros &middot; Pagina {pagination.page}{" "}
-                  de {pagination.totalPages}
+                  {pagination.total} registros &middot; Pagina {pagination.page} de{" "}
+                  {pagination.totalPages}
                 </p>
                 <div className="flex gap-1">
                   <button
-                    onClick={() =>
-                      setCurrentPage((p) => Math.max(1, p - 1))
-                    }
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                     disabled={pagination.page <= 1}
                     className="rounded p-1 hover:bg-gray-100 disabled:opacity-30"
                   >
                     <ChevronLeft className="h-5 w-5" />
                   </button>
                   <button
-                    onClick={() =>
-                      setCurrentPage((p) =>
-                        Math.min(pagination.totalPages, p + 1),
-                      )
-                    }
+                    onClick={() => setCurrentPage((p) => Math.min(pagination.totalPages, p + 1))}
                     disabled={pagination.page >= pagination.totalPages}
                     className="rounded p-1 hover:bg-gray-100 disabled:opacity-30"
                   >
@@ -686,9 +660,7 @@ export default function MermaPage() {
               <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
                 {/* Bar chart: by reason */}
                 <div className="rounded-lg border border-gray-200 bg-white p-5">
-                  <h3 className="mb-4 text-sm font-semibold text-gray-900">
-                    Merma por Razon
-                  </h3>
+                  <h3 className="mb-4 text-sm font-semibold text-gray-900">Merma por Razon</h3>
                   {summary.byReason.length > 0 ? (
                     <ResponsiveContainer width="100%" height={280}>
                       <BarChart
@@ -699,11 +671,7 @@ export default function MermaPage() {
                         }))}
                       >
                         <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                        <XAxis
-                          dataKey="name"
-                          tick={{ fontSize: 12 }}
-                          axisLine={false}
-                        />
+                        <XAxis dataKey="name" tick={{ fontSize: 12 }} axisLine={false} />
                         <YAxis tick={{ fontSize: 12 }} axisLine={false} />
                         <Tooltip
                           formatter={(value: number, name: string) => [
@@ -722,26 +690,18 @@ export default function MermaPage() {
                       </BarChart>
                     </ResponsiveContainer>
                   ) : (
-                    <p className="py-12 text-center text-sm text-gray-400">
-                      Sin datos
-                    </p>
+                    <p className="py-12 text-center text-sm text-gray-400">Sin datos</p>
                   )}
                 </div>
 
                 {/* Bar chart: by branch */}
                 <div className="rounded-lg border border-gray-200 bg-white p-5">
-                  <h3 className="mb-4 text-sm font-semibold text-gray-900">
-                    Merma por Sucursal
-                  </h3>
+                  <h3 className="mb-4 text-sm font-semibold text-gray-900">Merma por Sucursal</h3>
                   {summary.byBranch.length > 0 ? (
                     <ResponsiveContainer width="100%" height={280}>
                       <BarChart data={summary.byBranch}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                        <XAxis
-                          dataKey="branchName"
-                          tick={{ fontSize: 11 }}
-                          axisLine={false}
-                        />
+                        <XAxis dataKey="branchName" tick={{ fontSize: 11 }} axisLine={false} />
                         <YAxis tick={{ fontSize: 12 }} axisLine={false} />
                         <Tooltip
                           formatter={(value: number, name: string) => [
@@ -753,18 +713,13 @@ export default function MermaPage() {
                         />
                         <Bar dataKey="quantity" name="Cantidad" radius={[4, 4, 0, 0]}>
                           {summary.byBranch.map((_, i) => (
-                            <Cell
-                              key={i}
-                              fill={BAR_COLORS[i % BAR_COLORS.length]}
-                            />
+                            <Cell key={i} fill={BAR_COLORS[i % BAR_COLORS.length]} />
                           ))}
                         </Bar>
                       </BarChart>
                     </ResponsiveContainer>
                   ) : (
-                    <p className="py-12 text-center text-sm text-gray-400">
-                      Sin datos
-                    </p>
+                    <p className="py-12 text-center text-sm text-gray-400">Sin datos</p>
                   )}
                 </div>
               </div>
@@ -780,11 +735,7 @@ export default function MermaPage() {
                     <ResponsiveContainer width="100%" height={280}>
                       <LineChart data={trendData}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                        <XAxis
-                          dataKey="label"
-                          tick={{ fontSize: 11 }}
-                          axisLine={false}
-                        />
+                        <XAxis dataKey="label" tick={{ fontSize: 11 }} axisLine={false} />
                         <YAxis tick={{ fontSize: 12 }} axisLine={false} />
                         <Tooltip
                           formatter={(value: number, name: string) => [
@@ -814,9 +765,7 @@ export default function MermaPage() {
                       </LineChart>
                     </ResponsiveContainer>
                   ) : (
-                    <p className="py-12 text-center text-sm text-gray-400">
-                      Sin datos
-                    </p>
+                    <p className="py-12 text-center text-sm text-gray-400">Sin datos</p>
                   )}
                 </div>
 
@@ -840,10 +789,7 @@ export default function MermaPage() {
                           labelLine={false}
                         >
                           {pieData.map((_, i) => (
-                            <Cell
-                              key={i}
-                              fill={PIE_COLORS[i % PIE_COLORS.length]}
-                            />
+                            <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
                           ))}
                         </Pie>
                         <Tooltip
@@ -855,9 +801,7 @@ export default function MermaPage() {
                       </PieChart>
                     </ResponsiveContainer>
                   ) : (
-                    <p className="py-12 text-center text-sm text-gray-400">
-                      Sin datos
-                    </p>
+                    <p className="py-12 text-center text-sm text-gray-400">Sin datos</p>
                   )}
                 </div>
               </div>
@@ -888,13 +832,8 @@ export default function MermaPage() {
                       </thead>
                       <tbody>
                         {summary.byProduct.map((p, i) => (
-                          <tr
-                            key={p.productId}
-                            className="border-b last:border-0"
-                          >
-                            <td className="px-4 py-2.5 text-sm text-gray-500">
-                              {i + 1}
-                            </td>
+                          <tr key={p.productId} className="border-b last:border-0">
+                            <td className="px-4 py-2.5 text-sm text-gray-500">{i + 1}</td>
                             <td className="px-4 py-2.5 text-sm font-medium text-gray-900">
                               {p.productName}
                             </td>
@@ -910,9 +849,7 @@ export default function MermaPage() {
                     </table>
                   </div>
                 ) : (
-                  <p className="py-8 text-center text-sm text-gray-400">
-                    Sin datos
-                  </p>
+                  <p className="py-8 text-center text-sm text-gray-400">Sin datos</p>
                 )}
               </div>
             </>
@@ -925,18 +862,12 @@ export default function MermaPage() {
       )}
 
       {/* Modal: Create Waste Log */}
-      <Modal
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
-        title="Registrar Merma"
-      >
+      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title="Registrar Merma">
         <div className="space-y-4">
           <FormField label="Producto" required>
             <Select
               value={form.productId}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, productId: e.target.value }))
-              }
+              onChange={(e) => setForm((f) => ({ ...f, productId: e.target.value }))}
             >
               <option value="">Seleccionar producto</option>
               {products.map((p) => (
@@ -950,9 +881,7 @@ export default function MermaPage() {
           <FormField label="Sucursal">
             <Select
               value={form.branchId}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, branchId: e.target.value }))
-              }
+              onChange={(e) => setForm((f) => ({ ...f, branchId: e.target.value }))}
             >
               <option value="">Sin sucursal</option>
               {branches.map((b) => (
@@ -970,18 +899,14 @@ export default function MermaPage() {
                 step="0.01"
                 min="0"
                 value={form.quantity}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, quantity: e.target.value }))
-                }
+                onChange={(e) => setForm((f) => ({ ...f, quantity: e.target.value }))}
                 placeholder="0.00"
               />
             </FormField>
             <FormField label="Unidad">
               <Select
                 value={form.unit}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, unit: e.target.value }))
-                }
+                onChange={(e) => setForm((f) => ({ ...f, unit: e.target.value }))}
               >
                 {UNIT_OPTIONS.map((u) => (
                   <option key={u.value} value={u.value}>
@@ -995,9 +920,7 @@ export default function MermaPage() {
           <FormField label="Razon" required>
             <Select
               value={form.reason}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, reason: e.target.value }))
-              }
+              onChange={(e) => setForm((f) => ({ ...f, reason: e.target.value }))}
             >
               {REASON_OPTIONS.map((r) => (
                 <option key={r.value} value={r.value}>
@@ -1010,9 +933,7 @@ export default function MermaPage() {
           <FormField label="Notas">
             <Textarea
               value={form.notes}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, notes: e.target.value }))
-              }
+              onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
               placeholder="Observaciones adicionales..."
             />
           </FormField>
@@ -1021,10 +942,7 @@ export default function MermaPage() {
             <Button variant="outline" onClick={() => setModalOpen(false)}>
               Cancelar
             </Button>
-            <Button
-              onClick={handleCreate}
-              disabled={saving || !form.productId || !form.quantity}
-            >
+            <Button onClick={handleCreate} disabled={saving || !form.productId || !form.quantity}>
               {saving ? "Guardando..." : "Registrar"}
             </Button>
           </div>
@@ -1038,14 +956,11 @@ export default function MermaPage() {
         title="Eliminar Registro"
       >
         <p className="text-sm text-gray-600 mb-6">
-          Esta seguro de que desea eliminar este registro de merma? Esta accion
-          no se puede deshacer.
+          Esta seguro de que desea eliminar este registro de merma? Esta accion no se puede
+          deshacer.
         </p>
         <div className="flex justify-end gap-3">
-          <Button
-            variant="outline"
-            onClick={() => setDeleteConfirmOpen(false)}
-          >
+          <Button variant="outline" onClick={() => setDeleteConfirmOpen(false)}>
             Cancelar
           </Button>
           <Button variant="destructive" onClick={handleDelete}>

@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  BadRequestException,
-  NotFoundException,
-} from "@nestjs/common";
+import { Injectable, BadRequestException, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../../common/prisma/prisma.service";
 import { AuditService } from "../audit/audit.service";
 import { JwtPayload } from "../../common/decorators/current-user.decorator";
@@ -46,9 +42,7 @@ export class InventoryLoadService {
 
     const missing = productIds.filter((id) => !productMap.has(id));
     if (missing.length > 0) {
-      throw new BadRequestException(
-        `Productos no encontrados: ${missing.join(", ")}`,
-      );
+      throw new BadRequestException(`Productos no encontrados: ${missing.join(", ")}`);
     }
 
     let totalItems = 0;
@@ -335,12 +329,7 @@ export class InventoryLoadService {
   /**
    * Get load history (IN movements) for a branch, optionally filtered by date range.
    */
-  async getLoadHistory(
-    caller: JwtPayload,
-    branchId: string,
-    dateFrom?: string,
-    dateTo?: string,
-  ) {
+  async getLoadHistory(caller: JwtPayload, branchId: string, dateFrom?: string, dateTo?: string) {
     // Validate branch
     const branch = await this.prisma.branch.findFirst({
       where: { id: branchId, organizationId: caller.organizationId },
@@ -458,8 +447,7 @@ export class InventoryLoadService {
         currentQuantity: qty,
         minimumStock: Number(item.minimumStock),
         totalValue: value,
-        belowMinimum:
-          Number(item.minimumStock) > 0 && qty <= Number(item.minimumStock),
+        belowMinimum: Number(item.minimumStock) > 0 && qty <= Number(item.minimumStock),
       };
     });
 

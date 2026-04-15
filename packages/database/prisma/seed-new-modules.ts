@@ -30,40 +30,96 @@ function daysAgo(days: number): Date {
 // Constants
 // ---------------------------------------------------------------------------
 
-const WASTE_REASONS = ["SPOILAGE", "SPOILAGE", "SPOILAGE", "OVER_PREP", "OVER_PREP", "ACCIDENT", "EXPIRED", "OTHER"];
+const WASTE_REASONS = [
+  "SPOILAGE",
+  "SPOILAGE",
+  "SPOILAGE",
+  "OVER_PREP",
+  "OVER_PREP",
+  "ACCIDENT",
+  "EXPIRED",
+  "OTHER",
+];
 
 const DELIVERY_PLATFORMS_WEIGHTED = [
-  "UBEREATS", "UBEREATS", "UBEREATS", "UBEREATS", "UBEREATS", "UBEREATS", "UBEREATS", "UBEREATS",
-  "RAPPI", "RAPPI", "RAPPI", "RAPPI", "RAPPI", "RAPPI", "RAPPI",
-  "DIDI_FOOD", "DIDI_FOOD", "DIDI_FOOD", "DIDI_FOOD",
+  "UBEREATS",
+  "UBEREATS",
+  "UBEREATS",
+  "UBEREATS",
+  "UBEREATS",
+  "UBEREATS",
+  "UBEREATS",
+  "UBEREATS",
+  "RAPPI",
+  "RAPPI",
+  "RAPPI",
+  "RAPPI",
+  "RAPPI",
+  "RAPPI",
+  "RAPPI",
+  "DIDI_FOOD",
+  "DIDI_FOOD",
+  "DIDI_FOOD",
+  "DIDI_FOOD",
   "MANUAL",
 ];
 
 const PLATFORM_FEE_RATES: Record<string, number> = {
   UBEREATS: 0.25,
   RAPPI: 0.22,
-  DIDI_FOOD: 0.20,
+  DIDI_FOOD: 0.2,
   MANUAL: 0,
 };
 
 const DELIVERY_STATUSES_WEIGHTED = [
-  "DELIVERED", "DELIVERED", "DELIVERED", "DELIVERED", "DELIVERED", "DELIVERED", "DELIVERED",
-  "DELIVERED", "DELIVERED", "DELIVERED", "DELIVERED", "DELIVERED",
-  "CANCELLED", "CANCELLED",
+  "DELIVERED",
+  "DELIVERED",
+  "DELIVERED",
+  "DELIVERED",
+  "DELIVERED",
+  "DELIVERED",
+  "DELIVERED",
+  "DELIVERED",
+  "DELIVERED",
+  "DELIVERED",
+  "DELIVERED",
+  "DELIVERED",
+  "CANCELLED",
+  "CANCELLED",
   "PREPARING",
 ];
 
 const CUSTOMER_NAMES = [
-  "María García López", "José Hernández Martínez", "Ana Sofía Ramírez Torres",
-  "Carlos Alberto Flores Ruiz", "Daniela Martínez Sánchez", "Luis Miguel Torres García",
-  "Paola Fernanda Sánchez Cruz", "Jorge Eduardo Ruiz Morales", "Gabriela Mendoza Vargas",
-  "Roberto Alejandro Vargas León", "Valentina Ortiz Navarro", "Diego Armando Cruz Jiménez",
-  "Ximena Jiménez Herrera", "Fernando Navarro Peña", "Sofía Herrera Domínguez",
-  "Alejandro Peña Castillo", "Camila Domínguez Ríos", "Rodrigo Castillo Reyes",
-  "Andrea Ríos Guzmán", "Miguel Ángel Guzmán Mora", "Laura Reyes Delgado",
-  "Eduardo Delgado Medina", "Mariana Medina Cortés", "Sebastián Cortés Ibarra",
-  "Renata Ibarra Salazar", "Héctor Salazar Fuentes", "Paula Andrea León Aguilar",
-  "Iván Aguilar Romero", "Lucía Romero Guerrero", "Emilio Guerrero Cabrera",
+  "María García López",
+  "José Hernández Martínez",
+  "Ana Sofía Ramírez Torres",
+  "Carlos Alberto Flores Ruiz",
+  "Daniela Martínez Sánchez",
+  "Luis Miguel Torres García",
+  "Paola Fernanda Sánchez Cruz",
+  "Jorge Eduardo Ruiz Morales",
+  "Gabriela Mendoza Vargas",
+  "Roberto Alejandro Vargas León",
+  "Valentina Ortiz Navarro",
+  "Diego Armando Cruz Jiménez",
+  "Ximena Jiménez Herrera",
+  "Fernando Navarro Peña",
+  "Sofía Herrera Domínguez",
+  "Alejandro Peña Castillo",
+  "Camila Domínguez Ríos",
+  "Rodrigo Castillo Reyes",
+  "Andrea Ríos Guzmán",
+  "Miguel Ángel Guzmán Mora",
+  "Laura Reyes Delgado",
+  "Eduardo Delgado Medina",
+  "Mariana Medina Cortés",
+  "Sebastián Cortés Ibarra",
+  "Renata Ibarra Salazar",
+  "Héctor Salazar Fuentes",
+  "Paula Andrea León Aguilar",
+  "Iván Aguilar Romero",
+  "Lucía Romero Guerrero",
+  "Emilio Guerrero Cabrera",
 ];
 
 const POKE_MENU = [
@@ -260,7 +316,8 @@ async function main() {
         netRevenue,
         orderDate,
         items,
-        processedAt: status === "DELIVERED" ? new Date(orderDate.getTime() + randInt(20, 60) * 60000) : null,
+        processedAt:
+          status === "DELIVERED" ? new Date(orderDate.getTime() + randInt(20, 60) * 60000) : null,
       },
     });
   }
@@ -295,7 +352,9 @@ async function main() {
       },
     });
   }
-  console.log(`  Delivery configs created for branch: ${firstBranch.name} (${configPlatforms.join(", ")})`);
+  console.log(
+    `  Delivery configs created for branch: ${firstBranch.name} (${configPlatforms.join(", ")})`,
+  );
 
   // ==================================================================
   // 3. LOYALTY — Program + Rewards + Transactions
@@ -315,7 +374,7 @@ async function main() {
       organizationId: org.id,
       name: "Luka Rewards",
       pointsPerDollar: 10,
-      pointValue: 0.10,
+      pointValue: 0.1,
       minRedemption: 100,
       expirationDays: 365,
       isActive: true,
@@ -328,11 +387,36 @@ async function main() {
   console.log("\n--- Creating Loyalty Rewards ---");
 
   const rewardDefs = [
-    { name: "Poke Bowl Gratis", description: "Canjea por un poke bowl clásico gratis", pointsCost: 500, category: "PRODUCT" },
-    { name: "Bebida Gratis", description: "Cualquier bebida del menú sin costo", pointsCost: 150, category: "FREEBIE" },
-    { name: "10% Descuento", description: "10% de descuento en tu próxima compra", pointsCost: 200, category: "DISCOUNT" },
-    { name: "Topping Extra Gratis", description: "Agrega un topping extra sin costo adicional", pointsCost: 100, category: "FREEBIE" },
-    { name: "Combo Doble", description: "Dos poke bowls al precio de uno y medio", pointsCost: 800, category: "PRODUCT" },
+    {
+      name: "Poke Bowl Gratis",
+      description: "Canjea por un poke bowl clásico gratis",
+      pointsCost: 500,
+      category: "PRODUCT",
+    },
+    {
+      name: "Bebida Gratis",
+      description: "Cualquier bebida del menú sin costo",
+      pointsCost: 150,
+      category: "FREEBIE",
+    },
+    {
+      name: "10% Descuento",
+      description: "10% de descuento en tu próxima compra",
+      pointsCost: 200,
+      category: "DISCOUNT",
+    },
+    {
+      name: "Topping Extra Gratis",
+      description: "Agrega un topping extra sin costo adicional",
+      pointsCost: 100,
+      category: "FREEBIE",
+    },
+    {
+      name: "Combo Doble",
+      description: "Dos poke bowls al precio de uno y medio",
+      pointsCost: 800,
+      category: "PRODUCT",
+    },
   ];
 
   // Delete existing rewards to avoid duplicates, then recreate

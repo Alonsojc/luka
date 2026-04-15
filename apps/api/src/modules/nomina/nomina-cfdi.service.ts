@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-} from "@nestjs/common";
+import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
 import { PrismaService } from "../../common/prisma/prisma.service";
 import {
   buildNominaCfdiXml,
@@ -127,10 +123,7 @@ export class NominaCfdiService {
   /**
    * Load full receipt data with all relations needed for CFDI generation.
    */
-  private async getReceiptWithRelations(
-    organizationId: string,
-    receiptId: string,
-  ) {
+  private async getReceiptWithRelations(organizationId: string, receiptId: string) {
     const receipt = await this.prisma.payrollReceipt.findFirst({
       where: { id: receiptId },
       include: {
@@ -273,8 +266,7 @@ export class NominaCfdiService {
     const periodEnd = new Date(period.endDate);
     const hireDate = new Date(employee.hireDate);
 
-    const registroPatronal =
-      employee.employerRegistrationNumber || org.rfc || "";
+    const registroPatronal = employee.employerRegistrationNumber || org.rfc || "";
 
     return {
       serie: "NOM",
@@ -332,10 +324,7 @@ export class NominaCfdiService {
    * Preview CFDI XML for a payroll receipt without saving.
    */
   async getPreview(organizationId: string, receiptId: string): Promise<string> {
-    const receipt = await this.getReceiptWithRelations(
-      organizationId,
-      receiptId,
-    );
+    const receipt = await this.getReceiptWithRelations(organizationId, receiptId);
     const nominaData = this.buildNominaData(receipt);
     return buildNominaCfdiXml(nominaData);
   }
@@ -344,10 +333,7 @@ export class NominaCfdiService {
    * Generate CFDI XML for a single payroll receipt and store it.
    */
   async generatePayrollCfdi(organizationId: string, receiptId: string) {
-    const receipt = await this.getReceiptWithRelations(
-      organizationId,
-      receiptId,
-    );
+    const receipt = await this.getReceiptWithRelations(organizationId, receiptId);
 
     // Don't regenerate if already has a CFDI
     if (receipt.cfdiId) {
@@ -429,9 +415,7 @@ export class NominaCfdiService {
     }
 
     if (period.status === "DRAFT") {
-      throw new BadRequestException(
-        "La nomina debe estar calculada antes de generar CFDIs",
-      );
+      throw new BadRequestException("La nomina debe estar calculada antes de generar CFDIs");
     }
 
     const results = {

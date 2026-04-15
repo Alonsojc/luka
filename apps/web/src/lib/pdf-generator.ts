@@ -108,10 +108,7 @@ interface InventoryProduct {
   isActive: boolean;
 }
 
-export async function generateInventoryPDF(
-  products: InventoryProduct[],
-  branchName?: string,
-) {
+export async function generateInventoryPDF(products: InventoryProduct[], branchName?: string) {
   const doc = await createDoc();
   const startY = addHeader(
     doc,
@@ -188,11 +185,7 @@ export async function generateInvoicePDF(invoice: Invoice) {
   doc.setFont("helvetica", "bold");
   doc.setTextColor(0, 0, 0);
   doc.text(`Serie-Folio: ${invoice.series || "—"}-${invoice.folio}`, 14, y);
-  doc.text(
-    `Fecha: ${new Date(invoice.createdAt).toLocaleDateString("es-MX")}`,
-    pageW / 2,
-    y,
-  );
+  doc.text(`Fecha: ${new Date(invoice.createdAt).toLocaleDateString("es-MX")}`, pageW / 2, y);
   y += 6;
   doc.setFontSize(8);
   doc.setFont("helvetica", "normal");
@@ -225,16 +218,8 @@ export async function generateInvoicePDF(invoice: Invoice) {
   doc.text(`RFC: ${invoice.receiverRfc}`, 18, y + 12);
   doc.text(`Nombre: ${invoice.receiverName}`, 80, y + 12);
   doc.text(`Uso CFDI: ${invoice.receiverUsoCfdi}`, 18, y + 17);
-  doc.text(
-    `Regimen Fiscal: ${invoice.receiverRegimen || "—"}`,
-    80,
-    y + 17,
-  );
-  doc.text(
-    `Domicilio Fiscal: ${invoice.receiverDomicilioFiscal || "—"}`,
-    18,
-    y + 22,
-  );
+  doc.text(`Regimen Fiscal: ${invoice.receiverRegimen || "—"}`, 80, y + 17);
+  doc.text(`Domicilio Fiscal: ${invoice.receiverDomicilioFiscal || "—"}`, 18, y + 22);
   y += 31;
 
   // --- Items table ---
@@ -283,11 +268,7 @@ export async function generateInvoicePDF(invoice: Invoice) {
   doc.setFontSize(7);
   doc.setFont("helvetica", "italic");
   doc.setTextColor(130, 130, 130);
-  doc.text(
-    "Este documento es una representacion impresa de un CFDI",
-    14,
-    ty,
-  );
+  doc.text("Este documento es una representacion impresa de un CFDI", 14, ty);
 
   addFooter(doc);
   doc.save(
@@ -316,26 +297,12 @@ export async function generatePayrollPDF(
   period?: string,
 ) {
   const doc = await createDoc();
-  const startY = addHeader(
-    doc,
-    "Reporte de Nomina",
-    period ? `Periodo: ${period}` : undefined,
-  );
+  const startY = addHeader(doc, "Reporte de Nomina", period ? `Periodo: ${period}` : undefined);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (doc as any).autoTable({
     startY,
-    head: [
-      [
-        "No. Empleado",
-        "Nombre",
-        "RFC",
-        "Puesto",
-        "Salario Diario",
-        "Sucursal",
-        "Estado",
-      ],
-    ],
+    head: [["No. Empleado", "Nombre", "RFC", "Puesto", "Salario Diario", "Sucursal", "Estado"]],
     body: employees.map((e) => [
       e.employeeNumber,
       `${e.firstName} ${e.lastName}`,
@@ -352,21 +319,14 @@ export async function generatePayrollPDF(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const finalY = (doc as any).lastAutoTable?.finalY ?? startY + 20;
   const activeCount = employees.filter((e) => e.isActive).length;
-  const totalMonthly = employees.reduce(
-    (s, e) => s + Number(e.dailySalary || 0) * 30,
-    0,
-  );
+  const totalMonthly = employees.reduce((s, e) => s + Number(e.dailySalary || 0) * 30, 0);
 
   doc.setFontSize(10);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(0, 0, 0);
   doc.text(`Total empleados: ${employees.length}`, 14, finalY + 10);
   doc.text(`Empleados activos: ${activeCount}`, 14, finalY + 16);
-  doc.text(
-    `Nomina mensual estimada: ${fmtMXN(totalMonthly)}`,
-    14,
-    finalY + 22,
-  );
+  doc.text(`Nomina mensual estimada: ${fmtMXN(totalMonthly)}`, 14, finalY + 22);
 
   addFooter(doc);
   doc.save(`nomina_${new Date().toISOString().slice(0, 10)}.pdf`);
@@ -413,14 +373,8 @@ export async function generateFinancialPDF(data: FinancialData) {
 
   // --- Executive summary box ---
   const totalRevenue = data.profitability.reduce((s, b) => s + b.revenue, 0);
-  const totalNetProfit = data.profitability.reduce(
-    (s, b) => s + b.netProfit,
-    0,
-  );
-  const totalTransactions = data.profitability.reduce(
-    (s, b) => s + (b.transactions || 0),
-    0,
-  );
+  const totalNetProfit = data.profitability.reduce((s, b) => s + b.netProfit, 0);
+  const totalTransactions = data.profitability.reduce((s, b) => s + (b.transactions || 0), 0);
   const avgTicket = totalTransactions > 0 ? totalRevenue / totalTransactions : 0;
 
   doc.setFillColor(245, 245, 245);
@@ -442,11 +396,7 @@ export async function generateFinancialPDF(data: FinancialData) {
 
   if (data.roi) {
     doc.text(`ROI: ${data.roi.roi.toFixed(1)}%`, col1, y + 30);
-    doc.text(
-      `ROI Anualizado: ${data.roi.annualizedRoi.toFixed(1)}%`,
-      col2,
-      y + 30,
-    );
+    doc.text(`ROI Anualizado: ${data.roi.annualizedRoi.toFixed(1)}%`, col2, y + 30);
   }
 
   y += 44;
@@ -496,16 +446,9 @@ export async function generateFinancialPDF(data: FinancialData) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const tableEndY = (doc as any).lastAutoTable?.finalY ?? y + 20;
   const totalCogs = data.profitability.reduce((s, b) => s + b.cogs, 0);
-  const totalGross = data.profitability.reduce(
-    (s, b) => s + b.grossProfit,
-    0,
-  );
-  const totalOpex = data.profitability.reduce(
-    (s, b) => s + b.operatingExpenses,
-    0,
-  );
-  const totalMargin =
-    totalRevenue > 0 ? (totalNetProfit / totalRevenue) * 100 : 0;
+  const totalGross = data.profitability.reduce((s, b) => s + b.grossProfit, 0);
+  const totalOpex = data.profitability.reduce((s, b) => s + b.operatingExpenses, 0);
+  const totalMargin = totalRevenue > 0 ? (totalNetProfit / totalRevenue) * 100 : 0;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (doc as any).autoTable({

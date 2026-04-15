@@ -173,12 +173,7 @@ export class BudgetService {
   // =========================================================================
   // GET COMPARISON (single month)
   // =========================================================================
-  async getComparison(
-    organizationId: string,
-    branchId: string,
-    year: number,
-    month: number,
-  ) {
+  async getComparison(organizationId: string, branchId: string, year: number, month: number) {
     const [budgets, actuals] = await Promise.all([
       this.prisma.branchBudget.findMany({
         where: { organizationId, branchId, year, month },
@@ -186,9 +181,7 @@ export class BudgetService {
       this.getActuals(organizationId, branchId, year, month),
     ]);
 
-    const budgetMap = new Map(
-      budgets.map((b) => [b.category, Number(b.budgetAmount)]),
-    );
+    const budgetMap = new Map(budgets.map((b) => [b.category, Number(b.budgetAmount)]));
 
     const rows = CATEGORIES.map((category) => {
       const budget = budgetMap.get(category) || 0;
@@ -222,9 +215,7 @@ export class BudgetService {
         actual: Math.round(totals.actual * 100) / 100,
         variance: Math.round(totals.variance * 100) / 100,
         variancePct:
-          totals.budget > 0
-            ? Math.round((totals.variance / totals.budget) * 10000) / 100
-            : 0,
+          totals.budget > 0 ? Math.round((totals.variance / totals.budget) * 10000) / 100 : 0,
         status: totals.actual <= totals.budget ? "UNDER" : "OVER",
       },
     };
@@ -233,11 +224,7 @@ export class BudgetService {
   // =========================================================================
   // GET ANNUAL COMPARISON
   // =========================================================================
-  async getAnnualComparison(
-    organizationId: string,
-    branchId: string,
-    year: number,
-  ) {
+  async getAnnualComparison(organizationId: string, branchId: string, year: number) {
     const months: {
       month: number;
       budget: number;
@@ -247,12 +234,7 @@ export class BudgetService {
     }[] = [];
 
     for (let month = 1; month <= 12; month++) {
-      const comparison = await this.getComparison(
-        organizationId,
-        branchId,
-        year,
-        month,
-      );
+      const comparison = await this.getComparison(organizationId, branchId, year, month);
       months.push({
         month,
         budget: comparison.totals.budget,
@@ -278,9 +260,7 @@ export class BudgetService {
         actual: Math.round(totals.actual * 100) / 100,
         variance: Math.round(totals.variance * 100) / 100,
         variancePct:
-          totals.budget > 0
-            ? Math.round((totals.variance / totals.budget) * 10000) / 100
-            : 0,
+          totals.budget > 0 ? Math.round((totals.variance / totals.budget) * 10000) / 100 : 0,
       },
     };
   }
@@ -288,11 +268,7 @@ export class BudgetService {
   // =========================================================================
   // GET MULTI-BRANCH COMPARISON
   // =========================================================================
-  async getMultiBranchComparison(
-    organizationId: string,
-    year: number,
-    month: number,
-  ) {
+  async getMultiBranchComparison(organizationId: string, year: number, month: number) {
     const branches = await this.prisma.branch.findMany({
       where: { organizationId, isActive: true },
       select: { id: true, name: true, code: true },
@@ -301,12 +277,7 @@ export class BudgetService {
 
     const rows = [];
     for (const branch of branches) {
-      const comparison = await this.getComparison(
-        organizationId,
-        branch.id,
-        year,
-        month,
-      );
+      const comparison = await this.getComparison(organizationId, branch.id, year, month);
       rows.push({
         branchId: branch.id,
         branchName: branch.name,
@@ -343,14 +314,11 @@ export class BudgetService {
       return { count: 0, message: "No budgets found for source year" };
     }
 
-    const multiplier = adjustmentPercent
-      ? 1 + adjustmentPercent / 100
-      : 1;
+    const multiplier = adjustmentPercent ? 1 + adjustmentPercent / 100 : 1;
 
     let count = 0;
     for (const budget of sourceBudgets) {
-      const newAmount =
-        Math.round(Number(budget.budgetAmount) * multiplier * 100) / 100;
+      const newAmount = Math.round(Number(budget.budgetAmount) * multiplier * 100) / 100;
       await this.prisma.branchBudget.upsert({
         where: {
           organizationId_branchId_year_month_category: {

@@ -135,18 +135,28 @@ export const REGIMEN_FISCAL: CatalogItem[] = [
   { clave: "606", descripcion: "Arrendamiento" },
   { clave: "607", descripcion: "Regimen de Enajenacion o Adquisicion de Bienes" },
   { clave: "608", descripcion: "Demas ingresos" },
-  { clave: "610", descripcion: "Residentes en el Extranjero sin Establecimiento Permanente en Mexico" },
+  {
+    clave: "610",
+    descripcion: "Residentes en el Extranjero sin Establecimiento Permanente en Mexico",
+  },
   { clave: "611", descripcion: "Ingresos por Dividendos (socios y accionistas)" },
   { clave: "612", descripcion: "Personas Fisicas con Actividades Empresariales y Profesionales" },
   { clave: "614", descripcion: "Ingresos por intereses" },
   { clave: "615", descripcion: "Regimen de los ingresos por obtencion de premios" },
   { clave: "616", descripcion: "Sin obligaciones fiscales" },
-  { clave: "620", descripcion: "Sociedades Cooperativas de Produccion que optan por diferir sus ingresos" },
+  {
+    clave: "620",
+    descripcion: "Sociedades Cooperativas de Produccion que optan por diferir sus ingresos",
+  },
   { clave: "621", descripcion: "Incorporacion Fiscal" },
   { clave: "622", descripcion: "Actividades Agricolas, Ganaderas, Silvicolas y Pesqueras" },
   { clave: "623", descripcion: "Opcional para Grupos de Sociedades" },
   { clave: "624", descripcion: "Coordinados" },
-  { clave: "625", descripcion: "Regimen de las Actividades Empresariales con ingresos a traves de Plataformas Tecnologicas" },
+  {
+    clave: "625",
+    descripcion:
+      "Regimen de las Actividades Empresariales con ingresos a traves de Plataformas Tecnologicas",
+  },
   { clave: "626", descripcion: "Regimen Simplificado de Confianza" },
 ];
 
@@ -166,11 +176,19 @@ export const USO_CFDI: CatalogItem[] = [
   { clave: "D02", descripcion: "Gastos medicos por incapacidad o discapacidad" },
   { clave: "D03", descripcion: "Gastos funerales" },
   { clave: "D04", descripcion: "Donativos" },
-  { clave: "D05", descripcion: "Intereses reales efectivamente pagados por creditos hipotecarios (casa habitacion)" },
+  {
+    clave: "D05",
+    descripcion:
+      "Intereses reales efectivamente pagados por creditos hipotecarios (casa habitacion)",
+  },
   { clave: "D06", descripcion: "Aportaciones voluntarias al SAR" },
   { clave: "D07", descripcion: "Primas por seguros de gastos medicos" },
   { clave: "D08", descripcion: "Gastos de transportacion escolar obligatoria" },
-  { clave: "D09", descripcion: "Depositos en cuentas para el ahorro, primas que tengan como base planes de pensiones" },
+  {
+    clave: "D09",
+    descripcion:
+      "Depositos en cuentas para el ahorro, primas que tengan como base planes de pensiones",
+  },
   { clave: "D10", descripcion: "Pagos por servicios educativos (colegiaturas)" },
   { clave: "S01", descripcion: "Sin efectos fiscales" },
   { clave: "CP01", descripcion: "Pagos" },

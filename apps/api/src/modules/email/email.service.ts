@@ -29,21 +29,16 @@ export class EmailService {
         },
       });
     } else {
-      this.logger.warn(
-        "SMTP not configured — emails will be logged to console",
-      );
+      this.logger.warn("SMTP not configured — emails will be logged to console");
     }
   }
 
   async sendEmail(to: string, subject: string, html: string): Promise<void> {
-    const from =
-      process.env.SMTP_FROM || "Luka System <noreply@lukapokes.com>";
+    const from = process.env.SMTP_FROM || "Luka System <noreply@lukapokes.com>";
 
     if (!this.transporter) {
       this.logger.log(`[DEV EMAIL] To: ${to} | Subject: ${subject}`);
-      this.logger.log(
-        `[DEV EMAIL] Body:\n${html.replace(/<[^>]+>/g, "")}`,
-      );
+      this.logger.log(`[DEV EMAIL] Body:\n${html.replace(/<[^>]+>/g, "")}`);
       return;
     }
 
@@ -58,18 +53,10 @@ export class EmailService {
 
   async sendPasswordReset(email: string, resetUrl: string): Promise<void> {
     const html = passwordResetTemplate(resetUrl);
-    await this.sendEmail(
-      email,
-      "Restablecer tu contrasena - Luka Poke House",
-      html,
-    );
+    await this.sendEmail(email, "Restablecer tu contrasena - Luka Poke House", html);
   }
 
-  async sendWelcome(
-    email: string,
-    firstName: string,
-    tempPassword?: string,
-  ): Promise<void> {
+  async sendWelcome(email: string, firstName: string, tempPassword?: string): Promise<void> {
     const html = welcomeTemplate(firstName, tempPassword);
     await this.sendEmail(email, "Bienvenido a Luka System", html);
   }
@@ -92,11 +79,7 @@ export class EmailService {
     payables: { supplier: string; amount: number; dueDate: string }[],
   ): Promise<void> {
     const html = overduePayableTemplate(payables);
-    await this.sendEmail(
-      email,
-      "Cuentas por Pagar Vencidas - Luka System",
-      html,
-    );
+    await this.sendEmail(email, "Cuentas por Pagar Vencidas - Luka System", html);
   }
 
   async sendInvoice(
@@ -112,11 +95,7 @@ export class EmailService {
     },
   ): Promise<void> {
     const html = invoiceEmailTemplate(data);
-    await this.sendEmail(
-      to,
-      `Factura ${data.invoiceNumber} - Luka Poke House`,
-      html,
-    );
+    await this.sendEmail(to, `Factura ${data.invoiceNumber} - Luka Poke House`, html);
   }
 
   async sendRequisitionAlert(

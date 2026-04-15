@@ -1,20 +1,10 @@
-import {
-  Controller,
-  Get,
-  Query,
-  Res,
-  UseGuards,
-  BadRequestException,
-} from "@nestjs/common";
+import { Controller, Get, Query, Res, UseGuards, BadRequestException } from "@nestjs/common";
 import { ApiTags, ApiBearerAuth } from "@nestjs/swagger";
 import { Response } from "express";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
 import { Permissions } from "../../common/decorators/roles.decorator";
-import {
-  CurrentUser,
-  JwtPayload,
-} from "../../common/decorators/current-user.decorator";
+import { CurrentUser, JwtPayload } from "../../common/decorators/current-user.decorator";
 import { SatXmlService } from "./sat-xml.service";
 
 @ApiTags("Contabilidad - Reportes SAT")
@@ -90,10 +80,7 @@ export class SatXmlController {
     );
 
     res.setHeader("Content-Type", "application/xml");
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename="${result.filename}"`,
-    );
+    res.setHeader("Content-Disposition", `attachment; filename="${result.filename}"`);
     res.send(result.xml);
   }
 
@@ -119,19 +106,13 @@ export class SatXmlController {
     );
 
     res.setHeader("Content-Type", "application/xml");
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename="${result.filename}"`,
-    );
+    res.setHeader("Content-Disposition", `attachment; filename="${result.filename}"`);
     res.send(result.xml);
   }
 
   // ── Helpers ──
 
-  private parseYearMonth(
-    yearStr: string,
-    monthStr: string,
-  ): { year: number; month: number } {
+  private parseYearMonth(yearStr: string, monthStr: string): { year: number; month: number } {
     const year = parseInt(yearStr, 10);
     const month = parseInt(monthStr, 10);
     if (isNaN(year) || isNaN(month)) {

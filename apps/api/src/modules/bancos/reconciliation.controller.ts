@@ -1,20 +1,9 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Param,
-  Body,
-  Query,
-  UseGuards,
-} from "@nestjs/common";
+import { Controller, Get, Post, Param, Body, Query, UseGuards } from "@nestjs/common";
 import { ApiTags, ApiBearerAuth } from "@nestjs/swagger";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
 import { Permissions } from "../../common/decorators/roles.decorator";
-import {
-  CurrentUser,
-  JwtPayload,
-} from "../../common/decorators/current-user.decorator";
+import { CurrentUser, JwtPayload } from "../../common/decorators/current-user.decorator";
 import { ReconciliationService } from "./reconciliation.service";
 import { ImportTransactionsDto } from "./dto/import-transactions.dto";
 import { ManualReconcileDto } from "./dto/manual-reconcile.dto";
@@ -44,14 +33,8 @@ export class ReconciliationController {
   // POST /bancos/accounts/:id/reconcile
   @Post("accounts/:id/reconcile")
   @Permissions("bancos:edit")
-  autoReconcile(
-    @CurrentUser() user: JwtPayload,
-    @Param("id") accountId: string,
-  ) {
-    return this.reconciliationService.autoReconcile(
-      user.organizationId,
-      accountId,
-    );
+  autoReconcile(@CurrentUser() user: JwtPayload, @Param("id") accountId: string) {
+    return this.reconciliationService.autoReconcile(user.organizationId, accountId);
   }
 
   // POST /bancos/transactions/:id/reconcile
@@ -62,24 +45,14 @@ export class ReconciliationController {
     @Param("id") transactionId: string,
     @Body() dto: ManualReconcileDto,
   ) {
-    return this.reconciliationService.manualReconcile(
-      user.organizationId,
-      transactionId,
-      dto,
-    );
+    return this.reconciliationService.manualReconcile(user.organizationId, transactionId, dto);
   }
 
   // POST /bancos/transactions/:id/unreconcile
   @Post("transactions/:id/unreconcile")
   @Permissions("bancos:edit")
-  unreconcile(
-    @CurrentUser() user: JwtPayload,
-    @Param("id") transactionId: string,
-  ) {
-    return this.reconciliationService.unreconcile(
-      user.organizationId,
-      transactionId,
-    );
+  unreconcile(@CurrentUser() user: JwtPayload, @Param("id") transactionId: string) {
+    return this.reconciliationService.unreconcile(user.organizationId, transactionId);
   }
 
   // GET /bancos/accounts/:id/reconciliation-summary
@@ -108,13 +81,10 @@ export class ReconciliationController {
     @Query("reference") reference?: string,
     @Query("type") type?: string,
   ) {
-    return this.reconciliationService.searchMatchCandidates(
-      user.organizationId,
-      {
-        amount: amount ? Number(amount) : undefined,
-        reference,
-        type,
-      },
-    );
+    return this.reconciliationService.searchMatchCandidates(user.organizationId, {
+      amount: amount ? Number(amount) : undefined,
+      reference,
+      type,
+    });
   }
 }

@@ -323,7 +323,8 @@ export default function PrediccionesPage() {
     const daysValues = branchForecasts
       .filter((f) => f.daysOfStockLeft !== null)
       .map((f) => f.daysOfStockLeft!);
-    const avgDays = daysValues.length > 0 ? daysValues.reduce((s, d) => s + d, 0) / daysValues.length : 0;
+    const avgDays =
+      daysValues.length > 0 ? daysValues.reduce((s, d) => s + d, 0) / daysValues.length : 0;
     const weeklyCost = branchForecasts.reduce(
       (s, f) => s + (f.forecast[0]?.predictedQuantity ?? 0) * f.product.costPerUnit,
       0,
@@ -372,10 +373,8 @@ export default function PrediccionesPage() {
   // Trend icon helper
   // ---------------------------------------------------------------------------
   const TrendIcon = ({ trend }: { trend: "increasing" | "decreasing" | "stable" }) => {
-    if (trend === "increasing")
-      return <TrendingUp className="h-4 w-4 text-green-600" />;
-    if (trend === "decreasing")
-      return <TrendingDown className="h-4 w-4 text-red-600" />;
+    if (trend === "increasing") return <TrendingUp className="h-4 w-4 text-green-600" />;
+    if (trend === "decreasing") return <TrendingDown className="h-4 w-4 text-red-600" />;
     return <ArrowRight className="h-4 w-4 text-gray-400" />;
   };
 
@@ -539,7 +538,13 @@ export default function PrediccionesPage() {
                 key: "daysOfStockLeft",
                 header: "Dias de Stock",
                 render: (row: BranchProductForecast) => (
-                  <span className={row.daysOfStockLeft !== null && row.daysOfStockLeft < 7 ? "font-semibold text-red-600" : ""}>
+                  <span
+                    className={
+                      row.daysOfStockLeft !== null && row.daysOfStockLeft < 7
+                        ? "font-semibold text-red-600"
+                        : ""
+                    }
+                  >
                     {row.daysOfStockLeft !== null ? `${row.daysOfStockLeft} dias` : "N/A"}
                   </span>
                 ),
@@ -565,9 +570,7 @@ export default function PrediccionesPage() {
               {
                 key: "alert",
                 header: "Alerta",
-                render: (row: BranchProductForecast) => (
-                  <StockBadge days={row.daysOfStockLeft} />
-                ),
+                render: (row: BranchProductForecast) => <StockBadge days={row.daysOfStockLeft} />,
               },
             ]}
             data={branchForecasts}
@@ -633,9 +636,7 @@ export default function PrediccionesPage() {
                             {item.currentStock} {item.unitOfMeasure}
                           </td>
                           <td className="px-3 py-2 text-sm">
-                            {item.daysOfStockLeft !== null
-                              ? `${item.daysOfStockLeft} dias`
-                              : "N/A"}
+                            {item.daysOfStockLeft !== null ? `${item.daysOfStockLeft} dias` : "N/A"}
                           </td>
                           <td className="px-3 py-2 text-sm font-semibold">
                             {item.suggestedQuantity} {item.unitOfMeasure}
@@ -778,9 +779,7 @@ export default function PrediccionesPage() {
               {/* Chart */}
               {chartData.length > 0 && (
                 <div className="border rounded-lg p-4 bg-white">
-                  <h3 className="text-sm font-semibold mb-4">
-                    Consumo Historico y Pronostico
-                  </h3>
+                  <h3 className="text-sm font-semibold mb-4">Consumo Historico y Pronostico</h3>
                   <div className="h-72">
                     <ResponsiveContainer width="100%" height="100%">
                       <LineChart data={chartData}>
@@ -840,7 +839,8 @@ export default function PrediccionesPage() {
                         header: "Cantidad",
                         render: (row: ConsumptionBucket) => (
                           <span>
-                            {safeNum(row.quantity).toFixed(1)} {productForecast.product.unitOfMeasure}
+                            {safeNum(row.quantity).toFixed(1)}{" "}
+                            {productForecast.product.unitOfMeasure}
                           </span>
                         ),
                       },
@@ -887,9 +887,9 @@ export default function PrediccionesPage() {
                 />
                 <StatCard
                   label="Sucursales con stock critico"
-                  value={
-                    new Set(summary.criticalStockBranches.map((a) => a.branchId)).size.toString()
-                  }
+                  value={new Set(
+                    summary.criticalStockBranches.map((a) => a.branchId),
+                  ).size.toString()}
                   icon={<Building2 className="h-5 w-5 text-yellow-500" />}
                   color="yellow"
                 />
@@ -995,9 +995,7 @@ export default function PrediccionesPage() {
                       {
                         key: "daysOfStockLeft",
                         header: "Dias Restantes",
-                        render: (row: ReorderAlert) => (
-                          <StockBadge days={row.daysOfStockLeft} />
-                        ),
+                        render: (row: ReorderAlert) => <StockBadge days={row.daysOfStockLeft} />,
                       },
                       {
                         key: "avgDailyConsumption",
@@ -1035,9 +1033,7 @@ export default function PrediccionesPage() {
                             <Building2 className="h-4 w-4 text-gray-400" />
                             {branchName}
                           </h4>
-                          <span className="text-xs text-gray-400">
-                            {alerts.length} productos
-                          </span>
+                          <span className="text-xs text-gray-400">{alerts.length} productos</span>
                         </div>
                         <div className="space-y-1">
                           {alerts.map((alert) => (

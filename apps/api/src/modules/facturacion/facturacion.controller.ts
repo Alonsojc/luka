@@ -1,23 +1,10 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Patch,
-  Param,
-  Body,
-  Query,
-  Res,
-  UseGuards,
-} from "@nestjs/common";
+import { Controller, Get, Post, Patch, Param, Body, Query, Res, UseGuards } from "@nestjs/common";
 import { ApiTags, ApiBearerAuth } from "@nestjs/swagger";
 import { Response } from "express";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
 import { Permissions } from "../../common/decorators/roles.decorator";
-import {
-  CurrentUser,
-  JwtPayload,
-} from "../../common/decorators/current-user.decorator";
+import { CurrentUser, JwtPayload } from "../../common/decorators/current-user.decorator";
 import { FacturacionService } from "./facturacion.service";
 import {
   REGIMEN_FISCAL,
@@ -70,27 +57,14 @@ export class FacturacionController {
 
   @Get("invoices/:id")
   @Permissions("facturacion:view")
-  findOneInvoice(
-    @CurrentUser() user: JwtPayload,
-    @Param("id") id: string,
-  ) {
-    return this.facturacionService.findOneInvoice(
-      user.organizationId,
-      id,
-    );
+  findOneInvoice(@CurrentUser() user: JwtPayload, @Param("id") id: string) {
+    return this.facturacionService.findOneInvoice(user.organizationId, id);
   }
 
   @Post("invoices")
   @Permissions("facturacion:create")
-  createInvoice(
-    @CurrentUser() user: JwtPayload,
-    @Body() dto: CreateInvoiceDto,
-  ) {
-    return this.facturacionService.createInvoice(
-      user.organizationId,
-      user.sub,
-      dto,
-    );
+  createInvoice(@CurrentUser() user: JwtPayload, @Body() dto: CreateInvoiceDto) {
+    return this.facturacionService.createInvoice(user.organizationId, user.sub, dto);
   }
 
   @Patch("invoices/:id")
@@ -100,11 +74,7 @@ export class FacturacionController {
     @Param("id") id: string,
     @Body() dto: UpdateInvoiceDto,
   ) {
-    return this.facturacionService.updateInvoice(
-      user.organizationId,
-      id,
-      dto,
-    );
+    return this.facturacionService.updateInvoice(user.organizationId, id, dto);
   }
 
   // -------------------------------------------------------
@@ -113,14 +83,8 @@ export class FacturacionController {
 
   @Post("invoices/:id/xml")
   @Permissions("facturacion:edit")
-  generateXml(
-    @CurrentUser() user: JwtPayload,
-    @Param("id") id: string,
-  ) {
-    return this.facturacionService.generateXml(
-      user.organizationId,
-      id,
-    );
+  generateXml(@CurrentUser() user: JwtPayload, @Param("id") id: string) {
+    return this.facturacionService.generateXml(user.organizationId, id);
   }
 
   @Get("invoices/:id/xml")
@@ -130,8 +94,7 @@ export class FacturacionController {
     @Param("id") id: string,
     @Res() res: Response,
   ) {
-    const { xml, filename } =
-      await this.facturacionService.getXml(user.organizationId, id);
+    const { xml, filename } = await this.facturacionService.getXml(user.organizationId, id);
 
     res.set({
       "Content-Type": "application/xml",
@@ -169,19 +132,12 @@ export class FacturacionController {
     @CurrentUser() user: JwtPayload,
     @Body() dto: CreatePaymentComplementDto,
   ) {
-    return this.facturacionService.createPaymentComplement(
-      user.organizationId,
-      user.sub,
-      dto,
-    );
+    return this.facturacionService.createPaymentComplement(user.organizationId, user.sub, dto);
   }
 
   @Get("payment-complements")
   @Permissions("facturacion:view")
-  getPaymentComplements(
-    @CurrentUser() user: JwtPayload,
-    @Query("status") status?: string,
-  ) {
+  getPaymentComplements(@CurrentUser() user: JwtPayload, @Query("status") status?: string) {
     return this.facturacionService.getPaymentComplements(
       user.organizationId,
       status ? { status } : undefined,
@@ -191,8 +147,6 @@ export class FacturacionController {
   @Get("pending-payments")
   @Permissions("facturacion:view")
   getPendingPayments(@CurrentUser() user: JwtPayload) {
-    return this.facturacionService.getPendingPayments(
-      user.organizationId,
-    );
+    return this.facturacionService.getPendingPayments(user.organizationId);
   }
 }

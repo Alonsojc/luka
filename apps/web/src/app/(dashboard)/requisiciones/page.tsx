@@ -99,10 +99,7 @@ interface Summary {
 // Helpers
 // ---------------------------------------------------------------------------
 
-const STATUS_CONFIG: Record<
-  string,
-  { label: string; variant: string; icon: React.ElementType }
-> = {
+const STATUS_CONFIG: Record<string, { label: string; variant: string; icon: React.ElementType }> = {
   DRAFT: { label: "Borrador", variant: "gray", icon: Pencil },
   SUBMITTED: { label: "Enviada", variant: "blue", icon: Send },
   APPROVED: { label: "Aprobada", variant: "green", icon: CheckCircle },
@@ -116,10 +113,7 @@ const STATUS_CONFIG: Record<
   CANCELLED: { label: "Cancelada", variant: "gray", icon: Ban },
 };
 
-const PRIORITY_CONFIG: Record<
-  string,
-  { label: string; variant: string }
-> = {
+const PRIORITY_CONFIG: Record<string, { label: string; variant: string }> = {
   URGENT: { label: "Urgente", variant: "red" },
   HIGH: { label: "Alta", variant: "yellow" },
   NORMAL: { label: "Normal", variant: "blue" },
@@ -171,8 +165,7 @@ export default function RequisicionesPage() {
   const [detailOpen, setDetailOpen] = useState(false);
   const [approveOpen, setApproveOpen] = useState(false);
   const [rejectOpen, setRejectOpen] = useState(false);
-  const [selectedRequisition, setSelectedRequisition] =
-    useState<Requisition | null>(null);
+  const [selectedRequisition, setSelectedRequisition] = useState<Requisition | null>(null);
 
   // Create form
   const [formBranch, setFormBranch] = useState("");
@@ -262,13 +255,7 @@ export default function RequisicionesPage() {
         fetchPending();
       }
     }
-  }, [
-    authLoading,
-    user,
-    activeTab,
-    fetchRequisitions,
-    fetchPending,
-  ]);
+  }, [authLoading, user, activeTab, fetchRequisitions, fetchPending]);
 
   // ---------------------------------------------------------------------------
   // Actions
@@ -290,9 +277,7 @@ export default function RequisicionesPage() {
           productId: i.productId,
           requestedQuantity: parseFloat(i.requestedQuantity),
           unitOfMeasure:
-            i.unitOfMeasure ||
-            products.find((p) => p.id === i.productId)?.unitOfMeasure ||
-            "PZ",
+            i.unitOfMeasure || products.find((p) => p.id === i.productId)?.unitOfMeasure || "PZ",
           notes: i.notes || undefined,
         })),
       });
@@ -313,10 +298,7 @@ export default function RequisicionesPage() {
       fetchRequisitions();
       fetchSummary();
       if (selectedRequisition?.id === id) {
-        const updated = await authFetch<Requisition>(
-          "get",
-          `/requisitions/${id}`,
-        );
+        const updated = await authFetch<Requisition>("get", `/requisitions/${id}`);
         setSelectedRequisition(updated);
       }
     } catch {
@@ -371,10 +353,7 @@ export default function RequisicionesPage() {
       fetchRequisitions();
       fetchSummary();
       if (selectedRequisition?.id === id) {
-        const updated = await authFetch<Requisition>(
-          "get",
-          `/requisitions/${id}`,
-        );
+        const updated = await authFetch<Requisition>("get", `/requisitions/${id}`);
         setSelectedRequisition(updated);
       }
     } catch {
@@ -388,10 +367,7 @@ export default function RequisicionesPage() {
       fetchRequisitions();
       fetchSummary();
       if (selectedRequisition?.id === id) {
-        const updated = await authFetch<Requisition>(
-          "get",
-          `/requisitions/${id}`,
-        );
+        const updated = await authFetch<Requisition>("get", `/requisitions/${id}`);
         setSelectedRequisition(updated);
       }
     } catch {
@@ -408,9 +384,7 @@ export default function RequisicionesPage() {
     setFormPriority("NORMAL");
     setFormDeliveryDate("");
     setFormNotes("");
-    setFormItems([
-      { productId: "", requestedQuantity: "", unitOfMeasure: "", notes: "" },
-    ]);
+    setFormItems([{ productId: "", requestedQuantity: "", unitOfMeasure: "", notes: "" }]);
   };
 
   const addFormItem = () => {
@@ -425,11 +399,7 @@ export default function RequisicionesPage() {
     setFormItems(formItems.filter((_, i) => i !== index));
   };
 
-  const updateFormItem = (
-    index: number,
-    field: string,
-    value: string,
-  ) => {
+  const updateFormItem = (index: number, field: string, value: string) => {
     const updated = [...formItems];
     (updated[index] as any)[field] = value;
     // Auto-fill unitOfMeasure from product
@@ -476,9 +446,7 @@ export default function RequisicionesPage() {
     });
   };
 
-  const storeBranches = branches.filter(
-    (b) => b.branchType === "TIENDA" || !b.branchType,
-  );
+  const storeBranches = branches.filter((b) => b.branchType === "TIENDA" || !b.branchType);
 
   // ---------------------------------------------------------------------------
   // Columns
@@ -489,17 +457,13 @@ export default function RequisicionesPage() {
       key: "folio",
       header: "Folio",
       render: (r: Requisition) => (
-        <span className="font-mono text-xs font-medium">
-          REQ-{formatShortId(r.id)}
-        </span>
+        <span className="font-mono text-xs font-medium">REQ-{formatShortId(r.id)}</span>
       ),
     },
     {
       key: "requestingBranch",
       header: "Tienda",
-      render: (r: Requisition) => (
-        <span className="text-sm">{r.requestingBranch.name}</span>
-      ),
+      render: (r: Requisition) => <span className="text-sm">{r.requestingBranch.name}</span>,
     },
     {
       key: "createdAt",
@@ -520,9 +484,7 @@ export default function RequisicionesPage() {
       key: "items",
       header: "Productos",
       render: (r: Requisition) => (
-        <span className="text-sm text-gray-600">
-          {r.items?.length || 0} producto(s)
-        </span>
+        <span className="text-sm text-gray-600">{r.items?.length || 0} producto(s)</span>
       ),
     },
     {
@@ -582,11 +544,7 @@ export default function RequisicionesPage() {
   // ---------------------------------------------------------------------------
 
   if (authLoading) {
-    return (
-      <div className="flex items-center justify-center h-64 text-gray-400">
-        Cargando...
-      </div>
-    );
+    return <div className="flex items-center justify-center h-64 text-gray-400">Cargando...</div>;
   }
 
   return (
@@ -599,12 +557,15 @@ export default function RequisicionesPage() {
           </div>
           <div>
             <h1 className="text-xl font-bold">Requisiciones</h1>
-            <p className="text-sm text-gray-500">
-              Solicitudes de surtido de tiendas a CEDIS
-            </p>
+            <p className="text-sm text-gray-500">Solicitudes de surtido de tiendas a CEDIS</p>
           </div>
         </div>
-        <Button onClick={() => { resetCreateForm(); setCreateOpen(true); }}>
+        <Button
+          onClick={() => {
+            resetCreateForm();
+            setCreateOpen(true);
+          }}
+        >
           <Plus className="h-4 w-4" />
           Nueva Requisicion
         </Button>
@@ -650,7 +611,10 @@ export default function RequisicionesPage() {
           <div className="flex flex-wrap gap-3">
             <Select
               value={filterStatus}
-              onChange={(e) => { setFilterStatus(e.target.value); setPage(1); }}
+              onChange={(e) => {
+                setFilterStatus(e.target.value);
+                setPage(1);
+              }}
               className="w-40"
             >
               <option value="">Todos los estados</option>
@@ -663,7 +627,10 @@ export default function RequisicionesPage() {
             </Select>
             <Select
               value={filterBranch}
-              onChange={(e) => { setFilterBranch(e.target.value); setPage(1); }}
+              onChange={(e) => {
+                setFilterBranch(e.target.value);
+                setPage(1);
+              }}
               className="w-48"
             >
               <option value="">Todas las tiendas</option>
@@ -675,7 +642,10 @@ export default function RequisicionesPage() {
             </Select>
             <Select
               value={filterPriority}
-              onChange={(e) => { setFilterPriority(e.target.value); setPage(1); }}
+              onChange={(e) => {
+                setFilterPriority(e.target.value);
+                setPage(1);
+              }}
               className="w-36"
             >
               <option value="">Prioridad</option>
@@ -731,46 +701,30 @@ export default function RequisicionesPage() {
               <div className="rounded-lg border bg-white p-4">
                 <div className="flex items-center gap-2 text-blue-600">
                   <Clock className="h-4 w-4" />
-                  <span className="text-xs font-medium uppercase text-gray-500">
-                    Pendientes
-                  </span>
+                  <span className="text-xs font-medium uppercase text-gray-500">Pendientes</span>
                 </div>
-                <p className="mt-2 text-2xl font-bold">
-                  {summary.pendingApproval}
-                </p>
+                <p className="mt-2 text-2xl font-bold">{summary.pendingApproval}</p>
               </div>
               <div className="rounded-lg border bg-white p-4">
                 <div className="flex items-center gap-2 text-green-600">
                   <CheckCircle className="h-4 w-4" />
-                  <span className="text-xs font-medium uppercase text-gray-500">
-                    Aprobadas hoy
-                  </span>
+                  <span className="text-xs font-medium uppercase text-gray-500">Aprobadas hoy</span>
                 </div>
-                <p className="mt-2 text-2xl font-bold">
-                  {summary.approvedToday}
-                </p>
+                <p className="mt-2 text-2xl font-bold">{summary.approvedToday}</p>
               </div>
               <div className="rounded-lg border bg-white p-4">
                 <div className="flex items-center gap-2 text-red-600">
                   <XCircle className="h-4 w-4" />
-                  <span className="text-xs font-medium uppercase text-gray-500">
-                    Rechazadas
-                  </span>
+                  <span className="text-xs font-medium uppercase text-gray-500">Rechazadas</span>
                 </div>
-                <p className="mt-2 text-2xl font-bold">
-                  {summary.rejectedToday}
-                </p>
+                <p className="mt-2 text-2xl font-bold">{summary.rejectedToday}</p>
               </div>
               <div className="rounded-lg border bg-white p-4">
                 <div className="flex items-center gap-2 text-purple-600">
                   <Truck className="h-4 w-4" />
-                  <span className="text-xs font-medium uppercase text-gray-500">
-                    Surtidas
-                  </span>
+                  <span className="text-xs font-medium uppercase text-gray-500">Surtidas</span>
                 </div>
-                <p className="mt-2 text-2xl font-bold">
-                  {summary.fulfilledToday}
-                </p>
+                <p className="mt-2 text-2xl font-bold">{summary.fulfilledToday}</p>
               </div>
             </div>
           )}
@@ -785,10 +739,7 @@ export default function RequisicionesPage() {
               {pendingRequisitions.map((req) => {
                 const isExpanded = expandedRows.has(req.id);
                 return (
-                  <div
-                    key={req.id}
-                    className="border rounded-lg bg-white overflow-hidden"
-                  >
+                  <div key={req.id} className="border rounded-lg bg-white overflow-hidden">
                     <div
                       className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-gray-50"
                       onClick={() => toggleExpanded(req.id)}
@@ -801,13 +752,8 @@ export default function RequisicionesPage() {
                           {req.requestingBranch.name}
                         </span>
                         <StatusBadge
-                          label={
-                            PRIORITY_CONFIG[req.priority]?.label || "Normal"
-                          }
-                          variant={
-                            (PRIORITY_CONFIG[req.priority]?.variant ||
-                              "blue") as any
-                          }
+                          label={PRIORITY_CONFIG[req.priority]?.label || "Normal"}
+                          variant={(PRIORITY_CONFIG[req.priority]?.variant || "blue") as any}
                         />
                         <span className="text-sm text-gray-500 hidden sm:inline">
                           {req.items.length} producto(s)
@@ -858,9 +804,7 @@ export default function RequisicionesPage() {
                             <tr className="text-left text-xs text-gray-500 uppercase">
                               <th className="pb-2">Producto</th>
                               <th className="pb-2">SKU</th>
-                              <th className="pb-2 text-right">
-                                Cantidad Solicitada
-                              </th>
+                              <th className="pb-2 text-right">Cantidad Solicitada</th>
                               <th className="pb-2">Unidad</th>
                               <th className="pb-2">Notas</th>
                             </tr>
@@ -868,29 +812,22 @@ export default function RequisicionesPage() {
                           <tbody>
                             {req.items.map((item) => (
                               <tr key={item.id} className="border-t border-gray-200">
-                                <td className="py-2 font-medium">
-                                  {item.product.name}
-                                </td>
+                                <td className="py-2 font-medium">{item.product.name}</td>
                                 <td className="py-2 text-gray-500 font-mono text-xs">
                                   {item.product.sku}
                                 </td>
                                 <td className="py-2 text-right">
                                   {Number(item.requestedQuantity)}
                                 </td>
-                                <td className="py-2 text-gray-500">
-                                  {item.unitOfMeasure}
-                                </td>
-                                <td className="py-2 text-gray-400">
-                                  {item.notes || "-"}
-                                </td>
+                                <td className="py-2 text-gray-500">{item.unitOfMeasure}</td>
+                                <td className="py-2 text-gray-400">{item.notes || "-"}</td>
                               </tr>
                             ))}
                           </tbody>
                         </table>
                         {req.notes && (
                           <p className="mt-2 text-sm text-gray-500">
-                            <span className="font-medium">Nota:</span>{" "}
-                            {req.notes}
+                            <span className="font-medium">Nota:</span> {req.notes}
                           </p>
                         )}
                         {/* Fulfill button for approved requisitions viewed here */}
@@ -907,19 +844,11 @@ export default function RequisicionesPage() {
       {/* ----------------------------------------------------------------- */}
       {/* Create Modal                                                       */}
       {/* ----------------------------------------------------------------- */}
-      <Modal
-        open={createOpen}
-        onClose={() => setCreateOpen(false)}
-        title="Nueva Requisicion"
-        wide
-      >
+      <Modal open={createOpen} onClose={() => setCreateOpen(false)} title="Nueva Requisicion" wide>
         <div className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <FormField label="Sucursal solicitante" required>
-              <Select
-                value={formBranch}
-                onChange={(e) => setFormBranch(e.target.value)}
-              >
+              <Select value={formBranch} onChange={(e) => setFormBranch(e.target.value)}>
                 <option value="">Seleccionar sucursal</option>
                 {storeBranches.map((b) => (
                   <option key={b.id} value={b.id}>
@@ -929,10 +858,7 @@ export default function RequisicionesPage() {
               </Select>
             </FormField>
             <FormField label="Prioridad">
-              <Select
-                value={formPriority}
-                onChange={(e) => setFormPriority(e.target.value)}
-              >
+              <Select value={formPriority} onChange={(e) => setFormPriority(e.target.value)}>
                 <option value="LOW">Baja</option>
                 <option value="NORMAL">Normal</option>
                 <option value="HIGH">Alta</option>
@@ -969,16 +895,11 @@ export default function RequisicionesPage() {
             </div>
             <div className="space-y-2">
               {formItems.map((item, index) => (
-                <div
-                  key={index}
-                  className="flex items-start gap-2 bg-gray-50 rounded-lg p-3"
-                >
+                <div key={index} className="flex items-start gap-2 bg-gray-50 rounded-lg p-3">
                   <div className="flex-1 grid grid-cols-1 sm:grid-cols-4 gap-2">
                     <Select
                       value={item.productId}
-                      onChange={(e) =>
-                        updateFormItem(index, "productId", e.target.value)
-                      }
+                      onChange={(e) => updateFormItem(index, "productId", e.target.value)}
                       className="sm:col-span-2"
                     >
                       <option value="">Seleccionar producto</option>
@@ -994,20 +915,12 @@ export default function RequisicionesPage() {
                       min="0.01"
                       placeholder="Cantidad"
                       value={item.requestedQuantity}
-                      onChange={(e) =>
-                        updateFormItem(
-                          index,
-                          "requestedQuantity",
-                          e.target.value,
-                        )
-                      }
+                      onChange={(e) => updateFormItem(index, "requestedQuantity", e.target.value)}
                     />
                     <Input
                       placeholder="Unidad"
                       value={item.unitOfMeasure}
-                      onChange={(e) =>
-                        updateFormItem(index, "unitOfMeasure", e.target.value)
-                      }
+                      onChange={(e) => updateFormItem(index, "unitOfMeasure", e.target.value)}
                     />
                   </div>
                   {formItems.length > 1 && (
@@ -1026,17 +939,10 @@ export default function RequisicionesPage() {
 
           {/* Actions */}
           <div className="flex justify-end gap-3 pt-4 border-t">
-            <Button
-              variant="outline"
-              onClick={() => setCreateOpen(false)}
-            >
+            <Button variant="outline" onClick={() => setCreateOpen(false)}>
               Cancelar
             </Button>
-            <Button
-              variant="secondary"
-              onClick={() => handleCreate(false)}
-              disabled={saving}
-            >
+            <Button variant="secondary" onClick={() => handleCreate(false)} disabled={saving}>
               <Pencil className="h-4 w-4" />
               Guardar Borrador
             </Button>
@@ -1067,32 +973,20 @@ export default function RequisicionesPage() {
             <div className="flex flex-wrap items-center gap-3">
               <StatusBadge
                 label={
-                  STATUS_CONFIG[selectedRequisition.status]?.label ||
-                  selectedRequisition.status
+                  STATUS_CONFIG[selectedRequisition.status]?.label || selectedRequisition.status
                 }
-                variant={
-                  (STATUS_CONFIG[selectedRequisition.status]?.variant ||
-                    "gray") as any
-                }
+                variant={(STATUS_CONFIG[selectedRequisition.status]?.variant || "gray") as any}
               />
               <StatusBadge
-                label={
-                  PRIORITY_CONFIG[selectedRequisition.priority]?.label ||
-                  "Normal"
-                }
-                variant={
-                  (PRIORITY_CONFIG[selectedRequisition.priority]?.variant ||
-                    "blue") as any
-                }
+                label={PRIORITY_CONFIG[selectedRequisition.priority]?.label || "Normal"}
+                variant={(PRIORITY_CONFIG[selectedRequisition.priority]?.variant || "blue") as any}
               />
             </div>
 
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
                 <span className="text-gray-500">Tienda:</span>{" "}
-                <span className="font-medium">
-                  {selectedRequisition.requestingBranch.name}
-                </span>
+                <span className="font-medium">{selectedRequisition.requestingBranch.name}</span>
               </div>
               <div>
                 <span className="text-gray-500">Surtidor:</span>{" "}
@@ -1109,9 +1003,7 @@ export default function RequisicionesPage() {
               </div>
               <div>
                 <span className="text-gray-500">Creada:</span>{" "}
-                <span className="font-medium">
-                  {formatDate(selectedRequisition.createdAt)}
-                </span>
+                <span className="font-medium">{formatDate(selectedRequisition.createdAt)}</span>
               </div>
               {selectedRequisition.requestedDeliveryDate && (
                 <div>
@@ -1142,19 +1034,14 @@ export default function RequisicionesPage() {
 
             {selectedRequisition.notes && (
               <div className="text-sm">
-                <span className="text-gray-500">Notas:</span>{" "}
-                {selectedRequisition.notes}
+                <span className="text-gray-500">Notas:</span> {selectedRequisition.notes}
               </div>
             )}
 
             {selectedRequisition.rejectionReason && (
               <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm">
-                <span className="font-medium text-red-800">
-                  Motivo de rechazo:
-                </span>{" "}
-                <span className="text-red-700">
-                  {selectedRequisition.rejectionReason}
-                </span>
+                <span className="font-medium text-red-800">Motivo de rechazo:</span>{" "}
+                <span className="text-red-700">{selectedRequisition.rejectionReason}</span>
               </div>
             )}
 
@@ -1175,24 +1062,14 @@ export default function RequisicionesPage() {
                     <tr key={item.id} className="border-t">
                       <td className="px-4 py-2">
                         <div className="font-medium">{item.product.name}</div>
-                        <div className="text-xs text-gray-400 font-mono">
-                          {item.product.sku}
-                        </div>
+                        <div className="text-xs text-gray-400 font-mono">{item.product.sku}</div>
                       </td>
+                      <td className="px-4 py-2 text-right">{Number(item.requestedQuantity)}</td>
                       <td className="px-4 py-2 text-right">
-                        {Number(item.requestedQuantity)}
+                        {item.approvedQuantity != null ? Number(item.approvedQuantity) : "-"}
                       </td>
-                      <td className="px-4 py-2 text-right">
-                        {item.approvedQuantity != null
-                          ? Number(item.approvedQuantity)
-                          : "-"}
-                      </td>
-                      <td className="px-4 py-2 text-gray-500">
-                        {item.unitOfMeasure}
-                      </td>
-                      <td className="px-4 py-2 text-gray-400">
-                        {item.notes || "-"}
-                      </td>
+                      <td className="px-4 py-2 text-gray-500">{item.unitOfMeasure}</td>
+                      <td className="px-4 py-2 text-gray-400">{item.notes || "-"}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -1223,10 +1100,7 @@ export default function RequisicionesPage() {
               )}
               {selectedRequisition.status === "SUBMITTED" && (
                 <>
-                  <Button
-                    size="sm"
-                    onClick={() => openApproveModal(selectedRequisition)}
-                  >
+                  <Button size="sm" onClick={() => openApproveModal(selectedRequisition)}>
                     <CheckCircle className="h-4 w-4" />
                     Aprobar
                   </Button>
@@ -1249,10 +1123,7 @@ export default function RequisicionesPage() {
                 </>
               )}
               {selectedRequisition.status === "APPROVED" && (
-                <Button
-                  size="sm"
-                  onClick={() => handleFulfill(selectedRequisition.id)}
-                >
+                <Button size="sm" onClick={() => handleFulfill(selectedRequisition.id)}>
                   <Truck className="h-4 w-4" />
                   Surtir
                 </Button>
@@ -1289,12 +1160,8 @@ export default function RequisicionesPage() {
                 <tbody>
                   {selectedRequisition.items.map((item, index) => (
                     <tr key={item.id} className="border-t">
-                      <td className="px-4 py-2 font-medium">
-                        {item.product.name}
-                      </td>
-                      <td className="px-4 py-2 text-right">
-                        {Number(item.requestedQuantity)}
-                      </td>
+                      <td className="px-4 py-2 font-medium">{item.product.name}</td>
+                      <td className="px-4 py-2 text-right">{Number(item.requestedQuantity)}</td>
                       <td className="px-4 py-2 text-right">
                         <Input
                           type="number"
@@ -1312,9 +1179,7 @@ export default function RequisicionesPage() {
                           }}
                         />
                       </td>
-                      <td className="px-4 py-2 text-gray-500">
-                        {item.unitOfMeasure}
-                      </td>
+                      <td className="px-4 py-2 text-gray-500">{item.unitOfMeasure}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -1336,19 +1201,12 @@ export default function RequisicionesPage() {
       {/* ----------------------------------------------------------------- */}
       {/* Reject Modal                                                       */}
       {/* ----------------------------------------------------------------- */}
-      <Modal
-        open={rejectOpen}
-        onClose={() => setRejectOpen(false)}
-        title="Rechazar Requisicion"
-      >
+      <Modal open={rejectOpen} onClose={() => setRejectOpen(false)} title="Rechazar Requisicion">
         {selectedRequisition && (
           <div className="space-y-4">
             <p className="text-sm text-gray-600">
               Indica el motivo del rechazo para la requisicion de{" "}
-              <span className="font-medium">
-                {selectedRequisition.requestingBranch.name}
-              </span>
-              .
+              <span className="font-medium">{selectedRequisition.requestingBranch.name}</span>.
             </p>
             <FormField label="Motivo de rechazo" required>
               <Textarea

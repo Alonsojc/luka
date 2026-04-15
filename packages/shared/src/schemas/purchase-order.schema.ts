@@ -12,7 +12,7 @@ export const createPurchaseOrderSchema = z.object({
         quantity: z.number().positive("Cantidad debe ser positiva"),
         unitPrice: z.number().min(0, "Precio debe ser positivo"),
         unitOfMeasure: z.string(),
-      })
+      }),
     )
     .min(1, "Al menos un artículo requerido"),
 });
@@ -22,7 +22,7 @@ export const receivePurchaseOrderSchema = z.object({
     z.object({
       purchaseOrderItemId: z.string(),
       receivedQuantity: z.number().min(0),
-    })
+    }),
   ),
 });
 

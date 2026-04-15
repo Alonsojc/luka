@@ -81,7 +81,13 @@ const MENU_ITEMS: MenuItem[] = [
   { sku: "APE-GYO", name: "Gyoza (3pzas)", minPrice: 59, maxPrice: 79, category: "appetizer" },
   { sku: "APE-EDA", name: "Edamame", minPrice: 59, maxPrice: 69, category: "appetizer" },
   { sku: "APE-MIS", name: "Miso Soup", minPrice: 49, maxPrice: 65, category: "appetizer" },
-  { sku: "APE-SPR", name: "Spring Rolls (4pzas)", minPrice: 69, maxPrice: 89, category: "appetizer" },
+  {
+    sku: "APE-SPR",
+    name: "Spring Rolls (4pzas)",
+    minPrice: 69,
+    maxPrice: 89,
+    category: "appetizer",
+  },
 ];
 
 const PAYMENT_METHODS = ["CASH", "CARD", "TRANSFER"] as const;
@@ -138,10 +144,7 @@ function generateSalesForDay(
   else if (LOW_VOLUME_CODES.has(branchCode)) multiplier *= 0.7;
   if (dayOfWeek === 0 || dayOfWeek === 6) multiplier *= 1.3;
 
-  const numSales = Math.max(
-    1,
-    Math.round(baseSalesPerDay * multiplier + randInt(-2, 2)),
-  );
+  const numSales = Math.max(1, Math.round(baseSalesPerDay * multiplier + randInt(-2, 2)));
 
   const sales: GeneratedSale[] = [];
   const bowls = MENU_ITEMS.filter((m) => m.category === "bowl");
@@ -213,9 +216,7 @@ function generateSalesForDay(
 // ---------------------------------------------------------------------------
 
 async function main() {
-  console.log(
-    "=== Luka System — POS Seed (PosSale + PosSaleItem + PosSyncLog) ===\n",
-  );
+  console.log("=== Luka System — POS Seed (PosSale + PosSaleItem + PosSyncLog) ===\n");
 
   // ==================================================================
   // 0. QUERY EXISTING REFERENCES
@@ -228,8 +229,7 @@ async function main() {
   const branchRecords = await prisma.branch.findMany({
     where: { organizationId: org.id },
   });
-  if (branchRecords.length === 0)
-    throw new Error("No branches found. Run seed.ts first.");
+  if (branchRecords.length === 0) throw new Error("No branches found. Run seed.ts first.");
 
   console.log(`Branches found: ${branchRecords.length}`);
   for (const b of branchRecords) {
@@ -463,15 +463,10 @@ async function main() {
 
   // Per-branch breakdown
   console.log("\n  Per-branch breakdown:");
-  console.log(
-    `  ${"Branch".padEnd(12)} ${"Sales".padStart(7)} ${"Revenue".padStart(14)}`,
-  );
+  console.log(`  ${"Branch".padEnd(12)} ${"Sales".padStart(7)} ${"Revenue".padStart(14)}`);
   console.log(`  ${"─".repeat(12)} ${"─".repeat(7)} ${"─".repeat(14)}`);
 
-  const branchSales = new Map<
-    string,
-    { count: number; revenue: number }
-  >();
+  const branchSales = new Map<string, { count: number; revenue: number }>();
   for (const sale of allSales) {
     const existing = branchSales.get(sale.branchCode) || {
       count: 0,
@@ -482,33 +477,24 @@ async function main() {
     branchSales.set(sale.branchCode, existing);
   }
 
-  const sorted = [...branchSales.entries()].sort(
-    (a, b) => b[1].revenue - a[1].revenue,
-  );
+  const sorted = [...branchSales.entries()].sort((a, b) => b[1].revenue - a[1].revenue);
   for (const [code, data] of sorted) {
     const rev = data.revenue.toLocaleString("en-US", {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     });
-    console.log(
-      `  ${code.padEnd(12)} ${String(data.count).padStart(7)} $${rev.padStart(13)}`,
-    );
+    console.log(`  ${code.padEnd(12)} ${String(data.count).padStart(7)} $${rev.padStart(13)}`);
   }
 
   // Payment method breakdown
   console.log("\n  Payment method breakdown:");
   const paymentCounts = new Map<string, number>();
   for (const sale of allSales) {
-    paymentCounts.set(
-      sale.paymentMethod,
-      (paymentCounts.get(sale.paymentMethod) || 0) + 1,
-    );
+    paymentCounts.set(sale.paymentMethod, (paymentCounts.get(sale.paymentMethod) || 0) + 1);
   }
   for (const [method, count] of paymentCounts.entries()) {
     const pct = ((count / allSales.length) * 100).toFixed(1);
-    console.log(
-      `  ${method.padEnd(12)} ${String(count).padStart(6)} (${pct}%)`,
-    );
+    console.log(`  ${method.padEnd(12)} ${String(count).padStart(6)} (${pct}%)`);
   }
 
   console.log("\nPOS seed completed successfully!");

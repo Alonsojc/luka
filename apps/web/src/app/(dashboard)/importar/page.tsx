@@ -145,17 +145,14 @@ const TYPE_LABELS: Record<string, string> = {
 
 export default function ImportarPage() {
   const { authFetch, loading: authLoading } = useAuth();
-  const [activeTab, setActiveTab] = useState<
-    "importar" | "plantillas" | "historial"
-  >("importar");
+  const [activeTab, setActiveTab] = useState<"importar" | "plantillas" | "historial">("importar");
 
   // Wizard state
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [csvContent, setCsvContent] = useState("");
   const [validating, setValidating] = useState(false);
-  const [validationResult, setValidationResult] =
-    useState<ValidationResult | null>(null);
+  const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
   const [selectedBranch, setSelectedBranch] = useState("");
@@ -181,10 +178,7 @@ export default function ImportarPage() {
   const fetchHistory = useCallback(async () => {
     setHistoryLoading(true);
     try {
-      const data = await authFetch<DataImportRecord[]>(
-        "get",
-        "/configuracion/import/history",
-      );
+      const data = await authFetch<DataImportRecord[]>("get", "/configuracion/import/history");
       setHistory(data);
     } catch {
       // silent
@@ -223,11 +217,10 @@ export default function ImportarPage() {
     if (!selectedType || !csvContent.trim()) return;
     setValidating(true);
     try {
-      const result = await authFetch<ValidationResult>(
-        "post",
-        "/configuracion/import/validate",
-        { importType: selectedType, csvContent },
-      );
+      const result = await authFetch<ValidationResult>("post", "/configuracion/import/validate", {
+        importType: selectedType,
+        csvContent,
+      });
       setValidationResult(result);
       setCurrentStep(3);
     } catch {
@@ -249,11 +242,7 @@ export default function ImportarPage() {
       if (typeConfig?.needsBranch) {
         body.branchId = selectedBranch;
       }
-      const result = await authFetch<ImportResult>(
-        "post",
-        "/configuracion/import/execute",
-        body,
-      );
+      const result = await authFetch<ImportResult>("post", "/configuracion/import/execute", body);
       setImportResult(result);
       setCurrentStep(5);
     } catch {
@@ -284,9 +273,7 @@ export default function ImportarPage() {
   const handleDownloadErrors = (errors: ValidationError[]) => {
     const csvLines = ["row,field,message"];
     errors.forEach((err) => {
-      csvLines.push(
-        `${err.row},"${err.field}","${err.message.replace(/"/g, '""')}"`,
-      );
+      csvLines.push(`${err.row},"${err.field}","${err.message.replace(/"/g, '""')}"`);
     });
     const blob = new Blob([csvLines.join("\n")], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
@@ -306,8 +293,7 @@ export default function ImportarPage() {
     setSelectedBranch("");
   };
 
-  const needsBranch =
-    IMPORT_TYPES.find((t) => t.key === selectedType)?.needsBranch ?? false;
+  const needsBranch = IMPORT_TYPES.find((t) => t.key === selectedType)?.needsBranch ?? false;
 
   // ---------------------------------------------------------------------------
   // Render
@@ -373,9 +359,7 @@ export default function ImportarPage() {
             {[1, 2, 3, 4, 5].map((step) => (
               <div key={step} className="flex items-center gap-2">
                 {step > 1 && (
-                  <div
-                    className={`h-px w-8 ${currentStep >= step ? "bg-black" : "bg-gray-200"}`}
-                  />
+                  <div className={`h-px w-8 ${currentStep >= step ? "bg-black" : "bg-gray-200"}`} />
                 )}
                 <div
                   className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-medium ${
@@ -386,11 +370,7 @@ export default function ImportarPage() {
                         : "bg-gray-100 text-gray-400"
                   }`}
                 >
-                  {currentStep > step ? (
-                    <CheckCircle className="h-4 w-4" />
-                  ) : (
-                    step
-                  )}
+                  {currentStep > step ? <CheckCircle className="h-4 w-4" /> : step}
                 </div>
               </div>
             ))}
@@ -424,22 +404,15 @@ export default function ImportarPage() {
                         <Icon className="h-5 w-5" />
                       </div>
                       <div>
-                        <p className="font-medium text-gray-900">
-                          {type.label}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          {type.description}
-                        </p>
+                        <p className="font-medium text-gray-900">{type.label}</p>
+                        <p className="text-xs text-gray-500">{type.description}</p>
                       </div>
                     </button>
                   );
                 })}
               </div>
               <div className="mt-6 flex justify-end">
-                <Button
-                  disabled={!selectedType}
-                  onClick={() => setCurrentStep(2)}
-                >
+                <Button disabled={!selectedType} onClick={() => setCurrentStep(2)}>
                   Siguiente
                   <ArrowRight className="h-4 w-4" />
                 </Button>
@@ -450,14 +423,11 @@ export default function ImportarPage() {
           {/* Step 2: Upload CSV */}
           {currentStep === 2 && (
             <div>
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                Cargar archivo CSV
-              </h2>
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Cargar archivo CSV</h2>
 
               <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 mb-4">
                 <p className="text-sm font-medium text-gray-700">
-                  Columnas esperadas para{" "}
-                  {TYPE_LABELS[selectedType!] || selectedType}:
+                  Columnas esperadas para {TYPE_LABELS[selectedType!] || selectedType}:
                 </p>
                 <code className="mt-1 block text-xs text-gray-500">
                   {COLUMN_HINTS[selectedType!]}
@@ -496,13 +466,8 @@ export default function ImportarPage() {
                   <ArrowLeft className="h-4 w-4" />
                   Atras
                 </Button>
-                <Button
-                  disabled={!csvContent.trim() || validating}
-                  onClick={handleValidate}
-                >
-                  {validating ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : null}
+                <Button disabled={!csvContent.trim() || validating} onClick={handleValidate}>
+                  {validating ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                   Validar
                 </Button>
               </div>
@@ -512,23 +477,17 @@ export default function ImportarPage() {
           {/* Step 3: Validation results */}
           {currentStep === 3 && validationResult && (
             <div>
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                Resultados de Validacion
-              </h2>
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Resultados de Validacion</h2>
 
               {/* Summary cards */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
                 <div className="rounded-lg border border-gray-200 p-4">
                   <p className="text-sm text-gray-500">Total filas</p>
-                  <p className="text-2xl font-bold text-gray-900">
-                    {validationResult.totalRows}
-                  </p>
+                  <p className="text-2xl font-bold text-gray-900">{validationResult.totalRows}</p>
                 </div>
                 <div className="rounded-lg border border-green-200 bg-green-50 p-4">
                   <p className="text-sm text-green-600">Validas</p>
-                  <p className="text-2xl font-bold text-green-700">
-                    {validationResult.validRows}
-                  </p>
+                  <p className="text-2xl font-bold text-green-700">{validationResult.validRows}</p>
                 </div>
                 <div className="rounded-lg border border-red-200 bg-red-50 p-4">
                   <p className="text-sm text-red-600">Errores</p>
@@ -554,16 +513,14 @@ export default function ImportarPage() {
                     <table className="min-w-full text-xs">
                       <thead className="bg-gray-50">
                         <tr>
-                          {Object.keys(validationResult.preview[0]).map(
-                            (col) => (
-                              <th
-                                key={col}
-                                className="px-3 py-2 text-left font-medium text-gray-500 uppercase tracking-wider"
-                              >
-                                {col}
-                              </th>
-                            ),
-                          )}
+                          {Object.keys(validationResult.preview[0]).map((col) => (
+                            <th
+                              key={col}
+                              className="px-3 py-2 text-left font-medium text-gray-500 uppercase tracking-wider"
+                            >
+                              {col}
+                            </th>
+                          ))}
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100">
@@ -598,9 +555,7 @@ export default function ImportarPage() {
                         key={idx}
                         className="flex items-start gap-2 px-3 py-2 text-xs border-b border-red-100 last:border-b-0"
                       >
-                        <span className="font-mono text-red-600 flex-shrink-0">
-                          Fila {err.row}
-                        </span>
+                        <span className="font-mono text-red-600 flex-shrink-0">Fila {err.row}</span>
                         <span className="text-red-700 font-medium flex-shrink-0">
                           [{err.field}]
                         </span>
@@ -629,9 +584,7 @@ export default function ImportarPage() {
                         key={idx}
                         className="flex items-start gap-2 px-3 py-2 text-xs border-b border-yellow-100 last:border-b-0"
                       >
-                        <span className="text-yellow-700 font-medium">
-                          [{warn.field}]
-                        </span>
+                        <span className="text-yellow-700 font-medium">[{warn.field}]</span>
                         <span className="text-yellow-600">{warn.message}</span>
                       </div>
                     ))}
@@ -658,9 +611,7 @@ export default function ImportarPage() {
           {/* Step 4: Branch selection (if needed) + confirm import */}
           {currentStep === 4 && (
             <div>
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">
-                Confirmar Importacion
-              </h2>
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Confirmar Importacion</h2>
 
               {needsBranch && (
                 <div className="mb-6">
@@ -683,18 +634,12 @@ export default function ImportarPage() {
               )}
 
               <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 mb-6">
-                <h3 className="text-sm font-medium text-gray-700 mb-2">
-                  Resumen
-                </h3>
+                <h3 className="text-sm font-medium text-gray-700 mb-2">Resumen</h3>
                 <div className="grid grid-cols-2 gap-2 text-sm">
                   <span className="text-gray-500">Tipo:</span>
-                  <span className="font-medium">
-                    {TYPE_LABELS[selectedType!] || selectedType}
-                  </span>
+                  <span className="font-medium">{TYPE_LABELS[selectedType!] || selectedType}</span>
                   <span className="text-gray-500">Total filas:</span>
-                  <span className="font-medium">
-                    {validationResult?.totalRows || 0}
-                  </span>
+                  <span className="font-medium">{validationResult?.totalRows || 0}</span>
                   <span className="text-gray-500">Filas validas:</span>
                   <span className="font-medium text-green-700">
                     {validationResult?.validRows || 0}
@@ -703,8 +648,7 @@ export default function ImportarPage() {
                     <>
                       <span className="text-gray-500">Sucursal:</span>
                       <span className="font-medium">
-                        {branches.find((b) => b.id === selectedBranch)?.name ||
-                          "No seleccionada"}
+                        {branches.find((b) => b.id === selectedBranch)?.name || "No seleccionada"}
                       </span>
                     </>
                   )}
@@ -715,13 +659,11 @@ export default function ImportarPage() {
                 <div className="flex items-start gap-2">
                   <AlertTriangle className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
                   <div>
-                    <p className="text-sm font-medium text-yellow-800">
-                      Atencion
-                    </p>
+                    <p className="text-sm font-medium text-yellow-800">Atencion</p>
                     <p className="text-xs text-yellow-700 mt-1">
-                      Los registros existentes seran actualizados (upsert por
-                      SKU, RFC, numero de empleado, etc). Los nuevos registros
-                      seran creados. Esta accion no se puede deshacer.
+                      Los registros existentes seran actualizados (upsert por SKU, RFC, numero de
+                      empleado, etc). Los nuevos registros seran creados. Esta accion no se puede
+                      deshacer.
                     </p>
                   </div>
                 </div>
@@ -757,23 +699,17 @@ export default function ImportarPage() {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
                 <div className="rounded-lg border border-green-200 bg-green-50 p-4 text-center">
                   <CheckCircle className="h-8 w-8 text-green-600 mx-auto mb-2" />
-                  <p className="text-2xl font-bold text-green-700">
-                    {importResult.importedRows}
-                  </p>
+                  <p className="text-2xl font-bold text-green-700">{importResult.importedRows}</p>
                   <p className="text-sm text-green-600">Importados</p>
                 </div>
                 <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4 text-center">
                   <AlertTriangle className="h-8 w-8 text-yellow-600 mx-auto mb-2" />
-                  <p className="text-2xl font-bold text-yellow-700">
-                    {importResult.skippedRows}
-                  </p>
+                  <p className="text-2xl font-bold text-yellow-700">{importResult.skippedRows}</p>
                   <p className="text-sm text-yellow-600">Omitidos</p>
                 </div>
                 <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-center">
                   <X className="h-8 w-8 text-red-600 mx-auto mb-2" />
-                  <p className="text-2xl font-bold text-red-700">
-                    {importResult.failedRows}
-                  </p>
+                  <p className="text-2xl font-bold text-red-700">{importResult.failedRows}</p>
                   <p className="text-sm text-red-600">Fallidos</p>
                 </div>
               </div>
@@ -800,9 +736,7 @@ export default function ImportarPage() {
                         key={idx}
                         className="flex items-start gap-2 px-3 py-2 text-xs border-b border-red-100 last:border-b-0"
                       >
-                        <span className="font-mono text-red-600 flex-shrink-0">
-                          Fila {err.row}
-                        </span>
+                        <span className="font-mono text-red-600 flex-shrink-0">Fila {err.row}</span>
                         <span className="text-red-700 font-medium flex-shrink-0">
                           [{err.field}]
                         </span>
@@ -826,12 +760,9 @@ export default function ImportarPage() {
       {/* ================================================================== */}
       {activeTab === "plantillas" && (
         <div>
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">
-            Plantillas CSV
-          </h2>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Plantillas CSV</h2>
           <p className="text-sm text-gray-500 mb-6">
-            Descarga la plantilla con las columnas esperadas para cada tipo de
-            importacion.
+            Descarga la plantilla con las columnas esperadas para cada tipo de importacion.
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {IMPORT_TYPES.map((type) => {
@@ -847,9 +778,7 @@ export default function ImportarPage() {
                     </div>
                     <div className="flex-1">
                       <p className="font-medium text-gray-900">{type.label}</p>
-                      <p className="text-xs text-gray-500 mt-0.5">
-                        {type.description}
-                      </p>
+                      <p className="text-xs text-gray-500 mt-0.5">{type.description}</p>
                       <code className="mt-2 block text-[10px] text-gray-400 leading-relaxed">
                         {COLUMN_HINTS[type.key]}
                       </code>
@@ -877,9 +806,7 @@ export default function ImportarPage() {
       {/* ================================================================== */}
       {activeTab === "historial" && (
         <div>
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">
-            Historial de Importaciones
-          </h2>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Historial de Importaciones</h2>
 
           {historyLoading ? (
             <div className="flex items-center justify-center py-12">
@@ -916,21 +843,17 @@ export default function ImportarPage() {
                 </thead>
                 <tbody className="divide-y divide-gray-100 bg-white">
                   {history.map((record) => {
-                    const statusInfo =
-                      STATUS_MAP[record.status] || STATUS_MAP.PENDING;
+                    const statusInfo = STATUS_MAP[record.status] || STATUS_MAP.PENDING;
                     return (
                       <tr key={record.id} className="hover:bg-gray-50">
                         <td className="px-4 py-3 whitespace-nowrap text-gray-700">
-                          {new Date(record.createdAt).toLocaleDateString(
-                            "es-MX",
-                            {
-                              day: "2-digit",
-                              month: "short",
-                              year: "numeric",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            },
-                          )}
+                          {new Date(record.createdAt).toLocaleDateString("es-MX", {
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap font-medium text-gray-900">
                           {TYPE_LABELS[record.importType] || record.importType}
@@ -939,31 +862,21 @@ export default function ImportarPage() {
                           {record.fileName}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap">
-                          <StatusBadge
-                            label={statusInfo.label}
-                            variant={statusInfo.variant}
-                          />
+                          <StatusBadge label={statusInfo.label} variant={statusInfo.variant} />
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-xs">
-                          <span className="text-gray-500">
-                            {record.totalRows} total
-                          </span>
+                          <span className="text-gray-500">{record.totalRows} total</span>
                           {" / "}
-                          <span className="text-green-600">
-                            {record.importedRows} ok
-                          </span>
+                          <span className="text-green-600">{record.importedRows} ok</span>
                           {record.failedRows > 0 && (
                             <>
                               {" / "}
-                              <span className="text-red-600">
-                                {record.failedRows} err
-                              </span>
+                              <span className="text-red-600">{record.failedRows} err</span>
                             </>
                           )}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-gray-500">
-                          {record.createdBy.firstName}{" "}
-                          {record.createdBy.lastName}
+                          {record.createdBy.firstName} {record.createdBy.lastName}
                         </td>
                       </tr>
                     );

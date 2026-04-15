@@ -175,10 +175,9 @@ export default function PresupuestoPage() {
   const [activeTab, setActiveTab] = useState<TabKey>("comparativo");
 
   // Shared state
-  const { data: branches = [], isSuccess: branchesLoaded } = useApiQuery<Branch[]>(
-    "/branches",
-    ["branches"],
-  );
+  const { data: branches = [], isSuccess: branchesLoaded } = useApiQuery<Branch[]>("/branches", [
+    "branches",
+  ]);
 
   const now = new Date();
   const currentYear = now.getFullYear();
@@ -266,9 +265,7 @@ export default function PresupuestoPage() {
       }
       for (const entry of data) {
         if (grid[entry.category]) {
-          grid[entry.category][entry.month] = String(
-            safeNum(entry.budgetAmount),
-          );
+          grid[entry.category][entry.month] = String(safeNum(entry.budgetAmount));
         }
       }
       setCapGrid(grid);
@@ -426,9 +423,7 @@ export default function PresupuestoPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            Presupuesto vs Real
-          </h1>
+          <h1 className="text-2xl font-bold text-gray-900">Presupuesto vs Real</h1>
           <p className="mt-1 text-sm text-gray-500">
             Controla y compara el presupuesto contra el gasto real por sucursal
           </p>
@@ -469,13 +464,8 @@ export default function PresupuestoPage() {
             <div className="flex flex-wrap items-end gap-4">
               <div className="w-52">
                 <FormField label="Sucursal" required>
-                  <Select
-                    value={compBranchId}
-                    onChange={(e) => setCompBranchId(e.target.value)}
-                  >
-                    {branches.length === 0 && (
-                      <option value="">Cargando...</option>
-                    )}
+                  <Select value={compBranchId} onChange={(e) => setCompBranchId(e.target.value)}>
+                    {branches.length === 0 && <option value="">Cargando...</option>}
                     {branches.map((b) => (
                       <option key={b.id} value={b.id}>
                         {b.name}
@@ -486,10 +476,7 @@ export default function PresupuestoPage() {
               </div>
               <div className="w-28">
                 <FormField label="Ano">
-                  <Select
-                    value={compYear}
-                    onChange={(e) => setCompYear(Number(e.target.value))}
-                  >
+                  <Select value={compYear} onChange={(e) => setCompYear(Number(e.target.value))}>
                     {yearOptions.map((y) => (
                       <option key={y} value={y}>
                         {y}
@@ -500,10 +487,7 @@ export default function PresupuestoPage() {
               </div>
               <div className="w-36">
                 <FormField label="Mes">
-                  <Select
-                    value={compMonth}
-                    onChange={(e) => setCompMonth(Number(e.target.value))}
-                  >
+                  <Select value={compMonth} onChange={(e) => setCompMonth(Number(e.target.value))}>
                     {MONTH_NAMES_FULL.map((name, i) => (
                       <option key={i} value={i + 1}>
                         {name}
@@ -544,16 +528,8 @@ export default function PresupuestoPage() {
                         ? "por debajo del presupuesto"
                         : "por encima del presupuesto"
                     }
-                    icon={
-                      compData.totals.status === "UNDER"
-                        ? CheckCircle2
-                        : AlertTriangle
-                    }
-                    color={
-                      compData.totals.status === "UNDER"
-                        ? "text-green-600"
-                        : "text-red-600"
-                    }
+                    icon={compData.totals.status === "UNDER" ? CheckCircle2 : AlertTriangle}
+                    color={compData.totals.status === "UNDER" ? "text-green-600" : "text-red-600"}
                   />
                   <MetricCard
                     title="Variacion %"
@@ -597,26 +573,18 @@ export default function PresupuestoPage() {
                           <td className="px-4 py-3 text-sm font-medium">
                             {CATEGORY_LABELS[row.category] || row.category}
                           </td>
-                          <td className="px-4 py-3 text-sm text-right">
-                            {formatMXN(row.budget)}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-right">
-                            {formatMXN(row.actual)}
-                          </td>
+                          <td className="px-4 py-3 text-sm text-right">{formatMXN(row.budget)}</td>
+                          <td className="px-4 py-3 text-sm text-right">{formatMXN(row.actual)}</td>
                           <td
                             className={`px-4 py-3 text-sm text-right font-medium ${
-                              row.status === "UNDER"
-                                ? "text-green-600"
-                                : "text-red-600"
+                              row.status === "UNDER" ? "text-green-600" : "text-red-600"
                             }`}
                           >
                             {formatMXN(row.variance)}
                           </td>
                           <td
                             className={`px-4 py-3 text-sm text-right font-medium ${
-                              row.status === "UNDER"
-                                ? "text-green-600"
-                                : "text-red-600"
+                              row.status === "UNDER" ? "text-green-600" : "text-red-600"
                             }`}
                           >
                             {formatPct(row.variancePct)}
@@ -641,18 +609,14 @@ export default function PresupuestoPage() {
                         </td>
                         <td
                           className={`px-4 py-3 text-sm text-right ${
-                            compData.totals.status === "UNDER"
-                              ? "text-green-600"
-                              : "text-red-600"
+                            compData.totals.status === "UNDER" ? "text-green-600" : "text-red-600"
                           }`}
                         >
                           {formatMXN(compData.totals.variance)}
                         </td>
                         <td
                           className={`px-4 py-3 text-sm text-right ${
-                            compData.totals.status === "UNDER"
-                              ? "text-green-600"
-                              : "text-red-600"
+                            compData.totals.status === "UNDER" ? "text-green-600" : "text-red-600"
                           }`}
                         >
                           {formatPct(compData.totals.variancePct)}
@@ -688,24 +652,12 @@ export default function PresupuestoPage() {
                         />
                         <YAxis
                           tick={{ fontSize: 12 }}
-                          tickFormatter={(v) =>
-                            `$${(safeNum(v) / 1000).toFixed(0)}k`
-                          }
+                          tickFormatter={(v) => `$${(safeNum(v) / 1000).toFixed(0)}k`}
                         />
-                        <Tooltip
-                          formatter={(value: number) => formatMXN(value)}
-                        />
+                        <Tooltip formatter={(value: number) => formatMXN(value)} />
                         <Legend />
-                        <Bar
-                          dataKey="Presupuesto"
-                          fill="#000000"
-                          radius={[4, 4, 0, 0]}
-                        />
-                        <Bar
-                          dataKey="Real"
-                          fill="#6b7280"
-                          radius={[4, 4, 0, 0]}
-                        />
+                        <Bar dataKey="Presupuesto" fill="#000000" radius={[4, 4, 0, 0]} />
+                        <Bar dataKey="Real" fill="#6b7280" radius={[4, 4, 0, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
@@ -724,13 +676,8 @@ export default function PresupuestoPage() {
             <div className="flex flex-wrap items-end gap-4">
               <div className="w-52">
                 <FormField label="Sucursal" required>
-                  <Select
-                    value={capBranchId}
-                    onChange={(e) => setCapBranchId(e.target.value)}
-                  >
-                    {branches.length === 0 && (
-                      <option value="">Cargando...</option>
-                    )}
+                  <Select value={capBranchId} onChange={(e) => setCapBranchId(e.target.value)}>
+                    {branches.length === 0 && <option value="">Cargando...</option>}
                     {branches.map((b) => (
                       <option key={b.id} value={b.id}>
                         {b.name}
@@ -741,10 +688,7 @@ export default function PresupuestoPage() {
               </div>
               <div className="w-28">
                 <FormField label="Ano">
-                  <Select
-                    value={capYear}
-                    onChange={(e) => setCapYear(Number(e.target.value))}
-                  >
+                  <Select value={capYear} onChange={(e) => setCapYear(Number(e.target.value))}>
                     {yearOptions.map((y) => (
                       <option key={y} value={y}>
                         {y}
@@ -753,12 +697,7 @@ export default function PresupuestoPage() {
                   </Select>
                 </FormField>
               </div>
-              <Button
-                onClick={saveBudgets}
-                disabled={capSaving}
-                variant="primary"
-                size="md"
-              >
+              <Button onClick={saveBudgets} disabled={capSaving} variant="primary" size="md">
                 <Save className="h-4 w-4" />
                 {capSaving ? "Guardando..." : "Guardar Todo"}
               </Button>
@@ -780,9 +719,7 @@ export default function PresupuestoPage() {
                   size="md"
                 >
                   <Copy className="h-4 w-4" />
-                  {copyLoading
-                    ? "Copiando..."
-                    : `Copiar de ${capYear - 1}`}
+                  {copyLoading ? "Copiando..." : `Copiar de ${capYear - 1}`}
                 </Button>
               </div>
             </div>
@@ -828,23 +765,19 @@ export default function PresupuestoPage() {
                           <td className="px-3 py-2 text-sm font-medium sticky left-0 bg-white z-10">
                             {CATEGORY_LABELS[cat]}
                           </td>
-                          {Array.from({ length: 12 }, (_, i) => i + 1).map(
-                            (month) => (
-                              <td key={month} className="px-1 py-1">
-                                <input
-                                  type="number"
-                                  min="0"
-                                  step="100"
-                                  className="w-full px-2 py-1.5 border rounded text-sm text-right focus:outline-none focus:ring-2 focus:ring-black"
-                                  value={capGrid[cat]?.[month] ?? ""}
-                                  onChange={(e) =>
-                                    handleGridChange(cat, month, e.target.value)
-                                  }
-                                  placeholder="0"
-                                />
-                              </td>
-                            ),
-                          )}
+                          {Array.from({ length: 12 }, (_, i) => i + 1).map((month) => (
+                            <td key={month} className="px-1 py-1">
+                              <input
+                                type="number"
+                                min="0"
+                                step="100"
+                                className="w-full px-2 py-1.5 border rounded text-sm text-right focus:outline-none focus:ring-2 focus:ring-black"
+                                value={capGrid[cat]?.[month] ?? ""}
+                                onChange={(e) => handleGridChange(cat, month, e.target.value)}
+                                placeholder="0"
+                              />
+                            </td>
+                          ))}
                           <td className="px-3 py-2 text-sm text-right font-medium">
                             {formatMXN(rowTotal)}
                           </td>
@@ -853,27 +786,18 @@ export default function PresupuestoPage() {
                     })}
                     {/* Column totals */}
                     <tr className="bg-muted/50 font-bold">
-                      <td className="px-3 py-3 text-sm sticky left-0 bg-muted/50 z-10">
-                        Total
-                      </td>
-                      {Array.from({ length: 12 }, (_, i) => i + 1).map(
-                        (month) => {
-                          const colTotal = CATEGORIES.reduce(
-                            (sum, cat) =>
-                              sum +
-                              (parseFloat(capGrid[cat]?.[month] || "0") || 0),
-                            0,
-                          );
-                          return (
-                            <td
-                              key={month}
-                              className="px-1 py-3 text-sm text-center"
-                            >
-                              {formatMXN(colTotal)}
-                            </td>
-                          );
-                        },
-                      )}
+                      <td className="px-3 py-3 text-sm sticky left-0 bg-muted/50 z-10">Total</td>
+                      {Array.from({ length: 12 }, (_, i) => i + 1).map((month) => {
+                        const colTotal = CATEGORIES.reduce(
+                          (sum, cat) => sum + (parseFloat(capGrid[cat]?.[month] || "0") || 0),
+                          0,
+                        );
+                        return (
+                          <td key={month} className="px-1 py-3 text-sm text-center">
+                            {formatMXN(colTotal)}
+                          </td>
+                        );
+                      })}
                       <td className="px-3 py-3 text-sm text-right">
                         {formatMXN(
                           CATEGORIES.reduce(
@@ -904,10 +828,7 @@ export default function PresupuestoPage() {
             <div className="flex flex-wrap items-end gap-4">
               <div className="w-28">
                 <FormField label="Ano">
-                  <Select
-                    value={mbYear}
-                    onChange={(e) => setMbYear(Number(e.target.value))}
-                  >
+                  <Select value={mbYear} onChange={(e) => setMbYear(Number(e.target.value))}>
                     {yearOptions.map((y) => (
                       <option key={y} value={y}>
                         {y}
@@ -918,10 +839,7 @@ export default function PresupuestoPage() {
               </div>
               <div className="w-36">
                 <FormField label="Mes">
-                  <Select
-                    value={mbMonth}
-                    onChange={(e) => setMbMonth(Number(e.target.value))}
-                  >
+                  <Select value={mbMonth} onChange={(e) => setMbMonth(Number(e.target.value))}>
                     {MONTH_NAMES_FULL.map((name, i) => (
                       <option key={i} value={i + 1}>
                         {name}
@@ -971,29 +889,19 @@ export default function PresupuestoPage() {
                           key={row.branchId}
                           className="border-b last:border-0 hover:bg-muted/30 transition-colors"
                         >
-                          <td className="px-4 py-3 text-sm font-medium">
-                            {row.branchName}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-right">
-                            {formatMXN(row.budget)}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-right">
-                            {formatMXN(row.actual)}
-                          </td>
+                          <td className="px-4 py-3 text-sm font-medium">{row.branchName}</td>
+                          <td className="px-4 py-3 text-sm text-right">{formatMXN(row.budget)}</td>
+                          <td className="px-4 py-3 text-sm text-right">{formatMXN(row.actual)}</td>
                           <td
                             className={`px-4 py-3 text-sm text-right font-medium ${
-                              row.variance >= 0
-                                ? "text-green-600"
-                                : "text-red-600"
+                              row.variance >= 0 ? "text-green-600" : "text-red-600"
                             }`}
                           >
                             {formatMXN(row.variance)}
                           </td>
                           <td
                             className={`px-4 py-3 text-sm text-right font-medium ${
-                              row.variance >= 0
-                                ? "text-green-600"
-                                : "text-red-600"
+                              row.variance >= 0 ? "text-green-600" : "text-red-600"
                             }`}
                           >
                             {formatPct(row.variancePct)}
@@ -1015,10 +923,12 @@ export default function PresupuestoPage() {
                 {mbChartData.length > 0 && (
                   <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
                     <h3 className="mb-4 text-sm font-semibold text-gray-700">
-                      Comparativo por Sucursal -{" "}
-                      {MONTH_NAMES_FULL[mbMonth - 1]} {mbYear}
+                      Comparativo por Sucursal - {MONTH_NAMES_FULL[mbMonth - 1]} {mbYear}
                     </h3>
-                    <ResponsiveContainer width="100%" height={Math.max(300, mbChartData.length * 50)}>
+                    <ResponsiveContainer
+                      width="100%"
+                      height={Math.max(300, mbChartData.length * 50)}
+                    >
                       <BarChart
                         data={mbChartData}
                         layout="vertical"
@@ -1028,30 +938,13 @@ export default function PresupuestoPage() {
                         <XAxis
                           type="number"
                           tick={{ fontSize: 12 }}
-                          tickFormatter={(v) =>
-                            `$${(safeNum(v) / 1000).toFixed(0)}k`
-                          }
+                          tickFormatter={(v) => `$${(safeNum(v) / 1000).toFixed(0)}k`}
                         />
-                        <YAxis
-                          type="category"
-                          dataKey="name"
-                          tick={{ fontSize: 12 }}
-                          width={120}
-                        />
-                        <Tooltip
-                          formatter={(value: number) => formatMXN(value)}
-                        />
+                        <YAxis type="category" dataKey="name" tick={{ fontSize: 12 }} width={120} />
+                        <Tooltip formatter={(value: number) => formatMXN(value)} />
                         <Legend />
-                        <Bar
-                          dataKey="Presupuesto"
-                          fill="#000000"
-                          radius={[0, 4, 4, 0]}
-                        />
-                        <Bar
-                          dataKey="Real"
-                          fill="#6b7280"
-                          radius={[0, 4, 4, 0]}
-                        />
+                        <Bar dataKey="Presupuesto" fill="#000000" radius={[0, 4, 4, 0]} />
+                        <Bar dataKey="Real" fill="#6b7280" radius={[0, 4, 4, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
@@ -1096,9 +989,7 @@ function MetricCard({
           <Icon className={`h-5 w-5 ${color || "text-black"}`} />
         </div>
       </div>
-      <p className={`mt-3 text-2xl font-bold ${color || "text-gray-900"}`}>
-        {value}
-      </p>
+      <p className={`mt-3 text-2xl font-bold ${color || "text-gray-900"}`}>{value}</p>
       <p className="mt-1 text-sm text-gray-500">{sub}</p>
     </div>
   );

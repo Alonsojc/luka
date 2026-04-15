@@ -58,13 +58,10 @@ export class AuthService {
     };
 
     const accessToken = this.jwtService.sign(payload as unknown as Record<string, unknown>);
-    const refreshToken = this.jwtService.sign(
-      payload as unknown as Record<string, unknown>,
-      {
-        secret: process.env.JWT_REFRESH_SECRET,
-        expiresIn: process.env.JWT_REFRESH_EXPIRATION || "7d",
-      },
-    );
+    const refreshToken = this.jwtService.sign(payload as unknown as Record<string, unknown>, {
+      secret: process.env.JWT_REFRESH_SECRET,
+      expiresIn: process.env.JWT_REFRESH_EXPIRATION || "7d",
+    });
 
     // Store refresh token hash
     await this.prisma.user.update({
@@ -138,13 +135,10 @@ export class AuthService {
     };
 
     const newAccessToken = this.jwtService.sign(payload as unknown as Record<string, unknown>);
-    const newRefreshToken = this.jwtService.sign(
-      payload as unknown as Record<string, unknown>,
-      {
-        secret: process.env.JWT_REFRESH_SECRET,
-        expiresIn: process.env.JWT_REFRESH_EXPIRATION || "7d",
-      },
-    );
+    const newRefreshToken = this.jwtService.sign(payload as unknown as Record<string, unknown>, {
+      secret: process.env.JWT_REFRESH_SECRET,
+      expiresIn: process.env.JWT_REFRESH_EXPIRATION || "7d",
+    });
 
     // Store new refresh token hash — old token is now invalid
     await this.prisma.user.update({
@@ -166,7 +160,7 @@ export class AuthService {
       firstName: string;
       lastName: string;
       phone?: string;
-    }
+    },
   ) {
     const existing = await this.prisma.user.findUnique({
       where: { email: data.email },

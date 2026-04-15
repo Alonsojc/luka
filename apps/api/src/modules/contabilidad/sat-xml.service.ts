@@ -102,14 +102,8 @@ export class SatXmlService {
       });
 
       // Sum debits and credits for the current month
-      const totalDebits = currentMonthLines.reduce(
-        (sum, line) => sum + Number(line.debit),
-        0,
-      );
-      const totalCredits = currentMonthLines.reduce(
-        (sum, line) => sum + Number(line.credit),
-        0,
-      );
+      const totalDebits = currentMonthLines.reduce((sum, line) => sum + Number(line.debit), 0);
+      const totalCredits = currentMonthLines.reduce((sum, line) => sum + Number(line.credit), 0);
 
       // Calculate initial balance from all prior posted entries
       const priorLines = await this.prisma.journalEntryLine.findMany({
@@ -123,14 +117,8 @@ export class SatXmlService {
         },
       });
 
-      const priorDebits = priorLines.reduce(
-        (sum, line) => sum + Number(line.debit),
-        0,
-      );
-      const priorCredits = priorLines.reduce(
-        (sum, line) => sum + Number(line.credit),
-        0,
-      );
+      const priorDebits = priorLines.reduce((sum, line) => sum + Number(line.debit), 0);
+      const priorCredits = priorLines.reduce((sum, line) => sum + Number(line.credit), 0);
 
       // Initial balance depends on account nature
       let initialBalance: number;
@@ -149,12 +137,7 @@ export class SatXmlService {
       }
 
       // Only include accounts with non-zero movement or balance
-      if (
-        totalDebits === 0 &&
-        totalCredits === 0 &&
-        initialBalance === 0 &&
-        finalBalance === 0
-      ) {
+      if (totalDebits === 0 && totalCredits === 0 && initialBalance === 0 && finalBalance === 0) {
         continue;
       }
 

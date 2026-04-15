@@ -1,11 +1,4 @@
-import {
-  IsString,
-  IsOptional,
-  IsBoolean,
-  IsIn,
-  IsObject,
-  IsArray,
-} from "class-validator";
+import { IsString, IsOptional, IsBoolean, IsIn, IsObject, IsArray } from "class-validator";
 
 export class UpdateAlertRuleDto {
   @IsOptional()

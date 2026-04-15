@@ -197,10 +197,7 @@ function generateSalesForDay(
     const subtotal = selectedItems.reduce((sum, it) => sum + it.total, 0);
     const tax = parseFloat((subtotal * 0.16).toFixed(2));
     const total = parseFloat((subtotal + tax).toFixed(2));
-    const paymentMethod = weightedPick(
-      [...PAYMENT_METHODS],
-      PAYMENT_WEIGHTS,
-    );
+    const paymentMethod = weightedPick([...PAYMENT_METHODS], PAYMENT_WEIGHTS);
 
     sales.push({
       branchId,
@@ -237,8 +234,7 @@ async function main() {
   const branchRecords = await prisma.branch.findMany({
     where: { organizationId: org.id },
   });
-  if (branchRecords.length === 0)
-    throw new Error("No branches found. Run seed.ts first.");
+  if (branchRecords.length === 0) throw new Error("No branches found. Run seed.ts first.");
 
   console.log(`Branches found: ${branchRecords.length}`);
   for (const b of branchRecords) {
@@ -422,7 +418,9 @@ async function main() {
 
   const totalRevenue = allSales.reduce((sum, s) => sum + s.total, 0);
   console.log(`  Total sales:     ${allSales.length}`);
-  console.log(`  Total revenue:   $${totalRevenue.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
+  console.log(
+    `  Total revenue:   $${totalRevenue.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+  );
   console.log(`  Cash closings:   ${closingsInserted}`);
   console.log(`  Date range:      last ${DAYS} days`);
 

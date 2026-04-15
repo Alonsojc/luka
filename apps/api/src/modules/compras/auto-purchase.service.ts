@@ -60,9 +60,7 @@ export class AutoPurchaseService {
     multiplier = 1.5,
   ): Promise<ReorderAlert[]> {
     // If no branchId given, default to CEDIS branches
-    const branchFilter: any = branchId
-      ? { branchId }
-      : { branch: { branchType: "CEDIS" } };
+    const branchFilter: any = branchId ? { branchId } : { branch: { branchType: "CEDIS" } };
 
     const lowStock = await this.prisma.branchInventory.findMany({
       where: {
@@ -97,10 +95,7 @@ export class AutoPurchaseService {
       const deficit = minimum - current;
       const suggestedOrderQty = Math.ceil(deficit * multiplier);
 
-      const preferred = await this.getPreferredSupplier(
-        organizationId,
-        inv.productId,
-      );
+      const preferred = await this.getPreferredSupplier(organizationId, inv.productId);
 
       alerts.push({
         product: {
@@ -177,11 +172,7 @@ export class AutoPurchaseService {
     branchId: string,
     multiplier = 1.5,
   ): Promise<{ supplierGroups: SupplierGroup[]; grandTotal: number }> {
-    const alerts = await this.getReorderAlerts(
-      organizationId,
-      branchId,
-      multiplier,
-    );
+    const alerts = await this.getReorderAlerts(organizationId, branchId, multiplier);
 
     return this.groupAlertsBySupplier(alerts);
   }
@@ -197,17 +188,11 @@ export class AutoPurchaseService {
   ): Promise<GenerateResult> {
     const multiplier = options?.multiplier ?? 1.5;
 
-    let alerts = await this.getReorderAlerts(
-      organizationId,
-      branchId,
-      multiplier,
-    );
+    let alerts = await this.getReorderAlerts(organizationId, branchId, multiplier);
 
     // If specific products requested, filter
     if (options?.productIds?.length) {
-      alerts = alerts.filter((a) =>
-        options.productIds!.includes(a.product.id),
-      );
+      alerts = alerts.filter((a) => options.productIds!.includes(a.product.id));
     }
 
     if (alerts.length === 0) {
@@ -278,10 +263,7 @@ export class AutoPurchaseService {
     });
 
     // Products below minimum by branch
-    const byBranch: Record<
-      string,
-      { branchId: string; branchName: string; count: number }
-    > = {};
+    const byBranch: Record<string, { branchId: string; branchName: string; count: number }> = {};
     for (const inv of belowMinimum) {
       if (!byBranch[inv.branch.id]) {
         byBranch[inv.branch.id] = {
@@ -304,10 +286,7 @@ export class AutoPurchaseService {
     for (const inv of belowMinimum) {
       const deficit = Number(inv.minimumStock) - Number(inv.currentQuantity);
       const qty = Math.ceil(deficit * 1.5);
-      const preferred = await this.getPreferredSupplier(
-        organizationId,
-        inv.productId,
-      );
+      const preferred = await this.getPreferredSupplier(organizationId, inv.productId);
 
       const unitPrice = preferred?.unitPrice ?? Number(inv.product.costPerUnit);
       const lineValue = qty * unitPrice;
@@ -328,12 +307,8 @@ export class AutoPurchaseService {
       }
     }
 
-    const branchesRanked = Object.values(byBranch).sort(
-      (a, b) => b.count - a.count,
-    );
-    const topSuppliers = Object.values(supplierVolume).sort(
-      (a, b) => b.value - a.value,
-    );
+    const branchesRanked = Object.values(byBranch).sort((a, b) => b.count - a.count);
+    const topSuppliers = Object.values(supplierVolume).sort((a, b) => b.value - a.value);
 
     return {
       totalProductsBelowMinimum: belowMinimum.length,

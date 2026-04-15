@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-} from "@nestjs/common";
+import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
 import { PrismaService } from "../../common/prisma/prisma.service";
 import { PurchaseOrderStatus } from "@luka/database";
 
@@ -79,10 +75,7 @@ export class PurchaseOrdersService {
   ) {
     const { items, ...poData } = data;
 
-    const subtotal = items.reduce(
-      (sum, item) => sum + item.quantity * item.unitPrice,
-      0,
-    );
+    const subtotal = items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
     const tax = subtotal * 0.16; // IVA 16%
     const total = subtotal + tax;
 
@@ -137,10 +130,7 @@ export class PurchaseOrdersService {
           data: items.map((item) => ({ purchaseOrderId: id, ...item })),
         });
 
-        const subtotal = items.reduce(
-          (sum, item) => sum + item.quantity * item.unitPrice,
-          0,
-        );
+        const subtotal = items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
         const tax = subtotal * 0.16;
         const total = subtotal + tax;
 

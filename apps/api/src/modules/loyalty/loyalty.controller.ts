@@ -1,22 +1,9 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Put,
-  Patch,
-  Delete,
-  Param,
-  Body,
-  UseGuards,
-} from "@nestjs/common";
+import { Controller, Get, Post, Put, Patch, Delete, Param, Body, UseGuards } from "@nestjs/common";
 import { ApiTags, ApiBearerAuth } from "@nestjs/swagger";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
 import { Permissions } from "../../common/decorators/roles.decorator";
-import {
-  CurrentUser,
-  JwtPayload,
-} from "../../common/decorators/current-user.decorator";
+import { CurrentUser, JwtPayload } from "../../common/decorators/current-user.decorator";
 import { LoyaltyService } from "./loyalty.service";
 import { EarnPointsDto } from "./dto/earn-points.dto";
 import { RedeemPointsDto } from "./dto/redeem-points.dto";
@@ -41,10 +28,7 @@ export class LoyaltyController {
 
   @Put("program")
   @Permissions("crm:edit")
-  updateProgram(
-    @CurrentUser() user: JwtPayload,
-    @Body() body: UpdateProgramDto,
-  ) {
+  updateProgram(@CurrentUser() user: JwtPayload, @Body() body: UpdateProgramDto) {
     return this.loyaltyService.updateProgram(user.organizationId, body);
   }
 
@@ -58,10 +42,7 @@ export class LoyaltyController {
 
   @Get("customers/:id")
   @Permissions("crm:view")
-  getCustomerDetail(
-    @CurrentUser() user: JwtPayload,
-    @Param("id") id: string,
-  ) {
+  getCustomerDetail(@CurrentUser() user: JwtPayload, @Param("id") id: string) {
     return this.loyaltyService.getCustomerDetail(user.organizationId, id);
   }
 
@@ -95,10 +76,7 @@ export class LoyaltyController {
 
   @Post("rewards")
   @Permissions("crm:create")
-  createReward(
-    @CurrentUser() user: JwtPayload,
-    @Body() body: CreateRewardDto,
-  ) {
+  createReward(@CurrentUser() user: JwtPayload, @Body() body: CreateRewardDto) {
     return this.loyaltyService.createReward(user.organizationId, body);
   }
 
@@ -114,10 +92,7 @@ export class LoyaltyController {
 
   @Delete("rewards/:id")
   @Permissions("crm:delete")
-  deactivateReward(
-    @CurrentUser() user: JwtPayload,
-    @Param("id") id: string,
-  ) {
+  deactivateReward(@CurrentUser() user: JwtPayload, @Param("id") id: string) {
     return this.loyaltyService.deactivateReward(user.organizationId, id);
   }
 

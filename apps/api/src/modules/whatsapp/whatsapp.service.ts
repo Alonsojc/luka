@@ -113,9 +113,7 @@ export class WhatsAppService {
 
     try {
       if (!isActive) {
-        this.logger.warn(
-          `WhatsApp is disabled for org ${organizationId}. Message logged only.`,
-        );
+        this.logger.warn(`WhatsApp is disabled for org ${organizationId}. Message logged only.`);
         await this.prisma.alertLog.update({
           where: { id: log.id },
           data: { status: "SENT", sentAt: new Date() },
@@ -125,21 +123,15 @@ export class WhatsAppService {
 
       switch (provider) {
         case "mock":
-          this.logger.log(
-            `[MOCK WhatsApp] To: ${phone}\n${message}`,
-          );
+          this.logger.log(`[MOCK WhatsApp] To: ${phone}\n${message}`);
           break;
         case "twilio":
           // Placeholder for Twilio integration
-          this.logger.log(
-            `[TWILIO] Would send to ${phone} via Twilio API`,
-          );
+          this.logger.log(`[TWILIO] Would send to ${phone} via Twilio API`);
           break;
         case "meta":
           // Placeholder for Meta/WhatsApp Business API
-          this.logger.log(
-            `[META] Would send to ${phone} via Meta WhatsApp API`,
-          );
+          this.logger.log(`[META] Would send to ${phone} via Meta WhatsApp API`);
           break;
         default:
           this.logger.warn(`Unknown provider: ${provider}`);
@@ -168,8 +160,7 @@ export class WhatsAppService {
     variables: Record<string, string>,
     alertRuleId?: string,
   ) {
-    const template =
-      DEFAULT_TEMPLATES[templateName] || `Template "${templateName}" not found`;
+    const template = DEFAULT_TEMPLATES[templateName] || `Template "${templateName}" not found`;
     const rendered = this.renderTemplate(template, variables);
     return this.sendMessage(organizationId, phone, rendered, alertRuleId);
   }
@@ -178,10 +169,7 @@ export class WhatsAppService {
   // Template rendering
   // ---------------------------------------------------------------
 
-  renderTemplate(
-    template: string,
-    variables: Record<string, string>,
-  ): string {
+  renderTemplate(template: string, variables: Record<string, string>): string {
     return template.replace(/\{\{(\w+)\}\}/g, (match, key) => {
       return variables[key] !== undefined ? variables[key] : match;
     });

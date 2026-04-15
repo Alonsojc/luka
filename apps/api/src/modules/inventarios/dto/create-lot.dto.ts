@@ -1,10 +1,4 @@
-import {
-  IsString,
-  IsOptional,
-  IsNumber,
-  IsDateString,
-  Min,
-} from "class-validator";
+import { IsString, IsOptional, IsNumber, IsDateString, Min } from "class-validator";
 
 export class CreateLotDto {
   @IsString()

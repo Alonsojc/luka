@@ -152,10 +152,9 @@ export default function HorariosPage() {
 
   // ── Shared state (React Query) ──
   const { data: branches = [] } = useApiQuery<Branch[]>("/branches", ["branches"]);
-  const { data: employees = [] } = useApiQuery<Employee[]>(
-    "/nomina/employees",
-    ["horarios-employees"],
-  );
+  const { data: employees = [] } = useApiQuery<Employee[]>("/nomina/employees", [
+    "horarios-employees",
+  ]);
   const { data: templates = [], isLoading: loadingTemplates } = useApiQuery<ShiftTemplate[]>(
     "/nomina/shifts/templates",
     ["shift-templates"],
@@ -189,9 +188,7 @@ export default function HorariosPage() {
 
   // ── Template CRUD state ──
   const [showTemplateModal, setShowTemplateModal] = useState(false);
-  const [editingTemplate, setEditingTemplate] = useState<ShiftTemplate | null>(
-    null,
-  );
+  const [editingTemplate, setEditingTemplate] = useState<ShiftTemplate | null>(null);
   const [templateForm, setTemplateForm] = useState({
     name: "",
     startTime: "08:00",
@@ -280,14 +277,7 @@ export default function HorariosPage() {
   // ── Bulk assign ──
 
   const handleBulkAssign = async () => {
-    if (
-      !authFetch ||
-      !bulkEmployee ||
-      !bulkBranch ||
-      !bulkTemplate ||
-      !bulkDateFrom ||
-      !bulkDateTo
-    )
+    if (!authFetch || !bulkEmployee || !bulkBranch || !bulkTemplate || !bulkDateFrom || !bulkDateTo)
       return;
     setBulkAssigning(true);
     try {
@@ -357,11 +347,7 @@ export default function HorariosPage() {
     };
     try {
       if (editingTemplate) {
-        await authFetch(
-          "put",
-          `/nomina/shifts/templates/${editingTemplate.id}`,
-          payload,
-        );
+        await authFetch("put", `/nomina/shifts/templates/${editingTemplate.id}`, payload);
         toast("Turno actualizado");
       } else {
         await authFetch("post", "/nomina/shifts/templates", payload);
@@ -389,9 +375,7 @@ export default function HorariosPage() {
 
   const weekDates = getWeekDates(weekStart);
 
-  const branchEmployees = employees.filter(
-    (e) => e.branchId === selectedBranch,
-  );
+  const branchEmployees = employees.filter((e) => e.branchId === selectedBranch);
 
   const scheduleMap = new Map<string, ShiftAssignment>();
   for (const a of schedule) {
@@ -447,9 +431,7 @@ export default function HorariosPage() {
           {/* Controls */}
           <div className="flex flex-wrap items-center gap-4">
             <div className="flex items-center gap-2">
-              <label className="text-sm font-medium text-gray-700">
-                Sucursal:
-              </label>
+              <label className="text-sm font-medium text-gray-700">Sucursal:</label>
               <Select
                 value={selectedBranch}
                 onChange={(e) => setSelectedBranch(e.target.value)}
@@ -506,17 +488,14 @@ export default function HorariosPage() {
                       Empleado
                     </th>
                     {weekDates.map((date, i) => {
-                      const isToday =
-                        formatDate(date) === formatDate(new Date());
+                      const isToday = formatDate(date) === formatDate(new Date());
                       return (
                         <th
                           key={i}
                           className={`text-center px-2 py-2 text-xs font-semibold border-b border-r last:border-r-0 border-gray-200 ${isToday ? "bg-black text-white" : "text-gray-600"}`}
                         >
                           <div>{DAY_NAMES[i]}</div>
-                          <div className="font-normal">
-                            {formatDateShort(date)}
-                          </div>
+                          <div className="font-normal">{formatDateShort(date)}</div>
                         </th>
                       );
                     })}
@@ -532,9 +511,7 @@ export default function HorariosPage() {
                         <div className="text-sm font-medium text-gray-900">
                           {emp.firstName} {emp.lastName}
                         </div>
-                        <div className="text-xs text-gray-400">
-                          {emp.jobPosition}
-                        </div>
+                        <div className="text-xs text-gray-400">{emp.jobPosition}</div>
                       </td>
                       {weekDates.map((date, i) => {
                         const key = `${emp.id}_${formatDate(date)}`;
@@ -546,19 +523,14 @@ export default function HorariosPage() {
                           >
                             {assignment ? (
                               <button
-                                onClick={() =>
-                                  handleRemoveAssignment(assignment.id)
-                                }
+                                onClick={() => handleRemoveAssignment(assignment.id)}
                                 className="group relative w-full rounded-md px-1.5 py-1.5 text-xs font-medium text-white transition-all hover:opacity-80"
                                 style={{
-                                  backgroundColor:
-                                    assignment.shiftTemplate.color,
+                                  backgroundColor: assignment.shiftTemplate.color,
                                 }}
                                 title={`${assignment.shiftTemplate.name} (${assignment.shiftTemplate.startTime}-${assignment.shiftTemplate.endTime}) — Click para eliminar`}
                               >
-                                <div className="truncate">
-                                  {assignment.shiftTemplate.name}
-                                </div>
+                                <div className="truncate">{assignment.shiftTemplate.name}</div>
                                 <div className="text-[10px] opacity-80">
                                   {assignment.shiftTemplate.startTime}-
                                   {assignment.shiftTemplate.endTime}
@@ -589,9 +561,7 @@ export default function HorariosPage() {
           {/* Week Summary */}
           {summary.length > 0 && (
             <div className="bg-white border border-gray-200 rounded-lg p-4">
-              <h3 className="text-sm font-semibold mb-3 text-gray-700">
-                Resumen de la Semana
-              </h3>
+              <h3 className="text-sm font-semibold mb-3 text-gray-700">Resumen de la Semana</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                 {summary.map((s) => (
                   <div
@@ -599,20 +569,14 @@ export default function HorariosPage() {
                     className="flex items-center justify-between border border-gray-100 rounded-lg px-3 py-2"
                   >
                     <div>
-                      <div className="text-sm font-medium text-gray-900">
-                        {s.employeeName}
-                      </div>
-                      <div className="text-xs text-gray-400">
-                        #{s.employeeNumber}
-                      </div>
+                      <div className="text-sm font-medium text-gray-900">{s.employeeName}</div>
+                      <div className="text-xs text-gray-400">#{s.employeeNumber}</div>
                     </div>
                     <div className="text-right">
                       <div className="text-sm font-bold text-black">
                         {safeNum(s.totalHours).toFixed(1)}h
                       </div>
-                      <div className="text-xs text-gray-400">
-                        {s.shifts} turnos
-                      </div>
+                      <div className="text-xs text-gray-400">{s.shifts} turnos</div>
                     </div>
                   </div>
                 ))}
@@ -634,10 +598,7 @@ export default function HorariosPage() {
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <FormField label="Sucursal" required>
-                <Select
-                  value={bulkBranch}
-                  onChange={(e) => setBulkBranch(e.target.value)}
-                >
+                <Select value={bulkBranch} onChange={(e) => setBulkBranch(e.target.value)}>
                   <option value="">Seleccionar sucursal...</option>
                   {branches.map((b) => (
                     <option key={b.id} value={b.id}>
@@ -647,10 +608,7 @@ export default function HorariosPage() {
                 </Select>
               </FormField>
               <FormField label="Empleado" required>
-                <Select
-                  value={bulkEmployee}
-                  onChange={(e) => setBulkEmployee(e.target.value)}
-                >
+                <Select value={bulkEmployee} onChange={(e) => setBulkEmployee(e.target.value)}>
                   <option value="">Seleccionar empleado...</option>
                   {employees
                     .filter((e) => !bulkBranch || e.branchId === bulkBranch)
@@ -662,10 +620,7 @@ export default function HorariosPage() {
                 </Select>
               </FormField>
               <FormField label="Turno" required>
-                <Select
-                  value={bulkTemplate}
-                  onChange={(e) => setBulkTemplate(e.target.value)}
-                >
+                <Select value={bulkTemplate} onChange={(e) => setBulkTemplate(e.target.value)}>
                   <option value="">Seleccionar turno...</option>
                   {templates.map((t) => (
                     <option key={t.id} value={t.id}>
@@ -710,28 +665,16 @@ export default function HorariosPage() {
           {/* Current week assignments preview */}
           {selectedBranch && schedule.length > 0 && (
             <div className="bg-white border border-gray-200 rounded-lg p-6">
-              <h3 className="text-base font-semibold mb-4">
-                Asignaciones de esta Semana
-              </h3>
+              <h3 className="text-base font-semibold mb-4">Asignaciones de esta Semana</h3>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-gray-200">
-                      <th className="text-left py-2 px-3 font-medium text-gray-600">
-                        Empleado
-                      </th>
-                      <th className="text-left py-2 px-3 font-medium text-gray-600">
-                        Fecha
-                      </th>
-                      <th className="text-left py-2 px-3 font-medium text-gray-600">
-                        Turno
-                      </th>
-                      <th className="text-left py-2 px-3 font-medium text-gray-600">
-                        Horario
-                      </th>
-                      <th className="text-center py-2 px-3 font-medium text-gray-600">
-                        Acciones
-                      </th>
+                      <th className="text-left py-2 px-3 font-medium text-gray-600">Empleado</th>
+                      <th className="text-left py-2 px-3 font-medium text-gray-600">Fecha</th>
+                      <th className="text-left py-2 px-3 font-medium text-gray-600">Turno</th>
+                      <th className="text-left py-2 px-3 font-medium text-gray-600">Horario</th>
+                      <th className="text-center py-2 px-3 font-medium text-gray-600">Acciones</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -761,8 +704,7 @@ export default function HorariosPage() {
                           </span>
                         </td>
                         <td className="py-2 px-3 text-gray-600">
-                          {a.shiftTemplate.startTime} -{" "}
-                          {a.shiftTemplate.endTime}
+                          {a.shiftTemplate.startTime} - {a.shiftTemplate.endTime}
                         </td>
                         <td className="py-2 px-3 text-center">
                           <button
@@ -804,12 +746,7 @@ export default function HorariosPage() {
             <div className="text-center py-12 text-gray-400 border border-gray-200 rounded-lg">
               <Clock className="h-10 w-10 mx-auto mb-2 opacity-50" />
               <p>No hay turnos configurados</p>
-              <Button
-                onClick={openNewTemplate}
-                variant="outline"
-                size="sm"
-                className="mt-3"
-              >
+              <Button onClick={openNewTemplate} variant="outline" size="sm" className="mt-3">
                 <Plus className="h-4 w-4" />
                 Crear primer turno
               </Button>
@@ -819,27 +756,13 @@ export default function HorariosPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-gray-50 border-b border-gray-200">
-                    <th className="text-left py-3 px-4 font-semibold text-gray-600">
-                      Color
-                    </th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-600">
-                      Nombre
-                    </th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-600">
-                      Hora Inicio
-                    </th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-600">
-                      Hora Fin
-                    </th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-600">
-                      Descanso
-                    </th>
-                    <th className="text-left py-3 px-4 font-semibold text-gray-600">
-                      Horas Netas
-                    </th>
-                    <th className="text-center py-3 px-4 font-semibold text-gray-600">
-                      Acciones
-                    </th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-600">Color</th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-600">Nombre</th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-600">Hora Inicio</th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-600">Hora Fin</th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-600">Descanso</th>
+                    <th className="text-left py-3 px-4 font-semibold text-gray-600">Horas Netas</th>
+                    <th className="text-center py-3 px-4 font-semibold text-gray-600">Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -861,18 +784,10 @@ export default function HorariosPage() {
                           />
                         </td>
                         <td className="py-3 px-4 font-medium">{t.name}</td>
-                        <td className="py-3 px-4 text-gray-600">
-                          {t.startTime}
-                        </td>
-                        <td className="py-3 px-4 text-gray-600">
-                          {t.endTime}
-                        </td>
-                        <td className="py-3 px-4 text-gray-600">
-                          {t.breakMinutes} min
-                        </td>
-                        <td className="py-3 px-4 font-medium">
-                          {safeNum(net).toFixed(1)}h
-                        </td>
+                        <td className="py-3 px-4 text-gray-600">{t.startTime}</td>
+                        <td className="py-3 px-4 text-gray-600">{t.endTime}</td>
+                        <td className="py-3 px-4 text-gray-600">{t.breakMinutes} min</td>
+                        <td className="py-3 px-4 font-medium">{safeNum(net).toFixed(1)}h</td>
                         <td className="py-3 px-4 text-center">
                           <div className="flex items-center justify-center gap-2">
                             <button
@@ -902,17 +817,10 @@ export default function HorariosPage() {
       {/* ════════════════════════════════════════════════════════════
           MODAL: Quick Assign (from calendar cell click)
          ════════════════════════════════════════════════════════════ */}
-      <Modal
-        open={showAssignModal}
-        onClose={() => setShowAssignModal(false)}
-        title="Asignar Turno"
-      >
+      <Modal open={showAssignModal} onClose={() => setShowAssignModal(false)} title="Asignar Turno">
         <div className="space-y-4">
           <FormField label="Empleado">
-            <Select
-              value={assignEmployee}
-              onChange={(e) => setAssignEmployee(e.target.value)}
-            >
+            <Select value={assignEmployee} onChange={(e) => setAssignEmployee(e.target.value)}>
               {branchEmployees.map((e) => (
                 <option key={e.id} value={e.id}>
                   {e.firstName} {e.lastName}
@@ -921,17 +829,10 @@ export default function HorariosPage() {
             </Select>
           </FormField>
           <FormField label="Fecha">
-            <Input
-              type="date"
-              value={assignDate}
-              onChange={(e) => setAssignDate(e.target.value)}
-            />
+            <Input type="date" value={assignDate} onChange={(e) => setAssignDate(e.target.value)} />
           </FormField>
           <FormField label="Turno" required>
-            <Select
-              value={assignTemplate}
-              onChange={(e) => setAssignTemplate(e.target.value)}
-            >
+            <Select value={assignTemplate} onChange={(e) => setAssignTemplate(e.target.value)}>
               <option value="">Seleccionar turno...</option>
               {templates.map((t) => (
                 <option key={t.id} value={t.id}>
@@ -941,16 +842,10 @@ export default function HorariosPage() {
             </Select>
           </FormField>
           <div className="flex justify-end gap-2 pt-2">
-            <Button
-              variant="outline"
-              onClick={() => setShowAssignModal(false)}
-            >
+            <Button variant="outline" onClick={() => setShowAssignModal(false)}>
               Cancelar
             </Button>
-            <Button
-              onClick={handleAssignSubmit}
-              disabled={!assignTemplate}
-            >
+            <Button onClick={handleAssignSubmit} disabled={!assignTemplate}>
               Asignar
             </Button>
           </div>
@@ -969,9 +864,7 @@ export default function HorariosPage() {
           <FormField label="Nombre" required>
             <Input
               value={templateForm.name}
-              onChange={(e) =>
-                setTemplateForm({ ...templateForm, name: e.target.value })
-              }
+              onChange={(e) => setTemplateForm({ ...templateForm, name: e.target.value })}
               placeholder="ej. Matutino, Vespertino..."
             />
           </FormField>
@@ -1020,9 +913,7 @@ export default function HorariosPage() {
               {PRESET_COLORS.map((c) => (
                 <button
                   key={c}
-                  onClick={() =>
-                    setTemplateForm({ ...templateForm, color: c })
-                  }
+                  onClick={() => setTemplateForm({ ...templateForm, color: c })}
                   className={`h-8 w-8 rounded-full border-2 transition-all ${
                     templateForm.color === c
                       ? "border-black scale-110"
@@ -1034,28 +925,19 @@ export default function HorariosPage() {
               <input
                 type="color"
                 value={templateForm.color}
-                onChange={(e) =>
-                  setTemplateForm({ ...templateForm, color: e.target.value })
-                }
+                onChange={(e) => setTemplateForm({ ...templateForm, color: e.target.value })}
                 className="h-8 w-8 cursor-pointer rounded-full border border-gray-200"
                 title="Color personalizado"
               />
             </div>
           </FormField>
           <div className="flex justify-end gap-2 pt-2">
-            <Button
-              variant="outline"
-              onClick={() => setShowTemplateModal(false)}
-            >
+            <Button variant="outline" onClick={() => setShowTemplateModal(false)}>
               Cancelar
             </Button>
             <Button
               onClick={handleTemplateSave}
-              disabled={
-                !templateForm.name ||
-                !templateForm.startTime ||
-                !templateForm.endTime
-              }
+              disabled={!templateForm.name || !templateForm.startTime || !templateForm.endTime}
             >
               {editingTemplate ? "Guardar Cambios" : "Crear Turno"}
             </Button>

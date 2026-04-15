@@ -129,33 +129,19 @@ function KpiCard({
           ) : (
             <ArrowDownRight className="h-3.5 w-3.5 text-red-500" />
           )}
-          <span
-            className={`text-xs font-medium ${
-              trend >= 0 ? "text-green-600" : "text-red-600"
-            }`}
-          >
+          <span className={`text-xs font-medium ${trend >= 0 ? "text-green-600" : "text-red-600"}`}>
             {trend >= 0 ? "+" : ""}
             {trend}%
           </span>
-          {trendLabel && (
-            <span className="text-xs text-muted-foreground ml-1">{trendLabel}</span>
-          )}
+          {trendLabel && <span className="text-xs text-muted-foreground ml-1">{trendLabel}</span>}
         </div>
       )}
-      {subtitle && !trend && (
-        <p className="mt-1 text-xs text-muted-foreground">{subtitle}</p>
-      )}
+      {subtitle && !trend && <p className="mt-1 text-xs text-muted-foreground">{subtitle}</p>}
     </div>
   );
 }
 
-function SectionCard({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
+function SectionCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="rounded-xl border border-border bg-card p-5 shadow-sm">
       <h2 className="text-sm font-semibold text-foreground uppercase tracking-wide mb-4">
@@ -383,10 +369,7 @@ function StoreDashboard({
           {data.salesByDay?.some((d: any) => d.total > 0) ? (
             <div className="h-52 sm:h-64">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={data.salesByDay}
-                  margin={{ top: 5, right: 10, left: 0, bottom: 5 }}
-                >
+                <BarChart data={data.salesByDay} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                   <XAxis dataKey="date" tick={{ fontSize: 10, fill: "#888" }} />
                   <YAxis
@@ -403,11 +386,7 @@ function StoreDashboard({
                       backgroundColor: "var(--color-card, #fff)",
                     }}
                   />
-                  <Bar
-                    dataKey="total"
-                    fill="#000000"
-                    radius={[4, 4, 0, 0]}
-                  />
+                  <Bar dataKey="total" fill="#000000" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -452,21 +431,9 @@ function StoreDashboard({
                 href="/requisiciones/nueva"
                 icon={ClipboardList}
               />
-              <QuickAction
-                label="Nuevo Conteo"
-                href="/inventarios/conteo"
-                icon={Package}
-              />
-              <QuickAction
-                label="Registrar Merma"
-                href="/inventarios/merma"
-                icon={AlertTriangle}
-              />
-              <QuickAction
-                label="Ver Inventario"
-                href="/inventarios"
-                icon={Warehouse}
-              />
+              <QuickAction label="Nuevo Conteo" href="/inventarios/conteo" icon={Package} />
+              <QuickAction label="Registrar Merma" href="/inventarios/merma" icon={AlertTriangle} />
+              <QuickAction label="Ver Inventario" href="/inventarios" icon={Warehouse} />
             </div>
           </div>
         </div>
@@ -479,13 +446,7 @@ function StoreDashboard({
 // CEDIS DASHBOARD
 // =============================================================================
 
-function CedisDashboard({
-  data,
-  loading,
-}: {
-  data: any;
-  loading: boolean;
-}) {
+function CedisDashboard({ data, loading }: { data: any; loading: boolean }) {
   if (loading) {
     return (
       <div className="mt-6 flex items-center justify-center py-20">
@@ -504,9 +465,7 @@ function CedisDashboard({
           title="Requisiciones"
           value={data.requisitions?.total || 0}
           subtitle={
-            data.requisitions?.URGENT
-              ? `${data.requisitions.URGENT} urgentes`
-              : "pendientes"
+            data.requisitions?.URGENT ? `${data.requisitions.URGENT} urgentes` : "pendientes"
           }
           icon={ClipboardList}
         />
@@ -547,8 +506,7 @@ function CedisDashboard({
                   <div>
                     <p className="font-medium text-foreground">{r.branch}</p>
                     <p className="text-xs text-muted-foreground">
-                      {r.itemCount} productos -{" "}
-                      {new Date(r.createdAt).toLocaleDateString("es-MX")}
+                      {r.itemCount} productos - {new Date(r.createdAt).toLocaleDateString("es-MX")}
                     </p>
                   </div>
                   <span
@@ -586,16 +544,9 @@ function CedisDashboard({
               </thead>
               <tbody>
                 {data.topRequestedProducts.map((p: any, i: number) => (
-                  <tr
-                    key={i}
-                    className="border-b border-border/50 last:border-0"
-                  >
-                    <td className="py-2.5 text-sm font-medium text-foreground">
-                      {p.name}
-                    </td>
-                    <td className="py-2.5 text-sm text-right text-muted-foreground">
-                      {p.count}
-                    </td>
+                  <tr key={i} className="border-b border-border/50 last:border-0">
+                    <td className="py-2.5 text-sm font-medium text-foreground">{p.name}</td>
+                    <td className="py-2.5 text-sm text-right text-muted-foreground">{p.count}</td>
                     <td className="py-2.5 text-sm text-right text-muted-foreground">
                       {fmtNum(Math.round(p.totalQty))}
                     </td>
@@ -614,15 +565,28 @@ function CedisDashboard({
         <SectionCard title="Requisiciones por Prioridad">
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             {[
-              { label: "Urgente", value: data.requisitions?.URGENT || 0, color: "bg-red-100 text-red-700" },
-              { label: "Alta", value: data.requisitions?.HIGH || 0, color: "bg-orange-100 text-orange-700" },
-              { label: "Normal", value: data.requisitions?.NORMAL || 0, color: "bg-blue-100 text-blue-700" },
-              { label: "Baja", value: data.requisitions?.LOW || 0, color: "bg-gray-100 text-gray-700" },
+              {
+                label: "Urgente",
+                value: data.requisitions?.URGENT || 0,
+                color: "bg-red-100 text-red-700",
+              },
+              {
+                label: "Alta",
+                value: data.requisitions?.HIGH || 0,
+                color: "bg-orange-100 text-orange-700",
+              },
+              {
+                label: "Normal",
+                value: data.requisitions?.NORMAL || 0,
+                color: "bg-blue-100 text-blue-700",
+              },
+              {
+                label: "Baja",
+                value: data.requisitions?.LOW || 0,
+                color: "bg-gray-100 text-gray-700",
+              },
             ].map((item) => (
-              <div
-                key={item.label}
-                className={`rounded-lg px-3 py-3 text-center ${item.color}`}
-              >
+              <div key={item.label} className={`rounded-lg px-3 py-3 text-center ${item.color}`}>
                 <p className="text-2xl font-bold">{item.value}</p>
                 <p className="text-xs font-medium mt-1">{item.label}</p>
               </div>
@@ -711,7 +675,10 @@ function InvestorDashboard({
     { name: "Nomina", value: data.payrollCost || 0 },
     {
       name: "Utilidad",
-      value: Math.max(0, (data.revenue?.thisMonth || 0) - (data.expenses || 0) - (data.payrollCost || 0)),
+      value: Math.max(
+        0,
+        (data.revenue?.thisMonth || 0) - (data.expenses || 0) - (data.payrollCost || 0),
+      ),
     },
   ].filter((d) => d.value > 0);
 
@@ -790,9 +757,7 @@ function InvestorDashboard({
                     }}
                   />
                   <Legend
-                    formatter={(value: string) =>
-                      value === "revenue" ? "Ingresos" : "Gastos"
-                    }
+                    formatter={(value: string) => (value === "revenue" ? "Ingresos" : "Gastos")}
                     wrapperStyle={{ paddingTop: 10, fontSize: 12 }}
                   />
                   <Area
@@ -904,7 +869,12 @@ function InvestorDashboard({
                   </Pie>
                   <Tooltip
                     formatter={(value: number) => fmt(value)}
-                    contentStyle={{ borderRadius: 8, border: "1px solid #e5e5e5", fontSize: 12, backgroundColor: "var(--color-card, #fff)" }}
+                    contentStyle={{
+                      borderRadius: 8,
+                      border: "1px solid #e5e5e5",
+                      fontSize: 12,
+                      backgroundColor: "var(--color-card, #fff)",
+                    }}
                   />
                 </PieChart>
               </ResponsiveContainer>
@@ -941,9 +911,7 @@ function InvestorDashboard({
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mt-4">
             Costo Nomina
           </p>
-          <p className="mt-1 text-lg font-bold text-foreground">
-            {fmt(data.payrollCost || 0)}
-          </p>
+          <p className="mt-1 text-lg font-bold text-foreground">{fmt(data.payrollCost || 0)}</p>
         </div>
       </div>
 
@@ -967,13 +935,7 @@ function InvestorDashboard({
 // ACCOUNTANT DASHBOARD
 // =============================================================================
 
-function AccountantDashboard({
-  data,
-  loading,
-}: {
-  data: any;
-  loading: boolean;
-}) {
+function AccountantDashboard({ data, loading }: { data: any; loading: boolean }) {
   if (loading) {
     return (
       <div className="mt-6 flex items-center justify-center py-20">
@@ -1035,9 +997,7 @@ function AccountantDashboard({
 
         <SectionCard title="CFDI Pendientes">
           <div className="text-center py-4">
-            <p className="text-3xl font-bold text-foreground">
-              {data.pendingCfdi || 0}
-            </p>
+            <p className="text-3xl font-bold text-foreground">{data.pendingCfdi || 0}</p>
             <p className="mt-1 text-xs text-muted-foreground">facturas en borrador</p>
           </div>
         </SectionCard>
@@ -1066,9 +1026,7 @@ function AccountantDashboard({
           <div className="grid grid-cols-2 gap-4">
             <div className="rounded-lg border border-red-100 bg-red-50 p-4 text-center">
               <p className="text-xs text-muted-foreground uppercase">Cantidad</p>
-              <p className="mt-1 text-2xl font-bold text-red-600">
-                {data.cxpOverdue?.count || 0}
-              </p>
+              <p className="mt-1 text-2xl font-bold text-red-600">{data.cxpOverdue?.count || 0}</p>
             </div>
             <div className="rounded-lg border border-red-100 bg-red-50 p-4 text-center">
               <p className="text-xs text-muted-foreground uppercase">Monto</p>
@@ -1196,7 +1154,10 @@ export default function DashboardPage() {
     return endpoint;
   }, [effectiveView, effectiveBranch, dateRange]);
 
-  const dashboardEnabled = !authLoading && !!user && !!dashboardEndpoint &&
+  const dashboardEnabled =
+    !authLoading &&
+    !!user &&
+    !!dashboardEndpoint &&
     (effectiveView !== "store" || !!effectiveBranch);
 
   const { data: dashboardData, isLoading: dashboardLoading } = useApiQuery<any>(
@@ -1206,12 +1167,9 @@ export default function DashboardPage() {
   );
 
   // Handle drill-down from investor branch chart
-  const handleDrillDown = useCallback(
-    (branchId: string) => {
-      setDrillDownBranch(branchId);
-    },
-    [],
-  );
+  const handleDrillDown = useCallback((branchId: string) => {
+    setDrillDownBranch(branchId);
+  }, []);
 
   const handleBackFromDrillDown = useCallback(() => {
     setDrillDownBranch(null);

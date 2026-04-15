@@ -1,19 +1,7 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Patch,
-  Delete,
-  Param,
-  Body,
-  UseGuards,
-} from "@nestjs/common";
+import { Controller, Get, Post, Patch, Delete, Param, Body, UseGuards } from "@nestjs/common";
 import { ApiTags, ApiBearerAuth } from "@nestjs/swagger";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
-import {
-  CurrentUser,
-  JwtPayload,
-} from "../../common/decorators/current-user.decorator";
+import { CurrentUser, JwtPayload } from "../../common/decorators/current-user.decorator";
 import { UsersService } from "./users.service";
 import { CreateUserDto } from "./dto/create-user.dto";
 import { UpdateUserDto } from "./dto/update-user.dto";
@@ -42,11 +30,7 @@ export class UsersController {
   }
 
   @Patch(":id")
-  update(
-    @CurrentUser() caller: JwtPayload,
-    @Param("id") id: string,
-    @Body() dto: UpdateUserDto,
-  ) {
+  update(@CurrentUser() caller: JwtPayload, @Param("id") id: string, @Body() dto: UpdateUserDto) {
     return this.usersService.update(caller, id, dto);
   }
 

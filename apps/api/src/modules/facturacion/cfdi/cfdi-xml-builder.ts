@@ -88,15 +88,11 @@ function fmtRate(n: number): string {
  * Builds the cfdi:Impuestos block for a single concepto, including
  * traslados and retenciones sub-elements when present.
  */
-function buildConceptoImpuestos(
-  impuestos: CfdiConcepto["impuestos"],
-): string {
+function buildConceptoImpuestos(impuestos: CfdiConcepto["impuestos"]): string {
   if (!impuestos) return "";
 
-  const hasTraslados =
-    impuestos.traslados && impuestos.traslados.length > 0;
-  const hasRetenciones =
-    impuestos.retenciones && impuestos.retenciones.length > 0;
+  const hasTraslados = impuestos.traslados && impuestos.traslados.length > 0;
+  const hasRetenciones = impuestos.retenciones && impuestos.retenciones.length > 0;
 
   if (!hasTraslados && !hasRetenciones) return "";
 
@@ -178,12 +174,8 @@ function buildConcepto(concepto: CfdiConcepto): string {
  * for all traslados and retenciones across all conceptos.
  */
 function buildImpuestosTotales(data: CfdiData): string {
-  const hasTraslados =
-    data.totalImpuestosTrasladados != null &&
-    data.totalImpuestosTrasladados > 0;
-  const hasRetenciones =
-    data.totalImpuestosRetenidos != null &&
-    data.totalImpuestosRetenidos > 0;
+  const hasTraslados = data.totalImpuestosTrasladados != null && data.totalImpuestosTrasladados > 0;
+  const hasRetenciones = data.totalImpuestosRetenidos != null && data.totalImpuestosRetenidos > 0;
 
   if (!hasTraslados && !hasRetenciones) return "";
 
@@ -235,8 +227,7 @@ function buildImpuestosTotales(data: CfdiData): string {
     xml += "    <cfdi:Retenciones>\n";
     for (const r of retencionesMap.values()) {
       xml +=
-        `      <cfdi:Retencion Impuesto="${r.impuesto}"` +
-        ` Importe="${fmtAmount(r.importe)}"/>\n`;
+        `      <cfdi:Retencion Impuesto="${r.impuesto}"` + ` Importe="${fmtAmount(r.importe)}"/>\n`;
     }
     xml += "    </cfdi:Retenciones>\n";
   }
@@ -337,15 +328,11 @@ export interface PaymentComplementData {
 /**
  * Builds the pago20:ImpuestosDR block for a related document.
  */
-function buildImpuestosDR(
-  impuestos: PaymentComplementDoctoRelacionado["impuestosDR"],
-): string {
+function buildImpuestosDR(impuestos: PaymentComplementDoctoRelacionado["impuestosDR"]): string {
   if (!impuestos) return "";
 
-  const hasTraslados =
-    impuestos.trasladosDR && impuestos.trasladosDR.length > 0;
-  const hasRetenciones =
-    impuestos.retencionesDR && impuestos.retencionesDR.length > 0;
+  const hasTraslados = impuestos.trasladosDR && impuestos.trasladosDR.length > 0;
+  const hasRetenciones = impuestos.retencionesDR && impuestos.retencionesDR.length > 0;
 
   if (!hasTraslados && !hasRetenciones) return "";
 
@@ -487,8 +474,7 @@ export function buildPaymentComplementXml(data: PaymentComplementData): string {
   // Build DoctoRelacionado elements for each pago
   const pagosXml = data.pagos
     .map((pago) => {
-      const tipoCambioAttr =
-        pago.tipoCambioP != null ? ` TipoCambioP="${pago.tipoCambioP}"` : "";
+      const tipoCambioAttr = pago.tipoCambioP != null ? ` TipoCambioP="${pago.tipoCambioP}"` : "";
 
       const doctosXml = pago.doctosRelacionados
         .map((doc) => {
@@ -738,9 +724,7 @@ export function buildNominaCfdiXml(data: NominaCfdiData): string {
       .join("\n");
 
     otrosPagosBlock =
-      `        <nomina12:OtrosPagos>\n` +
-      otrosPagosXml +
-      `\n        </nomina12:OtrosPagos>\n`;
+      `        <nomina12:OtrosPagos>\n` + otrosPagosXml + `\n        </nomina12:OtrosPagos>\n`;
   }
 
   // Departamento is optional
@@ -749,29 +733,28 @@ export function buildNominaCfdiXml(data: NominaCfdiData): string {
     : "";
 
   // TotalOtrosPagos attribute
-  const totalOtrosPagosAttr = data.totalOtrosPagos > 0
-    ? ` TotalOtrosPagos="${fmtAmount(data.totalOtrosPagos)}"`
-    : "";
+  const totalOtrosPagosAttr =
+    data.totalOtrosPagos > 0 ? ` TotalOtrosPagos="${fmtAmount(data.totalOtrosPagos)}"` : "";
 
   // TotalDeducciones attribute on Nomina node
-  const totalDeduccionesAttr = data.totalDeducciones > 0
-    ? ` TotalDeducciones="${fmtAmount(data.totalDeducciones)}"`
-    : "";
+  const totalDeduccionesAttr =
+    data.totalDeducciones > 0 ? ` TotalDeducciones="${fmtAmount(data.totalDeducciones)}"` : "";
 
   // TotalPercepciones attribute on Nomina node
-  const totalPercepcionesAttr = data.totalPercepciones > 0
-    ? ` TotalPercepciones="${fmtAmount(data.totalPercepciones)}"`
-    : "";
+  const totalPercepcionesAttr =
+    data.totalPercepciones > 0 ? ` TotalPercepciones="${fmtAmount(data.totalPercepciones)}"` : "";
 
   // Deducciones block
   let deduccionesBlock = "";
   if (data.deducciones.length > 0) {
-    const totalOtrasDeduccionesAttr = data.totalOtrasDeducciones > 0
-      ? ` TotalOtrasDeducciones="${fmtAmount(data.totalOtrasDeducciones)}"`
-      : "";
-    const totalImpuestosRetenidosAttr = data.totalImpuestosRetenidos > 0
-      ? ` TotalImpuestosRetenidos="${fmtAmount(data.totalImpuestosRetenidos)}"`
-      : "";
+    const totalOtrasDeduccionesAttr =
+      data.totalOtrasDeducciones > 0
+        ? ` TotalOtrasDeducciones="${fmtAmount(data.totalOtrasDeducciones)}"`
+        : "";
+    const totalImpuestosRetenidosAttr =
+      data.totalImpuestosRetenidos > 0
+        ? ` TotalImpuestosRetenidos="${fmtAmount(data.totalImpuestosRetenidos)}"`
+        : "";
 
     deduccionesBlock =
       `        <nomina12:Deducciones${totalOtrasDeduccionesAttr}${totalImpuestosRetenidosAttr}>\n` +
@@ -858,12 +841,9 @@ export function buildNominaCfdiXml(data: NominaCfdiData): string {
 }
 
 export function buildCfdiXml(data: CfdiData): string {
-  const tipoCambioAttr =
-    data.tipoCambio != null ? ` TipoCambio="${data.tipoCambio}"` : "";
+  const tipoCambioAttr = data.tipoCambio != null ? ` TipoCambio="${data.tipoCambio}"` : "";
   const descuentoAttr =
-    data.descuento != null && data.descuento > 0
-      ? ` Descuento="${fmtAmount(data.descuento)}"`
-      : "";
+    data.descuento != null && data.descuento > 0 ? ` Descuento="${fmtAmount(data.descuento)}"` : "";
 
   const impuestosTotales = buildImpuestosTotales(data);
 

@@ -76,11 +76,7 @@ export class ShiftsService {
 
   // ── Shift Assignments ──
 
-  async getWeekSchedule(
-    organizationId: string,
-    branchId: string,
-    weekStart: Date,
-  ) {
+  async getWeekSchedule(organizationId: string, branchId: string, weekStart: Date) {
     const weekEnd = new Date(weekStart);
     weekEnd.setDate(weekEnd.getDate() + 7);
 
@@ -262,11 +258,7 @@ export class ShiftsService {
     });
   }
 
-  async getWeekSummary(
-    organizationId: string,
-    branchId: string,
-    weekStart: Date,
-  ) {
+  async getWeekSummary(organizationId: string, branchId: string, weekStart: Date) {
     const weekEnd = new Date(weekStart);
     weekEnd.setDate(weekEnd.getDate() + 7);
 

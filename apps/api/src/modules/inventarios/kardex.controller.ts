@@ -1,19 +1,10 @@
-import {
-  Controller,
-  Get,
-  Param,
-  Query,
-  UseGuards,
-} from "@nestjs/common";
+import { Controller, Get, Param, Query, UseGuards } from "@nestjs/common";
 import { ApiTags, ApiBearerAuth } from "@nestjs/swagger";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
 import { BranchAccessGuard } from "../../common/guards/branch-access.guard";
 import { Permissions } from "../../common/decorators/roles.decorator";
-import {
-  CurrentUser,
-  JwtPayload,
-} from "../../common/decorators/current-user.decorator";
+import { CurrentUser, JwtPayload } from "../../common/decorators/current-user.decorator";
 import { KardexService } from "./kardex.service";
 
 @ApiTags("Inventarios - Kardex")
@@ -92,11 +83,7 @@ export class KardexController {
     @Param("productId") productId: string,
     @Query("branchId") branchId?: string,
   ) {
-    return this.kardexService.getKardexSummary(
-      user.organizationId,
-      productId,
-      branchId,
-    );
+    return this.kardexService.getKardexSummary(user.organizationId, productId, branchId);
   }
 
   /**

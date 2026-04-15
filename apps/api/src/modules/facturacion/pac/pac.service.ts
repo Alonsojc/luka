@@ -1,9 +1,5 @@
 import { Injectable, Logger } from "@nestjs/common";
-import {
-  PacProvider,
-  PacStampResponse,
-  PacCancelResponse,
-} from "./pac.interface";
+import { PacProvider, PacStampResponse, PacCancelResponse } from "./pac.interface";
 import { PacSandboxProvider } from "./pac-sandbox.provider";
 
 @Injectable()
@@ -43,10 +39,7 @@ export class PacService {
     return this.provider.cancel(uuid, rfc, motivo, folioSustitucion);
   }
 
-  async getStatus(
-    uuid: string,
-    rfc: string,
-  ): Promise<{ status: string; cancellable: boolean }> {
+  async getStatus(uuid: string, rfc: string): Promise<{ status: string; cancellable: boolean }> {
     return this.provider.getStatus(uuid, rfc);
   }
 }

@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-} from "@nestjs/common";
+import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
 import { PrismaService } from "../../common/prisma/prisma.service";
 import { CreateDeliveryOrderDto } from "./dto/create-order.dto";
 import { UpdateDeliveryStatusDto } from "./dto/update-status.dto";
@@ -76,8 +72,7 @@ export class DeliveryService {
   }
 
   async createOrder(organizationId: string, dto: CreateDeliveryOrderDto) {
-    const fees =
-      (dto.deliveryFee || 0) + (dto.platformFee || 0);
+    const fees = (dto.deliveryFee || 0) + (dto.platformFee || 0);
     const netRevenue = dto.total - fees;
 
     return this.prisma.deliveryOrder.create({
@@ -100,22 +95,14 @@ export class DeliveryService {
     });
   }
 
-  async updateOrderStatus(
-    organizationId: string,
-    id: string,
-    dto: UpdateDeliveryStatusDto,
-  ) {
+  async updateOrderStatus(organizationId: string, id: string, dto: UpdateDeliveryStatusDto) {
     const order = await this.findOneOrder(organizationId, id);
 
     if (order.status === "CANCELLED") {
-      throw new BadRequestException(
-        "No se puede cambiar el estado de una orden cancelada",
-      );
+      throw new BadRequestException("No se puede cambiar el estado de una orden cancelada");
     }
     if (order.status === "DELIVERED" && dto.status !== "CANCELLED") {
-      throw new BadRequestException(
-        "Una orden entregada solo puede ser cancelada",
-      );
+      throw new BadRequestException("Una orden entregada solo puede ser cancelada");
     }
 
     const updateData: any = { status: dto.status };
@@ -146,9 +133,7 @@ export class DeliveryService {
     if (filters.branchId) where.branchId = filters.branchId;
 
     // Default to last 30 days
-    const dateTo = filters.dateTo
-      ? new Date(filters.dateTo)
-      : new Date();
+    const dateTo = filters.dateTo ? new Date(filters.dateTo) : new Date();
     const dateFrom = filters.dateFrom
       ? new Date(filters.dateFrom)
       : new Date(dateTo.getTime() - 30 * 24 * 60 * 60 * 1000);
@@ -161,31 +146,23 @@ export class DeliveryService {
     });
 
     const totalOrders = orders.length;
-    const totalRevenue = orders.reduce(
-      (sum, o) => sum + Number(o.total),
-      0,
-    );
+    const totalRevenue = orders.reduce((sum, o) => sum + Number(o.total), 0);
     const totalFees = orders.reduce(
-      (sum, o) =>
-        sum + Number(o.deliveryFee || 0) + Number(o.platformFee || 0),
+      (sum, o) => sum + Number(o.deliveryFee || 0) + Number(o.platformFee || 0),
       0,
     );
     const netRevenue = totalRevenue - totalFees;
     const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
 
     // By platform
-    const platformMap: Record<
-      string,
-      { orders: number; revenue: number; fees: number }
-    > = {};
+    const platformMap: Record<string, { orders: number; revenue: number; fees: number }> = {};
     for (const o of orders) {
       if (!platformMap[o.platform]) {
         platformMap[o.platform] = { orders: 0, revenue: 0, fees: 0 };
       }
       platformMap[o.platform].orders++;
       platformMap[o.platform].revenue += Number(o.total);
-      platformMap[o.platform].fees +=
-        Number(o.deliveryFee || 0) + Number(o.platformFee || 0);
+      platformMap[o.platform].fees += Number(o.deliveryFee || 0) + Number(o.platformFee || 0);
     }
     const byPlatform = Object.entries(platformMap).map(([platform, data]) => ({
       platform,
@@ -193,10 +170,7 @@ export class DeliveryService {
     }));
 
     // By branch
-    const branchMap: Record<
-      string,
-      { branchName: string; orders: number; revenue: number }
-    > = {};
+    const branchMap: Record<string, { branchName: string; orders: number; revenue: number }> = {};
     for (const o of orders) {
       const bId = o.branchId || "sin_sucursal";
       const bName = o.branch?.name || "Sin sucursal";
@@ -264,12 +238,8 @@ export class DeliveryService {
         data: {
           apiKey: dto.apiKey !== undefined ? dto.apiKey : existing.apiKey,
           storeId: dto.storeId !== undefined ? dto.storeId : existing.storeId,
-          isActive:
-            dto.isActive !== undefined ? dto.isActive : existing.isActive,
-          syncInterval:
-            dto.syncInterval !== undefined
-              ? dto.syncInterval
-              : existing.syncInterval,
+          isActive: dto.isActive !== undefined ? dto.isActive : existing.isActive,
+          syncInterval: dto.syncInterval !== undefined ? dto.syncInterval : existing.syncInterval,
         },
         include: { branch: true },
       });
@@ -295,9 +265,7 @@ export class DeliveryService {
     });
 
     if (configs.length === 0) {
-      throw new BadRequestException(
-        `No hay configuración activa para ${platform}`,
-      );
+      throw new BadRequestException(`No hay configuración activa para ${platform}`);
     }
 
     // Update lastSyncAt for all matching configs

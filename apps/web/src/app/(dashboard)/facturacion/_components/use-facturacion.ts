@@ -163,17 +163,15 @@ export function useFacturacion() {
   useEffect(() => {
     if (authLoading) return;
     setLoadingData(true);
-    Promise.all([fetchCfdis(), fetchBranches()]).finally(() =>
-      setLoadingData(false)
-    );
+    Promise.all([fetchCfdis(), fetchBranches()]).finally(() => setLoadingData(false));
   }, [authLoading, fetchCfdis, fetchBranches]);
 
   // Fetch complement data when tab is active
   useEffect(() => {
     if (authLoading || activeTab !== "Complementos de Pago") return;
     setLoadingComplements(true);
-    Promise.all([fetchPendingPayments(), fetchPaymentComplements()]).finally(
-      () => setLoadingComplements(false)
+    Promise.all([fetchPendingPayments(), fetchPaymentComplements()]).finally(() =>
+      setLoadingComplements(false),
     );
   }, [authLoading, activeTab, fetchPendingPayments, fetchPaymentComplements]);
 
@@ -196,9 +194,7 @@ export function useFacturacion() {
 
   const summaryData = useMemo(() => {
     const totalFacturas = cfdis.length;
-    const timbradas = cfdis.filter(
-      (c) => c.status === "STAMPED"
-    ).length;
+    const timbradas = cfdis.filter((c) => c.status === "STAMPED").length;
     const canceladas = cfdis.filter((c) => c.status === "CANCELLED").length;
     const totalFacturado = cfdis.reduce((sum, c) => sum + num(c.total), 0);
     return { totalFacturas, timbradas, canceladas, totalFacturado };
@@ -217,21 +213,17 @@ export function useFacturacion() {
         (c.series && normalize(c.series).includes(q)) ||
         normalize(c.receiverName || "").includes(q) ||
         normalize(c.receiverRfc || "").includes(q) ||
-        (c.uuid && normalize(c.uuid).includes(q))
+        (c.uuid && normalize(c.uuid).includes(q)),
     );
   }, [cfdis, searchTerm]);
 
   const totalPages = Math.ceil(filteredCfdis.length / PAGE_SIZE);
   const paginatedCfdis = filteredCfdis.slice(
     (currentPage - 1) * PAGE_SIZE,
-    currentPage * PAGE_SIZE
-  );
-  const paginationStart =
-    filteredCfdis.length === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1;
-  const paginationEnd = Math.min(
     currentPage * PAGE_SIZE,
-    filteredCfdis.length
   );
+  const paginationStart = filteredCfdis.length === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1;
+  const paginationEnd = Math.min(currentPage * PAGE_SIZE, filteredCfdis.length);
 
   return {
     // Auth

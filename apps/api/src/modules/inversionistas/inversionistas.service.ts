@@ -5,11 +5,7 @@ import { PrismaService } from "../../common/prisma/prisma.service";
 export class InversionistasService {
   constructor(private prisma: PrismaService) {}
 
-  async profitabilityByBranch(
-    organizationId: string,
-    startDate: string,
-    endDate: string,
-  ) {
+  async profitabilityByBranch(organizationId: string, startDate: string, endDate: string) {
     const branches = await this.prisma.branch.findMany({
       where: { organizationId, isActive: true },
       select: { id: true, name: true, code: true },
@@ -88,11 +84,7 @@ export class InversionistasService {
     return results;
   }
 
-  async consolidatedPnL(
-    organizationId: string,
-    startDate: string,
-    endDate: string,
-  ) {
+  async consolidatedPnL(organizationId: string, startDate: string, endDate: string) {
     const branches = await this.prisma.branch.findMany({
       where: { organizationId },
       select: { id: true },
@@ -150,31 +142,17 @@ export class InversionistasService {
       revenue: Math.round(revenue * 100) / 100,
       cogs: Math.round(cogs * 100) / 100,
       grossProfit: Math.round(grossProfit * 100) / 100,
-      grossMargin:
-        revenue > 0
-          ? Math.round((grossProfit / revenue) * 10000) / 100
-          : 0,
+      grossMargin: revenue > 0 ? Math.round((grossProfit / revenue) * 10000) / 100 : 0,
       laborCost: Math.round(laborCost * 100) / 100,
       operatingProfit: Math.round(operatingProfit * 100) / 100,
-      operatingMargin:
-        revenue > 0
-          ? Math.round((operatingProfit / revenue) * 10000) / 100
-          : 0,
+      operatingMargin: revenue > 0 ? Math.round((operatingProfit / revenue) * 10000) / 100 : 0,
       transactionCount: salesAgg._count.id,
     };
   }
 
-  async roiSummary(
-    organizationId: string,
-    startDate: string,
-    endDate: string,
-  ) {
+  async roiSummary(organizationId: string, startDate: string, endDate: string) {
     // Get profitability data
-    const pnl = await this.consolidatedPnL(
-      organizationId,
-      startDate,
-      endDate,
-    );
+    const pnl = await this.consolidatedPnL(organizationId, startDate, endDate);
 
     // Get total bank account balances as proxy for invested capital
     const bankAccounts = await this.prisma.bankAccount.aggregate({
@@ -197,25 +175,18 @@ export class InversionistasService {
     });
 
     const inventoryValue = inventory.reduce(
-      (sum, inv) =>
-        sum + Number(inv.currentQuantity) * Number(inv.product.costPerUnit),
+      (sum, inv) => sum + Number(inv.currentQuantity) * Number(inv.product.costPerUnit),
       0,
     );
 
-    const totalAssets =
-      Number(bankAccounts._sum.currentBalance || 0) + inventoryValue;
+    const totalAssets = Number(bankAccounts._sum.currentBalance || 0) + inventoryValue;
 
-    const roi =
-      totalAssets > 0
-        ? (pnl.operatingProfit / totalAssets) * 100
-        : 0;
+    const roi = totalAssets > 0 ? (pnl.operatingProfit / totalAssets) * 100 : 0;
 
     return {
       period: pnl.period,
       operatingProfit: pnl.operatingProfit,
-      totalBankBalance: Math.round(
-        Number(bankAccounts._sum.currentBalance || 0) * 100,
-      ) / 100,
+      totalBankBalance: Math.round(Number(bankAccounts._sum.currentBalance || 0) * 100) / 100,
       inventoryValue: Math.round(inventoryValue * 100) / 100,
       totalAssets: Math.round(totalAssets * 100) / 100,
       roiPercent: Math.round(roi * 100) / 100,

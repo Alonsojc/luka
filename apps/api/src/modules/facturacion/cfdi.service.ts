@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-} from "@nestjs/common";
+import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
 import { PrismaService } from "../../common/prisma/prisma.service";
 
 @Injectable()
@@ -70,14 +66,8 @@ export class CfdiService {
     const { concepts, cfdiType, ...cfdiData } = data;
 
     // Calculate totals from concepts
-    const subtotal = concepts.reduce(
-      (sum, c) => sum + c.quantity * c.unitPrice,
-      0,
-    );
-    const totalDiscount = concepts.reduce(
-      (sum, c) => sum + (c.discount || 0),
-      0,
-    );
+    const subtotal = concepts.reduce((sum, c) => sum + c.quantity * c.unitPrice, 0);
+    const totalDiscount = concepts.reduce((sum, c) => sum + (c.discount || 0), 0);
 
     // Calculate amounts for concepts
     const conceptsWithAmounts = concepts.map((c) => ({
@@ -142,18 +132,11 @@ export class CfdiService {
       if (concepts) {
         await tx.cFDIConcept.deleteMany({ where: { cfdiId: id } });
 
-        const subtotal = concepts.reduce(
-          (sum, c) => sum + c.quantity * c.unitPrice,
-          0,
-        );
-        const totalDiscount = concepts.reduce(
-          (sum, c) => sum + (c.discount || 0),
-          0,
-        );
+        const subtotal = concepts.reduce((sum, c) => sum + c.quantity * c.unitPrice, 0);
+        const totalDiscount = concepts.reduce((sum, c) => sum + (c.discount || 0), 0);
         const taxableAmount = subtotal - totalDiscount;
         const iva = Math.round(taxableAmount * 0.16 * 100) / 100;
-        const total =
-          Math.round((subtotal - totalDiscount + iva) * 100) / 100;
+        const total = Math.round((subtotal - totalDiscount + iva) * 100) / 100;
 
         const conceptsWithAmounts = concepts.map((c) => ({
           cfdiId: id,

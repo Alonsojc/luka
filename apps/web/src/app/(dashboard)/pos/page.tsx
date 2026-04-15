@@ -222,7 +222,10 @@ export default function PosPage() {
   const fetchSalesSummary = useCallback(async () => {
     setSalesLoading(true);
     try {
-      const data = await authFetch<SalesSummary>("get", `/corntech/sales/summary?date=${salesDate}`);
+      const data = await authFetch<SalesSummary>(
+        "get",
+        `/corntech/sales/summary?date=${salesDate}`,
+      );
       setSalesSummary(data);
     } catch {
       /* handled by authFetch */
@@ -301,7 +304,10 @@ export default function PosPage() {
   }, [syncStatuses]);
 
   const branchOptions = useMemo(() => {
-    return syncStatuses.map((b) => ({ value: b.branchId, label: `${b.branchName} - ${b.branchCity}` }));
+    return syncStatuses.map((b) => ({
+      value: b.branchId,
+      label: `${b.branchName} - ${b.branchCity}`,
+    }));
   }, [syncStatuses]);
 
   const paymentBreakdown = useMemo(() => {
@@ -394,9 +400,7 @@ export default function PosPage() {
       {
         key: "ticketNumber",
         header: "Ticket #",
-        render: (row: PosSale) => (
-          <span className="font-mono font-medium">{row.ticketNumber}</span>
-        ),
+        render: (row: PosSale) => <span className="font-mono font-medium">{row.ticketNumber}</span>,
       },
       {
         key: "branch",
@@ -426,9 +430,7 @@ export default function PosPage() {
       {
         key: "total",
         header: "Total",
-        render: (row: PosSale) => (
-          <span className="font-medium">{fmtMXN(row.total)}</span>
-        ),
+        render: (row: PosSale) => <span className="font-medium">{fmtMXN(row.total)}</span>,
       },
       {
         key: "paymentMethod",
@@ -462,7 +464,9 @@ export default function PosPage() {
         render: (row: PosSyncLog) => (
           <StatusBadge
             label={row.syncType}
-            variant={row.syncType === "FULL" ? "purple" : row.syncType === "SALES" ? "blue" : "gray"}
+            variant={
+              row.syncType === "FULL" ? "purple" : row.syncType === "SALES" ? "blue" : "gray"
+            }
           />
         ),
       },
@@ -535,9 +539,7 @@ export default function PosPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">POS Corntech</h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Monitoreo en tiempo real del punto de venta
-          </p>
+          <p className="text-sm text-gray-500 mt-1">Monitoreo en tiempo real del punto de venta</p>
         </div>
         {activeTab === "sync" && (
           <Button onClick={() => triggerSync()} disabled={syncingBranch !== null}>
@@ -586,9 +588,7 @@ export default function PosPage() {
                   <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
                     Total Ventas Hoy
                   </p>
-                  <p className="text-2xl font-bold text-gray-900">
-                    {fmtMXN(kpiData.totalSales)}
-                  </p>
+                  <p className="text-2xl font-bold text-gray-900">{fmtMXN(kpiData.totalSales)}</p>
                 </div>
               </div>
             </div>
@@ -634,9 +634,7 @@ export default function PosPage() {
                   <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
                     Última Sincronización
                   </p>
-                  <p className="text-2xl font-bold text-gray-900">
-                    {timeAgo(kpiData.lastSync)}
-                  </p>
+                  <p className="text-2xl font-bold text-gray-900">{timeAgo(kpiData.lastSync)}</p>
                 </div>
               </div>
             </div>
@@ -712,9 +710,7 @@ export default function PosPage() {
                   <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
                     {pm.label}
                   </p>
-                  <p className="text-2xl font-bold text-gray-900 mt-1">
-                    {fmtMXN(pm.total)}
-                  </p>
+                  <p className="text-2xl font-bold text-gray-900 mt-1">{fmtMXN(pm.total)}</p>
                 </div>
               ))}
             </div>
@@ -835,7 +831,9 @@ export default function PosPage() {
                   <tr className="border-t bg-gray-50">
                     <td colSpan={3} />
                     <td className="px-4 py-2 text-right text-gray-500">Subtotal</td>
-                    <td className="px-4 py-2 text-right font-medium">{fmtMXN(selectedSale.subtotal)}</td>
+                    <td className="px-4 py-2 text-right font-medium">
+                      {fmtMXN(selectedSale.subtotal)}
+                    </td>
                   </tr>
                   <tr className="bg-gray-50">
                     <td colSpan={3} />
@@ -845,7 +843,9 @@ export default function PosPage() {
                   <tr className="bg-gray-50 border-t">
                     <td colSpan={3} />
                     <td className="px-4 py-2 text-right font-bold">Total</td>
-                    <td className="px-4 py-2 text-right font-bold text-lg">{fmtMXN(selectedSale.total)}</td>
+                    <td className="px-4 py-2 text-right font-bold text-lg">
+                      {fmtMXN(selectedSale.total)}
+                    </td>
                   </tr>
                 </tfoot>
               </table>

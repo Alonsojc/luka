@@ -372,7 +372,11 @@ type RecipeIngredientForm = typeof EMPTY_RECIPE_INGREDIENT;
 // Page Component
 // ---------------------------------------------------------------------------
 
-const normalize = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+const normalize = (s: string) =>
+  s
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
 
 export default function InventariosPage() {
   const { authFetch, loading: authLoading } = useAuth();
@@ -385,9 +389,14 @@ export default function InventariosPage() {
   const PAGE_SIZE = 10;
 
   // Reset page when search changes
-  useEffect(() => { setCurrentPage(1); }, [searchTerm]);
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
   // Reset search when tab changes
-  useEffect(() => { setSearchTerm(""); setCurrentPage(1); }, [activeTab]);
+  useEffect(() => {
+    setSearchTerm("");
+    setCurrentPage(1);
+  }, [activeTab]);
 
   // ---- Products state ----
   const [products, setProducts] = useState<Product[]>([]);
@@ -406,7 +415,9 @@ export default function InventariosPage() {
   const [presentationModalOpen, setPresentationModalOpen] = useState(false);
   const [presentationProductId, setPresentationProductId] = useState<string | null>(null);
   const [editingPresentation, setEditingPresentation] = useState<ProductPresentation | null>(null);
-  const [presentationForm, setPresentationForm] = useState<PresentationForm>({ ...EMPTY_PRESENTATION_FORM });
+  const [presentationForm, setPresentationForm] = useState<PresentationForm>({
+    ...EMPTY_PRESENTATION_FORM,
+  });
   const [presentationSaving, setPresentationSaving] = useState(false);
   const [productFormPresentations, setProductFormPresentations] = useState<PresentationForm[]>([]);
 
@@ -461,7 +472,9 @@ export default function InventariosPage() {
   const [receiveQuantities, setReceiveQuantities] = useState<Record<string, string>>({});
 
   // ---- Cargas CEDIS state ----
-  const [cargasSection, setCargasSection] = useState<"stock" | "load" | "adjust" | "history">("stock");
+  const [cargasSection, setCargasSection] = useState<"stock" | "load" | "adjust" | "history">(
+    "stock",
+  );
   const [cargasBranchId, setCargasBranchId] = useState("");
   const [cargasStock, setCargasStock] = useState<CedisStockResponse | null>(null);
   const [cargasStockLoading, setCargasStockLoading] = useState(false);
@@ -471,20 +484,33 @@ export default function InventariosPage() {
   // Manual load
   const [loadItems, setLoadItems] = useState<LoadItemRow[]>([{ ...EMPTY_LOAD_ITEM }]);
   const [loadSaving, setLoadSaving] = useState(false);
-  const [loadResult, setLoadResult] = useState<{ totalItems: number; totalQuantity: number; totalCost: number } | null>(null);
+  const [loadResult, setLoadResult] = useState<{
+    totalItems: number;
+    totalQuantity: number;
+    totalCost: number;
+  } | null>(null);
 
   // CSV import
   const [csvPreview, setCsvPreview] = useState<CsvPreviewRow[]>([]);
   const [csvFileName, setCsvFileName] = useState("");
   const [csvImporting, setCsvImporting] = useState(false);
-  const [csvResult, setCsvResult] = useState<{ matched: number; unmatched: Array<{ sku: string; row: number }>; loaded: number } | null>(null);
+  const [csvResult, setCsvResult] = useState<{
+    matched: number;
+    unmatched: Array<{ sku: string; row: number }>;
+    loaded: number;
+  } | null>(null);
 
   // Adjustment
   const [adjustProductId, setAdjustProductId] = useState("");
   const [adjustNewQty, setAdjustNewQty] = useState("");
   const [adjustReason, setAdjustReason] = useState("");
   const [adjustSaving, setAdjustSaving] = useState(false);
-  const [adjustResult, setAdjustResult] = useState<{ productName: string; previousQuantity: number; newQuantity: number; difference: number } | null>(null);
+  const [adjustResult, setAdjustResult] = useState<{
+    productName: string;
+    previousQuantity: number;
+    newQuantity: number;
+    difference: number;
+  } | null>(null);
 
   // Load history
   const [loadHistory, setLoadHistory] = useState<LoadHistoryGroup[]>([]);
@@ -631,10 +657,7 @@ export default function InventariosPage() {
       if (!branchId) return;
       setCargasStockLoading(true);
       try {
-        const data = await authFetch<CedisStockResponse>(
-          "get",
-          `/inventarios/stock/${branchId}`,
-        );
+        const data = await authFetch<CedisStockResponse>("get", `/inventarios/stock/${branchId}`);
         setCargasStock(data);
       } catch (err) {
         toast(err instanceof Error ? err.message : "Error al cargar datos", "error");
@@ -683,11 +706,11 @@ export default function InventariosPage() {
         }));
       if (validItems.length === 0) return;
 
-      const result = await authFetch<{ totalItems: number; totalQuantity: number; totalCost: number }>(
-        "post",
-        "/inventarios/load",
-        { branchId: cargasBranchId, items: validItems },
-      );
+      const result = await authFetch<{
+        totalItems: number;
+        totalQuantity: number;
+        totalCost: number;
+      }>("post", "/inventarios/load", { branchId: cargasBranchId, items: validItems });
       setLoadResult(result);
       setLoadItems([{ ...EMPTY_LOAD_ITEM }]);
       // Refresh stock
@@ -760,11 +783,11 @@ export default function InventariosPage() {
         unitCost: r.unitCost,
         notes: r.notes,
       }));
-      const result = await authFetch<{ matched: number; unmatched: Array<{ sku: string; row: number }>; loaded: number }>(
-        "post",
-        "/inventarios/load-csv",
-        { branchId: cargasBranchId, rows },
-      );
+      const result = await authFetch<{
+        matched: number;
+        unmatched: Array<{ sku: string; row: number }>;
+        loaded: number;
+      }>("post", "/inventarios/load-csv", { branchId: cargasBranchId, rows });
       setCsvResult(result);
       setCsvPreview([]);
       setCsvFileName("");
@@ -782,16 +805,17 @@ export default function InventariosPage() {
     setAdjustSaving(true);
     setAdjustResult(null);
     try {
-      const result = await authFetch<{ productName: string; previousQuantity: number; newQuantity: number; difference: number }>(
-        "post",
-        "/inventarios/adjust",
-        {
-          branchId: cargasBranchId,
-          productId: adjustProductId,
-          newQuantity: parseFloat(adjustNewQty),
-          reason: adjustReason,
-        },
-      );
+      const result = await authFetch<{
+        productName: string;
+        previousQuantity: number;
+        newQuantity: number;
+        difference: number;
+      }>("post", "/inventarios/adjust", {
+        branchId: cargasBranchId,
+        productId: adjustProductId,
+        newQuantity: parseFloat(adjustNewQty),
+        reason: adjustReason,
+      });
       setAdjustResult(result);
       setAdjustProductId("");
       setAdjustNewQty("");
@@ -818,9 +842,7 @@ export default function InventariosPage() {
     if (cargasStockSearch) {
       const q = normalize(cargasStockSearch);
       items = items.filter(
-        (i) =>
-          normalize(i.product.name).includes(q) ||
-          normalize(i.product.sku).includes(q),
+        (i) => normalize(i.product.name).includes(q) || normalize(i.product.sku).includes(q),
       );
     }
     if (cargasStockCategory) {
@@ -995,7 +1017,11 @@ export default function InventariosPage() {
 
       let savedProduct: Product;
       if (editingProduct) {
-        savedProduct = await authFetch<Product>("patch", `/inventarios/products/${editingProduct.id}`, payload);
+        savedProduct = await authFetch<Product>(
+          "patch",
+          `/inventarios/products/${editingProduct.id}`,
+          payload,
+        );
       } else {
         savedProduct = await authFetch<Product>("post", "/inventarios/products", payload);
       }
@@ -1014,7 +1040,11 @@ export default function InventariosPage() {
           if (pf.barcode) presPayload.barcode = pf.barcode;
           if (pf.purchasePrice) presPayload.purchasePrice = parseFloat(pf.purchasePrice);
           if (pf.salePrice) presPayload.salePrice = parseFloat(pf.salePrice);
-          await authFetch("post", `/inventarios/products/${savedProduct.id}/presentations`, presPayload);
+          await authFetch(
+            "post",
+            `/inventarios/products/${savedProduct.id}/presentations`,
+            presPayload,
+          );
         }
       }
 
@@ -1082,13 +1112,18 @@ export default function InventariosPage() {
       };
       if (presentationForm.sku) payload.sku = presentationForm.sku;
       if (presentationForm.barcode) payload.barcode = presentationForm.barcode;
-      if (presentationForm.purchasePrice) payload.purchasePrice = parseFloat(presentationForm.purchasePrice);
+      if (presentationForm.purchasePrice)
+        payload.purchasePrice = parseFloat(presentationForm.purchasePrice);
       if (presentationForm.salePrice) payload.salePrice = parseFloat(presentationForm.salePrice);
 
       if (editingPresentation) {
         await authFetch("patch", `/inventarios/presentations/${editingPresentation.id}`, payload);
       } else {
-        await authFetch("post", `/inventarios/products/${presentationProductId}/presentations`, payload);
+        await authFetch(
+          "post",
+          `/inventarios/products/${presentationProductId}/presentations`,
+          payload,
+        );
       }
       setPresentationModalOpen(false);
       fetchProducts();
@@ -1117,7 +1152,11 @@ export default function InventariosPage() {
     setProductFormPresentations((prev) => prev.filter((_, i) => i !== index));
   }
 
-  function updateProductFormPresentation(index: number, field: keyof PresentationForm, value: string | boolean) {
+  function updateProductFormPresentation(
+    index: number,
+    field: keyof PresentationForm,
+    value: string | boolean,
+  ) {
     setProductFormPresentations((prev) =>
       prev.map((p, i) => (i === index ? { ...p, [field]: value } : p)),
     );
@@ -1149,7 +1188,9 @@ export default function InventariosPage() {
   function updateIngredient(index: number, field: keyof RecipeIngredientForm, value: string) {
     setRecipeForm((prev) => ({
       ...prev,
-      ingredients: prev.ingredients.map((ing, i) => (i === index ? { ...ing, [field]: value } : ing)),
+      ingredients: prev.ingredients.map((ing, i) =>
+        i === index ? { ...ing, [field]: value } : ing,
+      ),
     }));
   }
 
@@ -1201,7 +1242,11 @@ export default function InventariosPage() {
     setNewTransferItems((prev) => prev.filter((_, i) => i !== index));
   }
 
-  function updateTransferItem(index: number, field: "productId" | "requestedQuantity", value: string) {
+  function updateTransferItem(
+    index: number,
+    field: "productId" | "requestedQuantity",
+    value: string,
+  ) {
     setNewTransferItems((prev) =>
       prev.map((item, i) => (i === index ? { ...item, [field]: value } : item)),
     );
@@ -1354,9 +1399,9 @@ export default function InventariosPage() {
     const q = normalize(searchTerm);
     return products.filter(
       (p) =>
-        normalize(p.name || '').includes(q) ||
-        normalize(p.sku || '').includes(q) ||
-        normalize(p.category?.name || '').includes(q),
+        normalize(p.name || "").includes(q) ||
+        normalize(p.sku || "").includes(q) ||
+        normalize(p.category?.name || "").includes(q),
     );
   }, [products, searchTerm]);
 
@@ -1365,15 +1410,14 @@ export default function InventariosPage() {
     const q = normalize(searchTerm);
     return stockItems.filter(
       (s) =>
-        normalize(s.product.name || '').includes(q) ||
-        normalize(s.product.sku || '').includes(q),
+        normalize(s.product.name || "").includes(q) || normalize(s.product.sku || "").includes(q),
     );
   }, [stockItems, searchTerm]);
 
   const filteredRecipes = useMemo(() => {
     if (!searchTerm) return recipes;
     const q = normalize(searchTerm);
-    return recipes.filter((r) => normalize(r.menuItemName || '').includes(q));
+    return recipes.filter((r) => normalize(r.menuItemName || "").includes(q));
   }, [recipes, searchTerm]);
 
   const filteredTransfers = useMemo(() => {
@@ -1381,22 +1425,37 @@ export default function InventariosPage() {
     const q = normalize(searchTerm);
     return transfers.filter(
       (t) =>
-        normalize(t.fromBranch.name || '').includes(q) ||
-        normalize(t.toBranch.name || '').includes(q),
+        normalize(t.fromBranch.name || "").includes(q) ||
+        normalize(t.toBranch.name || "").includes(q),
     );
   }, [transfers, searchTerm]);
 
   const currentFiltered =
-    activeTab === "productos" ? filteredProducts
-    : activeTab === "stock" ? filteredStockItems
-    : activeTab === "recetas" ? filteredRecipes
-    : filteredTransfers;
+    activeTab === "productos"
+      ? filteredProducts
+      : activeTab === "stock"
+        ? filteredStockItems
+        : activeTab === "recetas"
+          ? filteredRecipes
+          : filteredTransfers;
 
   const totalPages = Math.ceil(currentFiltered.length / PAGE_SIZE);
-  const paginatedProducts = filteredProducts.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
-  const paginatedStockItems = filteredStockItems.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
-  const paginatedRecipes = filteredRecipes.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
-  const paginatedTransfers = filteredTransfers.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  const paginatedProducts = filteredProducts.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE,
+  );
+  const paginatedStockItems = filteredStockItems.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE,
+  );
+  const paginatedRecipes = filteredRecipes.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE,
+  );
+  const paginatedTransfers = filteredTransfers.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE,
+  );
 
   const paginationStart = currentFiltered.length === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1;
   const paginationEnd = Math.min(currentPage * PAGE_SIZE, currentFiltered.length);
@@ -1559,8 +1618,7 @@ export default function InventariosPage() {
   ];
 
   // Helper to get food cost info from summary for a given recipe
-  const getFoodCostInfo = (recipeId: string) =>
-    foodCostSummary.find((s) => s.id === recipeId);
+  const getFoodCostInfo = (recipeId: string) => foodCostSummary.find((s) => s.id === recipeId);
 
   const recipeColumns = [
     {
@@ -1600,7 +1658,8 @@ export default function InventariosPage() {
       header: "Food Cost %",
       render: (r: Recipe) => {
         const info = getFoodCostInfo(r.id);
-        if (!info || info.sellingPrice === 0) return <span className="text-muted-foreground">-</span>;
+        if (!info || info.sellingPrice === 0)
+          return <span className="text-muted-foreground">-</span>;
         const pct = info.foodCostPercentage;
         const color =
           pct <= 30
@@ -1608,8 +1667,7 @@ export default function InventariosPage() {
             : pct <= 35
               ? "bg-yellow-100 text-yellow-800"
               : "bg-red-100 text-red-700";
-        const label =
-          pct <= 30 ? "Optimo" : pct <= 35 ? "Atencion" : "Critico";
+        const label = pct <= 30 ? "Optimo" : pct <= 35 ? "Atencion" : "Critico";
         return (
           <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-medium ${color}`}>
             {safeNum(pct).toFixed(1)}% {label}
@@ -1709,25 +1767,27 @@ export default function InventariosPage() {
           {activeTab === "productos" && (
             <>
               <button
-                onClick={() => exportToCSV(
-                  filteredProducts.map(p => ({
-                    sku: p.sku,
-                    name: p.name,
-                    category: p.category?.name ?? "",
-                    unitOfMeasure: p.unitOfMeasure,
-                    costPerUnit: safeNum(p.costPerUnit),
-                    satClaveProdServ: p.satClaveProdServ ?? "",
-                  })),
-                  "productos",
-                  [
-                    { key: "sku", label: "SKU" },
-                    { key: "name", label: "Nombre" },
-                    { key: "category", label: "Categoria" },
-                    { key: "unitOfMeasure", label: "Unidad" },
-                    { key: "costPerUnit", label: "Precio" },
-                    { key: "satClaveProdServ", label: "Clave SAT" },
-                  ]
-                )}
+                onClick={() =>
+                  exportToCSV(
+                    filteredProducts.map((p) => ({
+                      sku: p.sku,
+                      name: p.name,
+                      category: p.category?.name ?? "",
+                      unitOfMeasure: p.unitOfMeasure,
+                      costPerUnit: safeNum(p.costPerUnit),
+                      satClaveProdServ: p.satClaveProdServ ?? "",
+                    })),
+                    "productos",
+                    [
+                      { key: "sku", label: "SKU" },
+                      { key: "name", label: "Nombre" },
+                      { key: "category", label: "Categoria" },
+                      { key: "unitOfMeasure", label: "Unidad" },
+                      { key: "costPerUnit", label: "Precio" },
+                      { key: "satClaveProdServ", label: "Clave SAT" },
+                    ],
+                  )
+                }
                 className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
               >
                 <Download className="h-4 w-4" />
@@ -1800,10 +1860,13 @@ export default function InventariosPage() {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder={
-                activeTab === "productos" ? "Buscar por nombre o SKU..."
-                : activeTab === "stock" ? "Buscar por producto o SKU..."
-                : activeTab === "recetas" ? "Buscar por platillo..."
-                : "Buscar por sucursal..."
+                activeTab === "productos"
+                  ? "Buscar por nombre o SKU..."
+                  : activeTab === "stock"
+                    ? "Buscar por producto o SKU..."
+                    : activeTab === "recetas"
+                      ? "Buscar por platillo..."
+                      : "Buscar por sucursal..."
               }
               className="w-full rounded-lg border border-gray-200 bg-white py-2 pl-10 pr-4 text-sm focus:border-gray-400 focus:outline-none focus:ring-0"
             />
@@ -1816,8 +1879,8 @@ export default function InventariosPage() {
         {/* ============================================================ */}
         {/* PRODUCTOS TAB                                                */}
         {/* ============================================================ */}
-        {activeTab === "productos" && (
-          productsLoading ? (
+        {activeTab === "productos" &&
+          (productsLoading ? (
             <div className="border rounded-lg p-8 text-center text-muted-foreground">
               Cargando...
             </div>
@@ -1839,7 +1902,10 @@ export default function InventariosPage() {
                 <tbody>
                   {paginatedProducts.length === 0 ? (
                     <tr>
-                      <td colSpan={productColumns.length} className="px-4 py-8 text-center text-muted-foreground">
+                      <td
+                        colSpan={productColumns.length}
+                        className="px-4 py-8 text-center text-muted-foreground"
+                      >
                         No hay productos registrados
                       </td>
                     </tr>
@@ -1851,7 +1917,10 @@ export default function InventariosPage() {
                           onClick={() => toggleExpandProduct(product.id)}
                         >
                           {productColumns.map((col) => (
-                            <td key={col.key} className={`px-4 py-3 text-sm ${col.className || ""}`}>
+                            <td
+                              key={col.key}
+                              className={`px-4 py-3 text-sm ${col.className || ""}`}
+                            >
                               {col.render ? col.render(product) : (product as any)[col.key]}
                             </td>
                           ))}
@@ -1877,7 +1946,7 @@ export default function InventariosPage() {
                                     Agregar Presentacion
                                   </Button>
                                 </div>
-                                {(!product.presentations || product.presentations.length === 0) ? (
+                                {!product.presentations || product.presentations.length === 0 ? (
                                   <div className="text-sm text-muted-foreground py-3 text-center border rounded-lg bg-white">
                                     No hay presentaciones para este producto.
                                   </div>
@@ -1886,29 +1955,69 @@ export default function InventariosPage() {
                                     <table className="w-full">
                                       <thead>
                                         <tr className="border-b bg-muted/30">
-                                          <th className="text-left text-xs font-medium text-muted-foreground px-3 py-2">Nombre</th>
-                                          <th className="text-left text-xs font-medium text-muted-foreground px-3 py-2">SKU</th>
                                           <th className="text-left text-xs font-medium text-muted-foreground px-3 py-2">
-                                            <div className="flex items-center gap-1"><Barcode className="h-3 w-3" />Codigo Barras</div>
+                                            Nombre
                                           </th>
-                                          <th className="text-right text-xs font-medium text-muted-foreground px-3 py-2">Factor Conv.</th>
-                                          <th className="text-left text-xs font-medium text-muted-foreground px-3 py-2">Unidad</th>
-                                          <th className="text-right text-xs font-medium text-muted-foreground px-3 py-2">P. Compra</th>
-                                          <th className="text-right text-xs font-medium text-muted-foreground px-3 py-2">P. Venta</th>
-                                          <th className="text-center text-xs font-medium text-muted-foreground px-3 py-2">Default</th>
-                                          <th className="text-center text-xs font-medium text-muted-foreground px-3 py-2">Acciones</th>
+                                          <th className="text-left text-xs font-medium text-muted-foreground px-3 py-2">
+                                            SKU
+                                          </th>
+                                          <th className="text-left text-xs font-medium text-muted-foreground px-3 py-2">
+                                            <div className="flex items-center gap-1">
+                                              <Barcode className="h-3 w-3" />
+                                              Codigo Barras
+                                            </div>
+                                          </th>
+                                          <th className="text-right text-xs font-medium text-muted-foreground px-3 py-2">
+                                            Factor Conv.
+                                          </th>
+                                          <th className="text-left text-xs font-medium text-muted-foreground px-3 py-2">
+                                            Unidad
+                                          </th>
+                                          <th className="text-right text-xs font-medium text-muted-foreground px-3 py-2">
+                                            P. Compra
+                                          </th>
+                                          <th className="text-right text-xs font-medium text-muted-foreground px-3 py-2">
+                                            P. Venta
+                                          </th>
+                                          <th className="text-center text-xs font-medium text-muted-foreground px-3 py-2">
+                                            Default
+                                          </th>
+                                          <th className="text-center text-xs font-medium text-muted-foreground px-3 py-2">
+                                            Acciones
+                                          </th>
                                         </tr>
                                       </thead>
                                       <tbody>
                                         {product.presentations!.map((pres) => (
-                                          <tr key={pres.id} className="border-b last:border-0 hover:bg-muted/20">
-                                            <td className="px-3 py-2 text-sm font-medium">{pres.name}</td>
-                                            <td className="px-3 py-2 text-sm font-mono text-muted-foreground">{pres.sku || "-"}</td>
-                                            <td className="px-3 py-2 text-sm font-mono text-muted-foreground">{pres.barcode || "-"}</td>
-                                            <td className="px-3 py-2 text-sm text-right">{safeNum(pres.conversionFactor)}</td>
-                                            <td className="px-3 py-2 text-sm">{pres.conversionUnit}</td>
-                                            <td className="px-3 py-2 text-sm text-right">{pres.purchasePrice != null ? formatMXN(pres.purchasePrice) : "-"}</td>
-                                            <td className="px-3 py-2 text-sm text-right">{pres.salePrice != null ? formatMXN(pres.salePrice) : "-"}</td>
+                                          <tr
+                                            key={pres.id}
+                                            className="border-b last:border-0 hover:bg-muted/20"
+                                          >
+                                            <td className="px-3 py-2 text-sm font-medium">
+                                              {pres.name}
+                                            </td>
+                                            <td className="px-3 py-2 text-sm font-mono text-muted-foreground">
+                                              {pres.sku || "-"}
+                                            </td>
+                                            <td className="px-3 py-2 text-sm font-mono text-muted-foreground">
+                                              {pres.barcode || "-"}
+                                            </td>
+                                            <td className="px-3 py-2 text-sm text-right">
+                                              {safeNum(pres.conversionFactor)}
+                                            </td>
+                                            <td className="px-3 py-2 text-sm">
+                                              {pres.conversionUnit}
+                                            </td>
+                                            <td className="px-3 py-2 text-sm text-right">
+                                              {pres.purchasePrice != null
+                                                ? formatMXN(pres.purchasePrice)
+                                                : "-"}
+                                            </td>
+                                            <td className="px-3 py-2 text-sm text-right">
+                                              {pres.salePrice != null
+                                                ? formatMXN(pres.salePrice)
+                                                : "-"}
+                                            </td>
                                             <td className="px-3 py-2 text-center">
                                               {pres.isDefault && (
                                                 <span className="inline-block rounded-full bg-green-100 text-green-700 px-2 py-0.5 text-xs font-medium">
@@ -1956,8 +2065,7 @@ export default function InventariosPage() {
                 </tbody>
               </table>
             </div>
-          )
-        )}
+          ))}
 
         {/* ============================================================ */}
         {/* STOCK TAB                                                    */}
@@ -1994,56 +2102,65 @@ export default function InventariosPage() {
         {activeTab === "recetas" && (
           <div className="space-y-4">
             {/* Food Cost Summary Cards */}
-            {foodCostSummary.length > 0 && (() => {
-              const withPrice = foodCostSummary.filter((s) => s.sellingPrice > 0);
-              const avgCost = withPrice.length > 0
-                ? withPrice.reduce((sum, s) => sum + s.costPerServing, 0) / withPrice.length
-                : 0;
-              const avgFoodCostPct = withPrice.length > 0
-                ? withPrice.reduce((sum, s) => sum + s.foodCostPercentage, 0) / withPrice.length
-                : 0;
-              const avgMargin = withPrice.length > 0
-                ? withPrice.reduce((sum, s) => sum + (s.sellingPrice - s.costPerServing), 0) / withPrice.length
-                : 0;
-              const atRiskCount = withPrice.filter((s) => s.foodCostPercentage > 35).length;
+            {foodCostSummary.length > 0 &&
+              (() => {
+                const withPrice = foodCostSummary.filter((s) => s.sellingPrice > 0);
+                const avgCost =
+                  withPrice.length > 0
+                    ? withPrice.reduce((sum, s) => sum + s.costPerServing, 0) / withPrice.length
+                    : 0;
+                const avgFoodCostPct =
+                  withPrice.length > 0
+                    ? withPrice.reduce((sum, s) => sum + s.foodCostPercentage, 0) / withPrice.length
+                    : 0;
+                const avgMargin =
+                  withPrice.length > 0
+                    ? withPrice.reduce((sum, s) => sum + (s.sellingPrice - s.costPerServing), 0) /
+                      withPrice.length
+                    : 0;
+                const atRiskCount = withPrice.filter((s) => s.foodCostPercentage > 35).length;
 
-              return (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  <div className="rounded-lg border bg-white p-4">
-                    <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
-                      <DollarSign className="h-4 w-4" />
-                      Costo Promedio por Bowl
+                return (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="rounded-lg border bg-white p-4">
+                      <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
+                        <DollarSign className="h-4 w-4" />
+                        Costo Promedio por Bowl
+                      </div>
+                      <div className="text-2xl font-bold">{formatMXN(avgCost)}</div>
                     </div>
-                    <div className="text-2xl font-bold">{formatMXN(avgCost)}</div>
+                    <div className="rounded-lg border bg-white p-4">
+                      <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
+                        <ChefHat className="h-4 w-4" />
+                        Food Cost %
+                      </div>
+                      <div
+                        className={`text-2xl font-bold ${avgFoodCostPct <= 30 ? "text-green-600" : avgFoodCostPct <= 35 ? "text-yellow-600" : "text-red-600"}`}
+                      >
+                        {safeNum(avgFoodCostPct).toFixed(1)}%
+                      </div>
+                    </div>
+                    <div className="rounded-lg border bg-white p-4">
+                      <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
+                        <TrendingUp className="h-4 w-4" />
+                        Margen Bruto Promedio
+                      </div>
+                      <div className="text-2xl font-bold">{formatMXN(avgMargin)}</div>
+                    </div>
+                    <div className="rounded-lg border bg-white p-4">
+                      <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
+                        <AlertTriangle className="h-4 w-4" />
+                        Recetas en Riesgo
+                      </div>
+                      <div
+                        className={`text-2xl font-bold ${atRiskCount > 0 ? "text-red-600" : "text-green-600"}`}
+                      >
+                        {atRiskCount}
+                      </div>
+                    </div>
                   </div>
-                  <div className="rounded-lg border bg-white p-4">
-                    <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
-                      <ChefHat className="h-4 w-4" />
-                      Food Cost %
-                    </div>
-                    <div className={`text-2xl font-bold ${avgFoodCostPct <= 30 ? "text-green-600" : avgFoodCostPct <= 35 ? "text-yellow-600" : "text-red-600"}`}>
-                      {safeNum(avgFoodCostPct).toFixed(1)}%
-                    </div>
-                  </div>
-                  <div className="rounded-lg border bg-white p-4">
-                    <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
-                      <TrendingUp className="h-4 w-4" />
-                      Margen Bruto Promedio
-                    </div>
-                    <div className="text-2xl font-bold">{formatMXN(avgMargin)}</div>
-                  </div>
-                  <div className="rounded-lg border bg-white p-4">
-                    <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
-                      <AlertTriangle className="h-4 w-4" />
-                      Recetas en Riesgo
-                    </div>
-                    <div className={`text-2xl font-bold ${atRiskCount > 0 ? "text-red-600" : "text-green-600"}`}>
-                      {atRiskCount}
-                    </div>
-                  </div>
-                </div>
-              );
-            })()}
+                );
+              })()}
 
             <DataTable
               columns={recipeColumns}
@@ -2065,7 +2182,9 @@ export default function InventariosPage() {
               <div className="w-44">
                 <Select
                   value={transferStatusFilter}
-                  onChange={(e) => { setTransferStatusFilter(e.target.value); }}
+                  onChange={(e) => {
+                    setTransferStatusFilter(e.target.value);
+                  }}
                 >
                   <option value="">Todos los estados</option>
                   <option value="PENDING">Pendiente</option>
@@ -2078,22 +2197,30 @@ export default function InventariosPage() {
               <div className="w-44">
                 <Select
                   value={transferFromFilter}
-                  onChange={(e) => { setTransferFromFilter(e.target.value); }}
+                  onChange={(e) => {
+                    setTransferFromFilter(e.target.value);
+                  }}
                 >
                   <option value="">Todas las origenes</option>
                   {branches.map((b) => (
-                    <option key={b.id} value={b.id}>{b.name}</option>
+                    <option key={b.id} value={b.id}>
+                      {b.name}
+                    </option>
                   ))}
                 </Select>
               </div>
               <div className="w-44">
                 <Select
                   value={transferToFilter}
-                  onChange={(e) => { setTransferToFilter(e.target.value); }}
+                  onChange={(e) => {
+                    setTransferToFilter(e.target.value);
+                  }}
                 >
                   <option value="">Todos los destinos</option>
                   {branches.map((b) => (
-                    <option key={b.id} value={b.id}>{b.name}</option>
+                    <option key={b.id} value={b.id}>
+                      {b.name}
+                    </option>
                   ))}
                 </Select>
               </div>
@@ -2254,7 +2381,9 @@ export default function InventariosPage() {
             <FormField label="Clave Prod/Serv SAT">
               <Input
                 value={productForm.satClaveProdServ}
-                onChange={(e) => setProductForm((f) => ({ ...f, satClaveProdServ: e.target.value }))}
+                onChange={(e) =>
+                  setProductForm((f) => ({ ...f, satClaveProdServ: e.target.value }))
+                }
                 placeholder="Ej: 50202201"
               />
             </FormField>
@@ -2290,7 +2419,9 @@ export default function InventariosPage() {
                   {productFormPresentations.map((pf, idx) => (
                     <div key={idx} className="rounded-lg border p-3 bg-gray-50 space-y-2">
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-medium text-gray-500">Presentacion {idx + 1}</span>
+                        <span className="text-xs font-medium text-gray-500">
+                          Presentacion {idx + 1}
+                        </span>
                         <button
                           onClick={() => removeProductFormPresentation(idx)}
                           className="p-1 text-muted-foreground hover:text-destructive rounded hover:bg-red-50 transition-colors"
@@ -2303,7 +2434,9 @@ export default function InventariosPage() {
                           <label className="block text-xs font-medium mb-0.5">Nombre *</label>
                           <Input
                             value={pf.name}
-                            onChange={(e) => updateProductFormPresentation(idx, "name", e.target.value)}
+                            onChange={(e) =>
+                              updateProductFormPresentation(idx, "name", e.target.value)
+                            }
                             placeholder="Ej: Bolsa 1kg"
                           />
                         </div>
@@ -2311,20 +2444,26 @@ export default function InventariosPage() {
                           <label className="block text-xs font-medium mb-0.5">SKU</label>
                           <Input
                             value={pf.sku}
-                            onChange={(e) => updateProductFormPresentation(idx, "sku", e.target.value)}
+                            onChange={(e) =>
+                              updateProductFormPresentation(idx, "sku", e.target.value)
+                            }
                             placeholder="Opcional"
                           />
                         </div>
                       </div>
                       <div className="grid grid-cols-3 gap-2">
                         <div>
-                          <label className="block text-xs font-medium mb-0.5">Factor Conversion *</label>
+                          <label className="block text-xs font-medium mb-0.5">
+                            Factor Conversion *
+                          </label>
                           <Input
                             type="number"
                             step="0.000001"
                             min="0"
                             value={pf.conversionFactor}
-                            onChange={(e) => updateProductFormPresentation(idx, "conversionFactor", e.target.value)}
+                            onChange={(e) =>
+                              updateProductFormPresentation(idx, "conversionFactor", e.target.value)
+                            }
                             placeholder="1.0"
                           />
                         </div>
@@ -2332,10 +2471,14 @@ export default function InventariosPage() {
                           <label className="block text-xs font-medium mb-0.5">Unidad *</label>
                           <Select
                             value={pf.conversionUnit}
-                            onChange={(e) => updateProductFormPresentation(idx, "conversionUnit", e.target.value)}
+                            onChange={(e) =>
+                              updateProductFormPresentation(idx, "conversionUnit", e.target.value)
+                            }
                           >
                             {CONVERSION_UNIT_OPTIONS.map((u) => (
-                              <option key={u.value} value={u.value}>{u.label}</option>
+                              <option key={u.value} value={u.value}>
+                                {u.label}
+                              </option>
                             ))}
                           </Select>
                         </div>
@@ -2343,7 +2486,9 @@ export default function InventariosPage() {
                           <label className="block text-xs font-medium mb-0.5">Codigo Barras</label>
                           <Input
                             value={pf.barcode}
-                            onChange={(e) => updateProductFormPresentation(idx, "barcode", e.target.value)}
+                            onChange={(e) =>
+                              updateProductFormPresentation(idx, "barcode", e.target.value)
+                            }
                             placeholder="Opcional"
                           />
                         </div>
@@ -2356,7 +2501,9 @@ export default function InventariosPage() {
                             step="0.01"
                             min="0"
                             value={pf.purchasePrice}
-                            onChange={(e) => updateProductFormPresentation(idx, "purchasePrice", e.target.value)}
+                            onChange={(e) =>
+                              updateProductFormPresentation(idx, "purchasePrice", e.target.value)
+                            }
                             placeholder="0.00"
                           />
                         </div>
@@ -2367,7 +2514,9 @@ export default function InventariosPage() {
                             step="0.01"
                             min="0"
                             value={pf.salePrice}
-                            onChange={(e) => updateProductFormPresentation(idx, "salePrice", e.target.value)}
+                            onChange={(e) =>
+                              updateProductFormPresentation(idx, "salePrice", e.target.value)
+                            }
                             placeholder="0.00"
                           />
                         </div>
@@ -2376,7 +2525,9 @@ export default function InventariosPage() {
                             <input
                               type="checkbox"
                               checked={pf.isDefault as boolean}
-                              onChange={(e) => updateProductFormPresentation(idx, "isDefault", e.target.checked)}
+                              onChange={(e) =>
+                                updateProductFormPresentation(idx, "isDefault", e.target.checked)
+                              }
                               className="rounded"
                             />
                             Default
@@ -2396,7 +2547,9 @@ export default function InventariosPage() {
             </Button>
             <Button
               onClick={handleSaveProduct}
-              disabled={productSaving || !productForm.sku || !productForm.name || !productForm.costPerUnit}
+              disabled={
+                productSaving || !productForm.sku || !productForm.name || !productForm.costPerUnit
+              }
             >
               {productSaving ? "Guardando..." : editingProduct ? "Actualizar" : "Crear"}
             </Button>
@@ -2414,8 +2567,8 @@ export default function InventariosPage() {
       >
         <p className="text-sm text-muted-foreground mb-6">
           Estas seguro de que deseas eliminar el producto{" "}
-          <strong className="text-foreground">{deletingProduct?.name}</strong> ({deletingProduct?.sku})?
-          Esta accion lo marcara como inactivo.
+          <strong className="text-foreground">{deletingProduct?.name}</strong> (
+          {deletingProduct?.sku})? Esta accion lo marcara como inactivo.
         </p>
         <div className="flex justify-end gap-3">
           <Button variant="outline" onClick={() => setDeleteConfirmOpen(false)}>
@@ -2472,14 +2625,18 @@ export default function InventariosPage() {
                 step="0.000001"
                 min="0"
                 value={presentationForm.conversionFactor}
-                onChange={(e) => setPresentationForm((f) => ({ ...f, conversionFactor: e.target.value }))}
+                onChange={(e) =>
+                  setPresentationForm((f) => ({ ...f, conversionFactor: e.target.value }))
+                }
                 placeholder="Ej: 1.0, 0.5, 25.0"
               />
             </FormField>
             <FormField label="Unidad de Conversion" required>
               <Select
                 value={presentationForm.conversionUnit}
-                onChange={(e) => setPresentationForm((f) => ({ ...f, conversionUnit: e.target.value }))}
+                onChange={(e) =>
+                  setPresentationForm((f) => ({ ...f, conversionUnit: e.target.value }))
+                }
               >
                 {CONVERSION_UNIT_OPTIONS.map((u) => (
                   <option key={u.value} value={u.value}>
@@ -2497,7 +2654,9 @@ export default function InventariosPage() {
                 step="0.01"
                 min="0"
                 value={presentationForm.purchasePrice}
-                onChange={(e) => setPresentationForm((f) => ({ ...f, purchasePrice: e.target.value }))}
+                onChange={(e) =>
+                  setPresentationForm((f) => ({ ...f, purchasePrice: e.target.value }))
+                }
                 placeholder="0.00"
               />
             </FormField>
@@ -2518,7 +2677,9 @@ export default function InventariosPage() {
               <input
                 type="checkbox"
                 checked={presentationForm.isDefault as boolean}
-                onChange={(e) => setPresentationForm((f) => ({ ...f, isDefault: e.target.checked }))}
+                onChange={(e) =>
+                  setPresentationForm((f) => ({ ...f, isDefault: e.target.checked }))
+                }
                 className="rounded"
               />
               Presentacion por defecto
@@ -2534,7 +2695,9 @@ export default function InventariosPage() {
             </Button>
             <Button
               onClick={handleSavePresentation}
-              disabled={presentationSaving || !presentationForm.name || !presentationForm.conversionFactor}
+              disabled={
+                presentationSaving || !presentationForm.name || !presentationForm.conversionFactor
+              }
             >
               {presentationSaving ? "Guardando..." : editingPresentation ? "Actualizar" : "Crear"}
             </Button>
@@ -2693,7 +2856,10 @@ export default function InventariosPage() {
       {/* ================================================================ */}
       <Modal
         open={costDetailModalOpen}
-        onClose={() => { setCostDetailModalOpen(false); setRecipeCostDetail(null); }}
+        onClose={() => {
+          setCostDetailModalOpen(false);
+          setRecipeCostDetail(null);
+        }}
         title={recipeCostDetail ? `Costeo: ${recipeCostDetail.recipeName}` : "Detalle de Costos"}
         wide
       >
@@ -2714,7 +2880,9 @@ export default function InventariosPage() {
               </div>
               <div className="rounded-lg border p-3">
                 <div className="text-muted-foreground mb-0.5">Costo por Porcion</div>
-                <div className="font-semibold text-lg">{formatMXN(recipeCostDetail.costPerServing)}</div>
+                <div className="font-semibold text-lg">
+                  {formatMXN(recipeCostDetail.costPerServing)}
+                </div>
               </div>
             </div>
 
@@ -2725,30 +2893,52 @@ export default function InventariosPage() {
                 <table className="w-full">
                   <thead>
                     <tr className="border-b bg-muted/50">
-                      <th className="text-left text-xs font-medium text-muted-foreground px-3 py-2">Ingrediente</th>
-                      <th className="text-right text-xs font-medium text-muted-foreground px-3 py-2">Cantidad</th>
-                      <th className="text-left text-xs font-medium text-muted-foreground px-3 py-2">Unidad</th>
-                      <th className="text-right text-xs font-medium text-muted-foreground px-3 py-2">Merma %</th>
-                      <th className="text-right text-xs font-medium text-muted-foreground px-3 py-2">Costo Unit.</th>
-                      <th className="text-right text-xs font-medium text-muted-foreground px-3 py-2">Costo Total</th>
+                      <th className="text-left text-xs font-medium text-muted-foreground px-3 py-2">
+                        Ingrediente
+                      </th>
+                      <th className="text-right text-xs font-medium text-muted-foreground px-3 py-2">
+                        Cantidad
+                      </th>
+                      <th className="text-left text-xs font-medium text-muted-foreground px-3 py-2">
+                        Unidad
+                      </th>
+                      <th className="text-right text-xs font-medium text-muted-foreground px-3 py-2">
+                        Merma %
+                      </th>
+                      <th className="text-right text-xs font-medium text-muted-foreground px-3 py-2">
+                        Costo Unit.
+                      </th>
+                      <th className="text-right text-xs font-medium text-muted-foreground px-3 py-2">
+                        Costo Total
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
                     {recipeCostDetail.ingredients.map((ing, idx) => (
                       <tr key={idx} className="border-b last:border-0">
                         <td className="px-3 py-2 text-sm">{ing.productName}</td>
-                        <td className="px-3 py-2 text-sm text-right">{safeNum(ing.quantity).toFixed(4)}</td>
+                        <td className="px-3 py-2 text-sm text-right">
+                          {safeNum(ing.quantity).toFixed(4)}
+                        </td>
                         <td className="px-3 py-2 text-sm">{ing.unit}</td>
-                        <td className="px-3 py-2 text-sm text-right">{ing.wastePercentage > 0 ? `${ing.wastePercentage}%` : "-"}</td>
+                        <td className="px-3 py-2 text-sm text-right">
+                          {ing.wastePercentage > 0 ? `${ing.wastePercentage}%` : "-"}
+                        </td>
                         <td className="px-3 py-2 text-sm text-right">{formatMXN(ing.unitCost)}</td>
-                        <td className="px-3 py-2 text-sm text-right font-medium">{formatMXN(ing.totalCost)}</td>
+                        <td className="px-3 py-2 text-sm text-right font-medium">
+                          {formatMXN(ing.totalCost)}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
                   <tfoot>
                     <tr className="bg-muted/30 font-medium">
-                      <td colSpan={5} className="px-3 py-2 text-sm text-right">Total:</td>
-                      <td className="px-3 py-2 text-sm text-right">{formatMXN(recipeCostDetail.totalCost)}</td>
+                      <td colSpan={5} className="px-3 py-2 text-sm text-right">
+                        Total:
+                      </td>
+                      <td className="px-3 py-2 text-sm text-right">
+                        {formatMXN(recipeCostDetail.totalCost)}
+                      </td>
                     </tr>
                   </tfoot>
                 </table>
@@ -2766,7 +2956,9 @@ export default function InventariosPage() {
                   </div>
                   <div className="rounded-lg border p-3">
                     <div className="text-muted-foreground mb-0.5">Food Cost %</div>
-                    <div className={`font-semibold ${recipeCostDetail.foodCostPercentage <= 30 ? "text-green-600" : recipeCostDetail.foodCostPercentage <= 35 ? "text-yellow-600" : "text-red-600"}`}>
+                    <div
+                      className={`font-semibold ${recipeCostDetail.foodCostPercentage <= 30 ? "text-green-600" : recipeCostDetail.foodCostPercentage <= 35 ? "text-yellow-600" : "text-red-600"}`}
+                    >
                       {safeNum(recipeCostDetail.foodCostPercentage).toFixed(1)}%
                     </div>
                   </div>
@@ -2776,7 +2968,9 @@ export default function InventariosPage() {
                   </div>
                   <div className="rounded-lg border p-3">
                     <div className="text-muted-foreground mb-0.5">Margen %</div>
-                    <div className="font-semibold">{safeNum(recipeCostDetail.marginPercentage).toFixed(1)}%</div>
+                    <div className="font-semibold">
+                      {safeNum(recipeCostDetail.marginPercentage).toFixed(1)}%
+                    </div>
                   </div>
                 </div>
 
@@ -2784,7 +2978,10 @@ export default function InventariosPage() {
                 <div className="space-y-1">
                   <div className="flex justify-between text-xs text-muted-foreground">
                     <span>Food Cost</span>
-                    <span>{safeNum(recipeCostDetail.foodCostPercentage).toFixed(1)}% de {formatMXN(recipeCostDetail.sellingPrice)}</span>
+                    <span>
+                      {safeNum(recipeCostDetail.foodCostPercentage).toFixed(1)}% de{" "}
+                      {formatMXN(recipeCostDetail.sellingPrice)}
+                    </span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
                     <div
@@ -2822,18 +3019,27 @@ export default function InventariosPage() {
 
             {recipeCostDetail.sellingPrice === 0 && (
               <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-3 text-sm text-yellow-800">
-                Esta receta no tiene precio de venta configurado. Agrega un precio de venta para ver el analisis de food cost y rentabilidad.
+                Esta receta no tiene precio de venta configurado. Agrega un precio de venta para ver
+                el analisis de food cost y rentabilidad.
               </div>
             )}
 
             <div className="flex justify-end gap-3 pt-2">
-              <Button variant="outline" onClick={() => { setCostDetailModalOpen(false); setRecipeCostDetail(null); }}>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setCostDetailModalOpen(false);
+                  setRecipeCostDetail(null);
+                }}
+              >
                 Cerrar
               </Button>
               <Button
                 onClick={async () => {
                   if (!recipeCostDetail) return;
-                  const recipeId = foodCostSummary.find((s) => s.name === recipeCostDetail.recipeName)?.id;
+                  const recipeId = foodCostSummary.find(
+                    (s) => s.name === recipeCostDetail.recipeName,
+                  )?.id;
                   if (recipeId) {
                     await fetchRecipeCostDetail(recipeId);
                     await fetchFoodCostSummary();
@@ -2860,10 +3066,7 @@ export default function InventariosPage() {
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <FormField label="Sucursal Origen" required>
-              <Select
-                value={newTransferFrom}
-                onChange={(e) => setNewTransferFrom(e.target.value)}
-              >
+              <Select value={newTransferFrom} onChange={(e) => setNewTransferFrom(e.target.value)}>
                 <option value="">Seleccionar origen</option>
                 {branches.map((b) => (
                   <option key={b.id} value={b.id}>
@@ -2873,10 +3076,7 @@ export default function InventariosPage() {
               </Select>
             </FormField>
             <FormField label="Sucursal Destino" required>
-              <Select
-                value={newTransferTo}
-                onChange={(e) => setNewTransferTo(e.target.value)}
-              >
+              <Select value={newTransferTo} onChange={(e) => setNewTransferTo(e.target.value)}>
                 <option value="">Seleccionar destino</option>
                 {branches
                   .filter((b) => b.id !== newTransferFrom)
@@ -2972,7 +3172,10 @@ export default function InventariosPage() {
       {/* ================================================================ */}
       <Modal
         open={detailModalOpen}
-        onClose={() => { setDetailModalOpen(false); setSelectedTransfer(null); }}
+        onClose={() => {
+          setDetailModalOpen(false);
+          setSelectedTransfer(null);
+        }}
         title={selectedTransfer ? `Transferencia` : "Detalle"}
         wide
       >
@@ -3016,7 +3219,8 @@ export default function InventariosPage() {
 
             {selectedTransfer.completedAt && (
               <div className="text-sm text-muted-foreground">
-                Completada: {new Date(selectedTransfer.completedAt).toLocaleDateString("es-MX", {
+                Completada:{" "}
+                {new Date(selectedTransfer.completedAt).toLocaleDateString("es-MX", {
                   day: "2-digit",
                   month: "short",
                   year: "numeric",
@@ -3033,18 +3237,30 @@ export default function InventariosPage() {
                 <table className="w-full">
                   <thead>
                     <tr className="border-b bg-muted/50">
-                      <th className="text-left text-xs font-medium text-muted-foreground px-3 py-2">Producto</th>
-                      <th className="text-left text-xs font-medium text-muted-foreground px-3 py-2">SKU</th>
-                      <th className="text-right text-xs font-medium text-muted-foreground px-3 py-2">Solicitado</th>
-                      <th className="text-right text-xs font-medium text-muted-foreground px-3 py-2">Enviado</th>
-                      <th className="text-right text-xs font-medium text-muted-foreground px-3 py-2">Recibido</th>
+                      <th className="text-left text-xs font-medium text-muted-foreground px-3 py-2">
+                        Producto
+                      </th>
+                      <th className="text-left text-xs font-medium text-muted-foreground px-3 py-2">
+                        SKU
+                      </th>
+                      <th className="text-right text-xs font-medium text-muted-foreground px-3 py-2">
+                        Solicitado
+                      </th>
+                      <th className="text-right text-xs font-medium text-muted-foreground px-3 py-2">
+                        Enviado
+                      </th>
+                      <th className="text-right text-xs font-medium text-muted-foreground px-3 py-2">
+                        Recibido
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
                     {selectedTransfer.items.map((item) => (
                       <tr key={item.id} className="border-b last:border-0">
                         <td className="px-3 py-2 text-sm font-medium">{item.product.name}</td>
-                        <td className="px-3 py-2 text-sm font-mono text-muted-foreground">{item.product.sku}</td>
+                        <td className="px-3 py-2 text-sm font-mono text-muted-foreground">
+                          {item.product.sku}
+                        </td>
                         <td className="px-3 py-2 text-sm text-right">
                           {safeNum(item.requestedQuantity).toLocaleString("es-MX")}
                         </td>
@@ -3069,7 +3285,10 @@ export default function InventariosPage() {
             <div className="flex justify-end gap-3 pt-2">
               <Button
                 variant="outline"
-                onClick={() => { setDetailModalOpen(false); setSelectedTransfer(null); }}
+                onClick={() => {
+                  setDetailModalOpen(false);
+                  setSelectedTransfer(null);
+                }}
               >
                 Cerrar
               </Button>
@@ -3149,9 +3368,15 @@ export default function InventariosPage() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b bg-muted/50">
-                    <th className="text-left text-xs font-medium text-muted-foreground px-3 py-2">Producto</th>
-                    <th className="text-right text-xs font-medium text-muted-foreground px-3 py-2">Solicitado</th>
-                    <th className="text-right text-xs font-medium text-muted-foreground px-3 py-2 w-32">Enviado</th>
+                    <th className="text-left text-xs font-medium text-muted-foreground px-3 py-2">
+                      Producto
+                    </th>
+                    <th className="text-right text-xs font-medium text-muted-foreground px-3 py-2">
+                      Solicitado
+                    </th>
+                    <th className="text-right text-xs font-medium text-muted-foreground px-3 py-2 w-32">
+                      Enviado
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -3159,7 +3384,9 @@ export default function InventariosPage() {
                     <tr key={item.id} className="border-b last:border-0">
                       <td className="px-3 py-2 text-sm">
                         <span className="font-medium">{item.product.name}</span>
-                        <span className="ml-2 text-xs text-muted-foreground font-mono">{item.product.sku}</span>
+                        <span className="ml-2 text-xs text-muted-foreground font-mono">
+                          {item.product.sku}
+                        </span>
                       </td>
                       <td className="px-3 py-2 text-sm text-right">
                         {safeNum(item.requestedQuantity).toLocaleString("es-MX")}
@@ -3221,9 +3448,15 @@ export default function InventariosPage() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b bg-muted/50">
-                    <th className="text-left text-xs font-medium text-muted-foreground px-3 py-2">Producto</th>
-                    <th className="text-right text-xs font-medium text-muted-foreground px-3 py-2">Enviado</th>
-                    <th className="text-right text-xs font-medium text-muted-foreground px-3 py-2 w-32">Recibido</th>
+                    <th className="text-left text-xs font-medium text-muted-foreground px-3 py-2">
+                      Producto
+                    </th>
+                    <th className="text-right text-xs font-medium text-muted-foreground px-3 py-2">
+                      Enviado
+                    </th>
+                    <th className="text-right text-xs font-medium text-muted-foreground px-3 py-2 w-32">
+                      Recibido
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -3231,7 +3464,9 @@ export default function InventariosPage() {
                     <tr key={item.id} className="border-b last:border-0">
                       <td className="px-3 py-2 text-sm">
                         <span className="font-medium">{item.product.name}</span>
-                        <span className="ml-2 text-xs text-muted-foreground font-mono">{item.product.sku}</span>
+                        <span className="ml-2 text-xs text-muted-foreground font-mono">
+                          {item.product.sku}
+                        </span>
                       </td>
                       <td className="px-3 py-2 text-sm text-right">
                         {item.sentQuantity != null

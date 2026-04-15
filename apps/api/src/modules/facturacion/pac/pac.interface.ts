@@ -22,8 +22,5 @@ export interface PacProvider {
     motivo: string,
     folioSustitucion?: string,
   ): Promise<PacCancelResponse>;
-  getStatus(
-    uuid: string,
-    rfc: string,
-  ): Promise<{ status: string; cancellable: boolean }>;
+  getStatus(uuid: string, rfc: string): Promise<{ status: string; cancellable: boolean }>;
 }

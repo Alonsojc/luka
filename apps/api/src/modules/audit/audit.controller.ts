@@ -1,20 +1,9 @@
-import {
-  Controller,
-  Get,
-  Delete,
-  Query,
-  Param,
-  Body,
-  UseGuards,
-} from "@nestjs/common";
+import { Controller, Get, Delete, Query, Param, Body, UseGuards } from "@nestjs/common";
 import { ApiTags, ApiBearerAuth } from "@nestjs/swagger";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
 import { Permissions } from "../../common/decorators/roles.decorator";
-import {
-  CurrentUser,
-  JwtPayload,
-} from "../../common/decorators/current-user.decorator";
+import { CurrentUser, JwtPayload } from "../../common/decorators/current-user.decorator";
 import { AuditService } from "./audit.service";
 
 @ApiTags("Audit")
@@ -72,28 +61,18 @@ export class AuditController {
     @Param("entityType") entityType: string,
     @Param("entityId") entityId: string,
   ) {
-    return this.auditService.getEntityHistory(
-      caller.organizationId,
-      entityType,
-      entityId,
-    );
+    return this.auditService.getEntityHistory(caller.organizationId, entityType, entityId);
   }
 
   @Get(":id")
   @Permissions("configuracion:view")
-  findOne(
-    @CurrentUser() caller: JwtPayload,
-    @Param("id") id: string,
-  ) {
+  findOne(@CurrentUser() caller: JwtPayload, @Param("id") id: string) {
     return this.auditService.findOne(caller.organizationId, id);
   }
 
   @Delete("clean")
   @Permissions("configuracion:edit")
-  cleanOld(
-    @CurrentUser() caller: JwtPayload,
-    @Body() body: { olderThanDays: number },
-  ) {
+  cleanOld(@CurrentUser() caller: JwtPayload, @Body() body: { olderThanDays: number }) {
     const olderThan = new Date();
     olderThan.setDate(olderThan.getDate() - body.olderThanDays);
     return this.auditService.cleanOld(caller.organizationId, olderThan);

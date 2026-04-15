@@ -113,7 +113,7 @@ export function useContabilidad() {
     try {
       const data = await authFetch<Account[]>("get", "/contabilidad/accounts");
       const sorted = (Array.isArray(data) ? data : []).sort((a, b) =>
-        a.code.localeCompare(b.code, undefined, { numeric: true })
+        a.code.localeCompare(b.code, undefined, { numeric: true }),
       );
       setAccounts(sorted);
     } catch (err) {
@@ -180,7 +180,14 @@ export function useContabilidad() {
     fetchBranches();
     fetchPendingEvents();
     fetchAutoEntries();
-  }, [authLoading, fetchAccounts, fetchEntries, fetchBranches, fetchPendingEvents, fetchAutoEntries]);
+  }, [
+    authLoading,
+    fetchAccounts,
+    fetchEntries,
+    fetchBranches,
+    fetchPendingEvents,
+    fetchAutoEntries,
+  ]);
 
   // ============================================================
   // ACCOUNT CRUD
@@ -323,7 +330,7 @@ export function useContabilidad() {
       const result = await authFetch<BatchResult>(
         "post",
         "/contabilidad/auto-polizas/generate-batch",
-        {}
+        {},
       );
       setBatchResult(result);
       fetchPendingEvents();
@@ -367,10 +374,7 @@ export function useContabilidad() {
   async function fetchDiotHistory() {
     setDiotHistoryLoading(true);
     try {
-      const data = await authFetch<DiotHistoryItem[]>(
-        "get",
-        "/contabilidad/diot/history",
-      );
+      const data = await authFetch<DiotHistoryItem[]>("get", "/contabilidad/diot/history");
       setDiotHistory(Array.isArray(data) ? data : []);
     } catch (err) {
       toast(err instanceof Error ? err.message : "Error al cargar datos", "error");
@@ -383,10 +387,7 @@ export function useContabilidad() {
   async function generateDiot() {
     setDiotGenerating(true);
     try {
-      await authFetch(
-        "post",
-        `/contabilidad/diot/generate?year=${diotYear}&month=${diotMonth}`,
-      );
+      await authFetch("post", `/contabilidad/diot/generate?year=${diotYear}&month=${diotMonth}`);
       // Refresh preview after generating
       await fetchDiotPreview();
       await fetchDiotHistory();
@@ -413,9 +414,7 @@ export function useContabilidad() {
       });
       if (!response.ok) {
         const errorData = await response.json().catch(() => null);
-        throw new Error(
-          errorData?.message || "Error al descargar DIOT",
-        );
+        throw new Error(errorData?.message || "Error al descargar DIOT");
       }
       const blob = await response.blob();
       const downloadUrl = window.URL.createObjectURL(blob);
@@ -546,9 +545,8 @@ export function useContabilidad() {
       .filter((a) => a.isDetail)
       .map((a) => {
         const totals = map.get(a.id) || { debit: 0, credit: 0 };
-        const saldoFinal = a.nature === "DEBIT"
-          ? totals.debit - totals.credit
-          : totals.credit - totals.debit;
+        const saldoFinal =
+          a.nature === "DEBIT" ? totals.debit - totals.credit : totals.credit - totals.debit;
         return { ...a, cargos: totals.debit, abonos: totals.credit, saldoFinal };
       })
       .filter((a) => a.cargos > 0 || a.abonos > 0);

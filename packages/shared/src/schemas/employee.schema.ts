@@ -8,10 +8,7 @@ export const createEmployeeSchema = z.object({
   curp: z
     .string()
     .length(18, "CURP debe ser de 18 caracteres")
-    .regex(
-      /^[A-Z]{4}\d{6}[HM][A-Z]{5}[A-Z0-9]\d$/,
-      "Formato de CURP inválido"
-    )
+    .regex(/^[A-Z]{4}\d{6}[HM][A-Z]{5}[A-Z0-9]\d$/, "Formato de CURP inválido")
     .optional(),
   rfc: z.string().min(12).max(13).optional(),
   nss: z

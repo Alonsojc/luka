@@ -1,10 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { Test, TestingModule } from "@nestjs/testing";
-import {
-  ForbiddenException,
-  ConflictException,
-  NotFoundException,
-} from "@nestjs/common";
+import { ForbiddenException, ConflictException, NotFoundException } from "@nestjs/common";
 import { UsersService } from "./users.service";
 import { PrismaService } from "../../common/prisma/prisma.service";
 import { EmailService } from "../email/email.service";
@@ -115,9 +111,7 @@ describe("UsersService", () => {
     });
 
     it("should throw ForbiddenException for non-admin/non-owner callers", async () => {
-      await expect(service.findAll(employeeCaller)).rejects.toThrow(
-        ForbiddenException,
-      );
+      await expect(service.findAll(employeeCaller)).rejects.toThrow(ForbiddenException);
     });
 
     it("should allow OWNER role (case-insensitive)", async () => {
@@ -158,9 +152,7 @@ describe("UsersService", () => {
         organizationId: "org-1",
         passwordHash: "hashed",
         refreshToken: null,
-        branchRoles: [
-          { roleId: "role-1", role: { name: "employee" }, branch: null },
-        ],
+        branchRoles: [{ roleId: "role-1", role: { name: "employee" }, branch: null }],
       });
 
       const result = await service.create(adminCaller, {
@@ -184,9 +176,7 @@ describe("UsersService", () => {
         organizationId: "org-1",
       });
 
-      await expect(service.softDelete(adminCaller, "admin-1")).rejects.toThrow(
-        ForbiddenException,
-      );
+      await expect(service.softDelete(adminCaller, "admin-1")).rejects.toThrow(ForbiddenException);
     });
 
     it("should deactivate another user successfully", async () => {
@@ -208,9 +198,9 @@ describe("UsersService", () => {
     it("should throw NotFoundException if user not found", async () => {
       mockPrisma.user.findFirst.mockResolvedValue(null);
 
-      await expect(
-        service.softDelete(adminCaller, "nonexistent"),
-      ).rejects.toThrow(NotFoundException);
+      await expect(service.softDelete(adminCaller, "nonexistent")).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -236,9 +226,7 @@ describe("UsersService", () => {
     it("should throw NotFoundException if user not found", async () => {
       mockPrisma.user.findFirst.mockResolvedValue(null);
 
-      await expect(
-        service.findOne(adminCaller, "nonexistent"),
-      ).rejects.toThrow(NotFoundException);
+      await expect(service.findOne(adminCaller, "nonexistent")).rejects.toThrow(NotFoundException);
     });
   });
 });

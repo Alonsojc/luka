@@ -1,22 +1,10 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Patch,
-  Param,
-  Body,
-  Query,
-  UseGuards,
-} from "@nestjs/common";
+import { Controller, Get, Post, Patch, Param, Body, Query, UseGuards } from "@nestjs/common";
 import { ApiTags, ApiBearerAuth } from "@nestjs/swagger";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
 import { BranchAccessGuard } from "../../common/guards/branch-access.guard";
 import { Permissions } from "../../common/decorators/roles.decorator";
-import {
-  CurrentUser,
-  JwtPayload,
-} from "../../common/decorators/current-user.decorator";
+import { CurrentUser, JwtPayload } from "../../common/decorators/current-user.decorator";
 import { LotsService } from "./lots.service";
 import { CreateLotDto } from "./dto/create-lot.dto";
 import { UpdateLotDto } from "./dto/update-lot.dto";
@@ -46,9 +34,7 @@ export class LotsController {
       productId,
       status,
       expiringBefore,
-      expiringWithin: expiringWithin
-        ? parseInt(expiringWithin, 10)
-        : undefined,
+      expiringWithin: expiringWithin ? parseInt(expiringWithin, 10) : undefined,
       search,
       page: page ? parseInt(page, 10) : undefined,
       limit: limit ? parseInt(limit, 10) : undefined,
@@ -82,11 +68,7 @@ export class LotsController {
     @Param("productId") productId: string,
     @Query("branchId") branchId?: string,
   ) {
-    return this.lotsService.getLotsByProduct(
-      user.organizationId,
-      productId,
-      branchId,
-    );
+    return this.lotsService.getLotsByProduct(user.organizationId, productId, branchId);
   }
 
   @Get(":id")
@@ -114,11 +96,7 @@ export class LotsController {
     @Param("id") id: string,
     @Body("quantity") quantity: number,
   ) {
-    return this.lotsService.consumeFromLot(
-      user.organizationId,
-      id,
-      quantity,
-    );
+    return this.lotsService.consumeFromLot(user.organizationId, id, quantity);
   }
 
   @Post(":id/dispose")
@@ -128,21 +106,12 @@ export class LotsController {
     @Param("id") id: string,
     @Body("reason") reason: string,
   ) {
-    return this.lotsService.disposeLot(
-      user.organizationId,
-      id,
-      user.sub,
-      reason,
-    );
+    return this.lotsService.disposeLot(user.organizationId, id, user.sub, reason);
   }
 
   @Patch(":id")
   @Permissions("inventarios:edit")
-  updateLot(
-    @CurrentUser() user: JwtPayload,
-    @Param("id") id: string,
-    @Body() dto: UpdateLotDto,
-  ) {
+  updateLot(@CurrentUser() user: JwtPayload, @Param("id") id: string, @Body() dto: UpdateLotDto) {
     return this.lotsService.updateLot(user.organizationId, id, dto);
   }
 }

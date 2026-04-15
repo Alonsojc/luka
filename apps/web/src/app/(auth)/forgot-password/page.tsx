@@ -19,9 +19,7 @@ export default function ForgotPasswordPage() {
       await api.post("/auth/forgot-password", { email });
       setSent(true);
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Error al enviar instrucciones"
-      );
+      setError(err instanceof Error ? err.message : "Error al enviar instrucciones");
     } finally {
       setLoading(false);
     }
@@ -41,11 +39,7 @@ export default function ForgotPasswordPage() {
       <div className="relative w-full max-w-md px-4">
         {/* Logo */}
         <div className="text-center mb-10">
-          <img
-            src="/luka-logo.png"
-            alt="Luka Poke House"
-            className="mx-auto h-32 w-auto"
-          />
+          <img src="/luka-logo.png" alt="Luka Poke House" className="mx-auto h-32 w-auto" />
           <p className="mt-4 text-white/50 text-sm tracking-[0.3em] uppercase font-light">
             Recuperar Contrasena
           </p>
@@ -56,8 +50,8 @@ export default function ForgotPasswordPage() {
           {sent ? (
             <div className="text-center space-y-4">
               <p className="text-white/70 text-sm">
-                Si el correo esta registrado, recibiras instrucciones para
-                restablecer tu contrasena.
+                Si el correo esta registrado, recibiras instrucciones para restablecer tu
+                contrasena.
               </p>
               <Link
                 href="/login"

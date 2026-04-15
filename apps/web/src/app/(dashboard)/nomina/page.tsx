@@ -38,11 +38,28 @@ import { exportToCSV } from "@/lib/export-csv";
 import { generatePayrollPDF } from "@/lib/pdf-generator";
 import { safeNum } from "@luka/shared";
 
-const TABS = ["Empleados", "Períodos de Nómina", "Detalle de Recibos", "CFDI Nómina", "SUA / IMSS", "Worky"];
+const TABS = [
+  "Empleados",
+  "Períodos de Nómina",
+  "Detalle de Recibos",
+  "CFDI Nómina",
+  "SUA / IMSS",
+  "Worky",
+];
 
 const MONTH_NAMES = [
-  "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
-  "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
+  "Enero",
+  "Febrero",
+  "Marzo",
+  "Abril",
+  "Mayo",
+  "Junio",
+  "Julio",
+  "Agosto",
+  "Septiembre",
+  "Octubre",
+  "Noviembre",
+  "Diciembre",
 ];
 
 const CONTRACT_TYPES = [
@@ -77,7 +94,11 @@ function fmtDate(d: string | null | undefined): string {
   return new Date(d).toLocaleDateString("es-MX");
 }
 
-const normalize = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+const normalize = (s: string) =>
+  s
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
 
 export default function NominaPage() {
   const { authFetch, loading: authLoading } = useAuth();
@@ -90,9 +111,14 @@ export default function NominaPage() {
   const PAGE_SIZE = 10;
 
   // Reset page when search changes
-  useEffect(() => { setCurrentPage(1); }, [searchTerm]);
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
   // Reset search when tab changes
-  useEffect(() => { setSearchTerm(""); setCurrentPage(1); }, [activeTab]);
+  useEffect(() => {
+    setSearchTerm("");
+    setCurrentPage(1);
+  }, [activeTab]);
 
   // ── Employees state ──
   const [employees, setEmployees] = useState<any[]>([]);
@@ -373,19 +399,25 @@ export default function NominaPage() {
   }
 
   // ── CFDI Nómina Functions ──
-  const fetchCfdiReceipts = useCallback(async (periodId: string) => {
-    if (!periodId) { setCfdiReceipts([]); return; }
-    setLoadingCfdi(true);
-    try {
-      const data = await authFetch<any[]>("get", `/nomina/cfdi/period/${periodId}`);
-      setCfdiReceipts(data);
-    } catch {
-      toast("Error al cargar datos CFDI", "error");
-      setCfdiReceipts([]);
-    } finally {
-      setLoadingCfdi(false);
-    }
-  }, [authFetch, toast]);
+  const fetchCfdiReceipts = useCallback(
+    async (periodId: string) => {
+      if (!periodId) {
+        setCfdiReceipts([]);
+        return;
+      }
+      setLoadingCfdi(true);
+      try {
+        const data = await authFetch<any[]>("get", `/nomina/cfdi/period/${periodId}`);
+        setCfdiReceipts(data);
+      } catch {
+        toast("Error al cargar datos CFDI", "error");
+        setCfdiReceipts([]);
+      } finally {
+        setLoadingCfdi(false);
+      }
+    },
+    [authFetch, toast],
+  );
 
   async function generateSingleCfdi(receiptId: string) {
     setGeneratingCfdi(receiptId);
@@ -404,7 +436,11 @@ export default function NominaPage() {
     if (!cfdiPeriodId) return;
     setGeneratingBatch(true);
     try {
-      const result = await authFetch<any>("post", `/nomina/cfdi/generate-batch/${cfdiPeriodId}`, {});
+      const result = await authFetch<any>(
+        "post",
+        `/nomina/cfdi/generate-batch/${cfdiPeriodId}`,
+        {},
+      );
       toast(`CFDIs generados: ${result.generated}, Fallidos: ${result.failed}`);
       fetchCfdiReceipts(cfdiPeriodId);
     } catch {
@@ -444,7 +480,10 @@ export default function NominaPage() {
   const fetchSuaMovements = useCallback(async () => {
     setLoadingSua(true);
     try {
-      const data = await authFetch<any[]>("get", `/nomina/sua/preview?year=${suaYear}&month=${suaMonth}`);
+      const data = await authFetch<any[]>(
+        "get",
+        `/nomina/sua/preview?year=${suaYear}&month=${suaMonth}`,
+      );
       setSuaMovements(data);
     } catch {
       toast("Error al cargar movimientos SUA", "error");
@@ -457,7 +496,10 @@ export default function NominaPage() {
   const fetchSuaSummary = useCallback(async () => {
     setLoadingSua(true);
     try {
-      const data = await authFetch<any>("get", `/nomina/sua/summary?year=${suaYear}&month=${suaMonth}`);
+      const data = await authFetch<any>(
+        "get",
+        `/nomina/sua/summary?year=${suaYear}&month=${suaMonth}`,
+      );
       setSuaSummary(data);
     } catch {
       toast("Error al cargar resumen de cuotas", "error");
@@ -497,7 +539,9 @@ export default function NominaPage() {
       await authFetch("post", `/nomina/sua/generate?year=${suaYear}&month=${suaMonth}`, {});
       toast("Archivo SUA generado exitosamente");
       fetchSuaHistory();
-      const content = await fetchSuaRawText(`/nomina/sua/download?year=${suaYear}&month=${suaMonth}`);
+      const content = await fetchSuaRawText(
+        `/nomina/sua/download?year=${suaYear}&month=${suaMonth}`,
+      );
       setSuaFileContent(content);
     } catch {
       toast("Error al generar archivo SUA", "error");
@@ -506,7 +550,9 @@ export default function NominaPage() {
 
   async function downloadSuaFile() {
     try {
-      const content = await fetchSuaRawText(`/nomina/sua/download?year=${suaYear}&month=${suaMonth}`);
+      const content = await fetchSuaRawText(
+        `/nomina/sua/download?year=${suaYear}&month=${suaMonth}`,
+      );
       const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -527,7 +573,16 @@ export default function NominaPage() {
     if (suaSection === "movements") fetchSuaMovements();
     if (suaSection === "summary") fetchSuaSummary();
     if (suaSection === "export") fetchSuaHistory();
-  }, [activeTab, suaSection, suaYear, suaMonth, authLoading, fetchSuaMovements, fetchSuaSummary, fetchSuaHistory]);
+  }, [
+    activeTab,
+    suaSection,
+    suaYear,
+    suaMonth,
+    authLoading,
+    fetchSuaMovements,
+    fetchSuaSummary,
+    fetchSuaHistory,
+  ]);
 
   // ── Worky Functions ──
   const fetchWorkyConfig = useCallback(async () => {
@@ -673,9 +728,13 @@ export default function NominaPage() {
     : employees;
 
   const totalPagesNomina = Math.ceil(filteredEmployees.length / PAGE_SIZE);
-  const paginatedEmployees = filteredEmployees.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  const paginatedEmployees = filteredEmployees.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE,
+  );
 
-  const paginationStartNomina = filteredEmployees.length === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1;
+  const paginationStartNomina =
+    filteredEmployees.length === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1;
   const paginationEndNomina = Math.min(currentPage * PAGE_SIZE, filteredEmployees.length);
 
   return (
@@ -687,10 +746,30 @@ export default function NominaPage() {
       {/* Summary cards */}
       <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[
-          { label: "Total Empleados", value: String(employees.length), icon: Users, color: "bg-blue-50 text-blue-600" },
-          { label: "Activos", value: String(activeEmployees.length), icon: Briefcase, color: "bg-green-50 text-green-600" },
-          { label: "Nómina Mensual Est.", value: fmt(totalPayroll), icon: DollarSign, color: "bg-amber-50 text-amber-600" },
-          { label: "Períodos", value: String(periods.length), icon: TrendingDown, color: "bg-purple-50 text-purple-600" },
+          {
+            label: "Total Empleados",
+            value: String(employees.length),
+            icon: Users,
+            color: "bg-blue-50 text-blue-600",
+          },
+          {
+            label: "Activos",
+            value: String(activeEmployees.length),
+            icon: Briefcase,
+            color: "bg-green-50 text-green-600",
+          },
+          {
+            label: "Nómina Mensual Est.",
+            value: fmt(totalPayroll),
+            icon: DollarSign,
+            color: "bg-amber-50 text-amber-600",
+          },
+          {
+            label: "Períodos",
+            value: String(periods.length),
+            icon: TrendingDown,
+            color: "bg-purple-50 text-purple-600",
+          },
         ].map((c) => {
           const Icon = c.icon;
           return (
@@ -749,29 +828,31 @@ export default function NominaPage() {
         <div className="mt-4">
           <div className="mb-4 flex justify-end gap-3">
             <button
-              onClick={() => exportToCSV(
-                employees.map(e => ({
-                  employeeNumber: e.employeeNumber,
-                  name: `${e.firstName} ${e.lastName}`,
-                  rfc: e.rfc || "",
-                  curp: e.curp || "",
-                  branch: branchMap[e.branchId] || "",
-                  jobPosition: e.jobPosition || "",
-                  dailySalary: Number(e.dailySalary || 0),
-                  status: e.isActive ? "Activo" : "Inactivo",
-                })),
-                "empleados",
-                [
-                  { key: "employeeNumber", label: "Numero" },
-                  { key: "name", label: "Nombre" },
-                  { key: "rfc", label: "RFC" },
-                  { key: "curp", label: "CURP" },
-                  { key: "branch", label: "Sucursal" },
-                  { key: "jobPosition", label: "Puesto" },
-                  { key: "dailySalary", label: "Salario Diario" },
-                  { key: "status", label: "Status" },
-                ]
-              )}
+              onClick={() =>
+                exportToCSV(
+                  employees.map((e) => ({
+                    employeeNumber: e.employeeNumber,
+                    name: `${e.firstName} ${e.lastName}`,
+                    rfc: e.rfc || "",
+                    curp: e.curp || "",
+                    branch: branchMap[e.branchId] || "",
+                    jobPosition: e.jobPosition || "",
+                    dailySalary: Number(e.dailySalary || 0),
+                    status: e.isActive ? "Activo" : "Inactivo",
+                  })),
+                  "empleados",
+                  [
+                    { key: "employeeNumber", label: "Numero" },
+                    { key: "name", label: "Nombre" },
+                    { key: "rfc", label: "RFC" },
+                    { key: "curp", label: "CURP" },
+                    { key: "branch", label: "Sucursal" },
+                    { key: "jobPosition", label: "Puesto" },
+                    { key: "dailySalary", label: "Salario Diario" },
+                    { key: "status", label: "Status" },
+                  ],
+                )
+              }
               className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
             >
               <Download className="h-4 w-4" />
@@ -829,14 +910,20 @@ export default function NominaPage() {
                 render: (r: any) => (
                   <div className="flex gap-2">
                     <button
-                      onClick={(e) => { e.stopPropagation(); openEditEmp(r); }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openEditEmp(r);
+                      }}
                       className="text-sm font-medium text-black hover:text-gray-700"
                     >
                       Editar
                     </button>
                     {r.isActive && (
                       <button
-                        onClick={(e) => { e.stopPropagation(); openTerminate(r); }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openTerminate(r);
+                        }}
                         className="text-sm font-medium text-red-600 hover:text-red-800"
                       >
                         Baja
@@ -855,7 +942,8 @@ export default function NominaPage() {
           {filteredEmployees.length > 0 && (
             <div className="mt-4 flex items-center justify-between">
               <p className="text-sm text-gray-500">
-                Mostrando {paginationStartNomina}-{paginationEndNomina} de {filteredEmployees.length}
+                Mostrando {paginationStartNomina}-{paginationEndNomina} de{" "}
+                {filteredEmployees.length}
               </p>
               <div className="flex items-center gap-2">
                 <button
@@ -882,10 +970,12 @@ export default function NominaPage() {
       {activeTab === "Períodos de Nómina" && (
         <div className="mt-4">
           <div className="mb-4 flex justify-end">
-            <Button onClick={() => {
-              setPerForm({ periodType: "BIWEEKLY", startDate: "", endDate: "" });
-              setShowPerModal(true);
-            }}>
+            <Button
+              onClick={() => {
+                setPerForm({ periodType: "BIWEEKLY", startDate: "", endDate: "" });
+                setShowPerModal(true);
+              }}
+            >
               <Plus className="h-4 w-4" /> Nuevo Período
             </Button>
           </div>
@@ -942,7 +1032,10 @@ export default function NominaPage() {
                   <div className="flex gap-2">
                     {r.status === "DRAFT" && (
                       <button
-                        onClick={(e) => { e.stopPropagation(); calculatePeriod(r.id); }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          calculatePeriod(r.id);
+                        }}
                         className="flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-800"
                       >
                         <Calculator className="h-3.5 w-3.5" /> Calcular
@@ -950,7 +1043,10 @@ export default function NominaPage() {
                     )}
                     {r.status === "CALCULATED" && (
                       <button
-                        onClick={(e) => { e.stopPropagation(); approvePeriod(r.id); }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          approvePeriod(r.id);
+                        }}
                         className="flex items-center gap-1 text-sm font-medium text-green-600 hover:text-green-800"
                       >
                         <CheckCircle className="h-3.5 w-3.5" /> Aprobar
@@ -958,7 +1054,10 @@ export default function NominaPage() {
                     )}
                     {r.status !== "DRAFT" && (
                       <button
-                        onClick={(e) => { e.stopPropagation(); viewReceipts(r); }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          viewReceipts(r);
+                        }}
                         className="flex items-center gap-1 text-sm font-medium text-black hover:text-gray-700"
                       >
                         <Eye className="h-3.5 w-3.5" /> Recibos
@@ -982,14 +1081,17 @@ export default function NominaPage() {
             <>
               <div className="mb-4 flex items-center gap-4">
                 <button
-                  onClick={() => { setActiveTab("Períodos de Nómina"); setSelectedPeriod(null); }}
+                  onClick={() => {
+                    setActiveTab("Períodos de Nómina");
+                    setSelectedPeriod(null);
+                  }}
                   className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700"
                 >
                   <ArrowLeft className="h-4 w-4" /> Volver a períodos
                 </button>
                 <div className="text-sm text-gray-600">
-                  <span className="font-medium">Período:</span>{" "}
-                  {fmtDate(selectedPeriod.startDate)} — {fmtDate(selectedPeriod.endDate)}
+                  <span className="font-medium">Período:</span> {fmtDate(selectedPeriod.startDate)}{" "}
+                  — {fmtDate(selectedPeriod.endDate)}
                   {" · "}
                   {PAYMENT_FREQUENCIES.find((f) => f.value === selectedPeriod.periodType)?.label}
                 </div>
@@ -1003,7 +1105,10 @@ export default function NominaPage() {
                   { label: "Neto Total", value: fmt(selectedPeriod.totalNet) },
                   { label: "Costo Patronal", value: fmt(selectedPeriod.totalEmployerCost) },
                 ].map((c) => (
-                  <div key={c.label} className="rounded-lg border bg-white p-3 text-center shadow-sm">
+                  <div
+                    key={c.label}
+                    className="rounded-lg border bg-white p-3 text-center shadow-sm"
+                  >
                     <p className="text-xs text-gray-500">{c.label}</p>
                     <p className="mt-1 text-lg font-bold text-gray-900">{c.value}</p>
                   </div>
@@ -1074,7 +1179,9 @@ export default function NominaPage() {
           ) : (
             <div className="flex flex-col items-center justify-center py-16 text-gray-400">
               <Eye className="h-12 w-12 mb-2" />
-              <p>Selecciona un período desde la pestaña "Períodos de Nómina" para ver sus recibos</p>
+              <p>
+                Selecciona un período desde la pestaña "Períodos de Nómina" para ver sus recibos
+              </p>
             </div>
           )}
         </div>
@@ -1098,17 +1205,15 @@ export default function NominaPage() {
                   .filter((p: any) => p.status !== "DRAFT")
                   .map((p: any) => (
                     <option key={p.id} value={p.id}>
-                      {fmtDate(p.startDate)} — {fmtDate(p.endDate)} ({PAYMENT_FREQUENCIES.find((f) => f.value === p.periodType)?.label})
+                      {fmtDate(p.startDate)} — {fmtDate(p.endDate)} (
+                      {PAYMENT_FREQUENCIES.find((f) => f.value === p.periodType)?.label})
                     </option>
                   ))}
               </Select>
             </FormField>
             {cfdiPeriodId && (
               <div className="flex items-center gap-2 pt-5">
-                <Button
-                  onClick={generateBatchCfdi}
-                  disabled={generatingBatch || loadingCfdi}
-                >
+                <Button onClick={generateBatchCfdi} disabled={generatingBatch || loadingCfdi}>
                   {generatingBatch ? (
                     <>
                       <Clock className="h-4 w-4 animate-spin" /> Generando...
@@ -1181,14 +1286,20 @@ export default function NominaPage() {
                     render: (r: any) => (
                       <div className="flex gap-2">
                         <button
-                          onClick={(e) => { e.stopPropagation(); previewCfdiXml(r.receiptId); }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            previewCfdiXml(r.receiptId);
+                          }}
                           className="flex items-center gap-1 text-sm font-medium text-black hover:text-gray-700"
                         >
                           <Eye className="h-3.5 w-3.5" /> XML
                         </button>
                         {!r.cfdiStatus && (
                           <button
-                            onClick={(e) => { e.stopPropagation(); generateSingleCfdi(r.receiptId); }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              generateSingleCfdi(r.receiptId);
+                            }}
                             disabled={generatingCfdi === r.receiptId}
                             className="flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-800 disabled:opacity-50"
                           >
@@ -1249,15 +1360,10 @@ export default function NominaPage() {
               </pre>
             </div>
             <div className="mt-4 flex justify-end gap-3">
-              <Button
-                variant="outline"
-                onClick={() => setShowCfdiPreview(false)}
-              >
+              <Button variant="outline" onClick={() => setShowCfdiPreview(false)}>
                 Cerrar
               </Button>
-              <Button
-                onClick={() => downloadXml(cfdiPreviewXml, `cfdi-nomina-${Date.now()}.xml`)}
-              >
+              <Button onClick={() => downloadXml(cfdiPreviewXml, `cfdi-nomina-${Date.now()}.xml`)}>
                 <Download className="h-4 w-4" /> Descargar XML
               </Button>
             </div>
@@ -1278,7 +1384,9 @@ export default function NominaPage() {
                 className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-gray-400 focus:outline-none"
               >
                 {[now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1].map((y) => (
-                  <option key={y} value={y}>{y}</option>
+                  <option key={y} value={y}>
+                    {y}
+                  </option>
                 ))}
               </select>
             </div>
@@ -1290,7 +1398,9 @@ export default function NominaPage() {
                 className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-gray-400 focus:outline-none"
               >
                 {MONTH_NAMES.map((name, idx) => (
-                  <option key={idx} value={idx + 1}>{name}</option>
+                  <option key={idx} value={idx + 1}>
+                    {name}
+                  </option>
                 ))}
               </select>
             </div>
@@ -1298,11 +1408,11 @@ export default function NominaPage() {
 
           {/* Sub-tabs */}
           <div className="mb-4 flex gap-2">
-            {([
+            {[
               { key: "movements" as const, label: "Movimientos del Mes", icon: Users },
               { key: "summary" as const, label: "Resumen de Cuotas", icon: DollarSign },
               { key: "export" as const, label: "Exportar Archivo", icon: FileText },
-            ]).map((st) => {
+            ].map((st) => {
               const Icon = st.icon;
               return (
                 <button
@@ -1365,7 +1475,9 @@ export default function NominaPage() {
                         "07": "bg-amber-100 text-amber-700",
                       };
                       return (
-                        <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${variants[r.movementType] || "bg-gray-100 text-gray-700"}`}>
+                        <span
+                          className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${variants[r.movementType] || "bg-gray-100 text-gray-700"}`}
+                        >
                           {r.movementLabel}
                         </span>
                       );
@@ -1397,7 +1509,9 @@ export default function NominaPage() {
                     </div>
                     <div>
                       <p className="text-xs text-gray-500">Total Patronal</p>
-                      <p className="text-lg font-bold text-gray-900">{fmt(suaSummary.totalEmployer)}</p>
+                      <p className="text-lg font-bold text-gray-900">
+                        {fmt(suaSummary.totalEmployer)}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -1408,7 +1522,9 @@ export default function NominaPage() {
                     </div>
                     <div>
                       <p className="text-xs text-gray-500">Total Obrero</p>
-                      <p className="text-lg font-bold text-gray-900">{fmt(suaSummary.totalEmployee)}</p>
+                      <p className="text-lg font-bold text-gray-900">
+                        {fmt(suaSummary.totalEmployee)}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -1419,14 +1535,18 @@ export default function NominaPage() {
                     </div>
                     <div>
                       <p className="text-xs text-gray-500">Total a Pagar</p>
-                      <p className="text-lg font-bold text-gray-900">{fmt(suaSummary.totalContribution)}</p>
+                      <p className="text-lg font-bold text-gray-900">
+                        {fmt(suaSummary.totalContribution)}
+                      </p>
                     </div>
                   </div>
                 </div>
               </div>
 
               {/* By Branch table */}
-              <h3 className="mb-2 text-sm font-semibold text-gray-700">Desglose por Ramo de Seguro</h3>
+              <h3 className="mb-2 text-sm font-semibold text-gray-700">
+                Desglose por Ramo de Seguro
+              </h3>
               <DataTable
                 columns={[
                   { key: "branchLabel", header: "Ramo" },
@@ -1462,7 +1582,9 @@ export default function NominaPage() {
               />
 
               {/* By Employee table */}
-              <h3 className="mb-2 mt-6 text-sm font-semibold text-gray-700">Desglose por Empleado</h3>
+              <h3 className="mb-2 mt-6 text-sm font-semibold text-gray-700">
+                Desglose por Empleado
+              </h3>
               <DataTable
                 columns={[
                   { key: "employeeName", header: "Empleado" },
@@ -1517,7 +1639,9 @@ export default function NominaPage() {
               {/* File preview */}
               {suaFileContent && (
                 <div className="mb-6">
-                  <h3 className="mb-2 text-sm font-semibold text-gray-700">Vista previa del archivo</h3>
+                  <h3 className="mb-2 text-sm font-semibold text-gray-700">
+                    Vista previa del archivo
+                  </h3>
                   <textarea
                     readOnly
                     value={suaFileContent}
@@ -1528,7 +1652,9 @@ export default function NominaPage() {
               )}
 
               {/* History */}
-              <h3 className="mb-2 text-sm font-semibold text-gray-700">Historial de Exportaciones</h3>
+              <h3 className="mb-2 text-sm font-semibold text-gray-700">
+                Historial de Exportaciones
+              </h3>
               <DataTable
                 columns={[
                   {
@@ -1572,11 +1698,11 @@ export default function NominaPage() {
         <div className="mt-4">
           {/* Sub-tabs */}
           <div className="mb-4 flex gap-2">
-            {([
+            {[
               { key: "config" as const, label: "Configuracion", icon: Settings },
               { key: "import" as const, label: "Importar", icon: Upload },
               { key: "history" as const, label: "Historial de Sincronizacion", icon: Clock },
-            ]).map((st) => {
+            ].map((st) => {
               const Icon = st.icon;
               return (
                 <button
@@ -1605,7 +1731,9 @@ export default function NominaPage() {
                   </div>
                   <div>
                     <h3 className="text-sm font-semibold text-gray-900">Conexion con Worky</h3>
-                    <p className="text-xs text-gray-500">Configura tu cuenta de Worky para sincronizar empleados</p>
+                    <p className="text-xs text-gray-500">
+                      Configura tu cuenta de Worky para sincronizar empleados
+                    </p>
                   </div>
                 </div>
 
@@ -1614,21 +1742,27 @@ export default function NominaPage() {
                     <Input
                       type="password"
                       value={workyConfigForm.apiKey}
-                      onChange={(e) => setWorkyConfigForm({ ...workyConfigForm, apiKey: e.target.value })}
+                      onChange={(e) =>
+                        setWorkyConfigForm({ ...workyConfigForm, apiKey: e.target.value })
+                      }
                       placeholder="Ingresa tu API Key de Worky"
                     />
                   </FormField>
                   <FormField label="Company ID">
                     <Input
                       value={workyConfigForm.companyId}
-                      onChange={(e) => setWorkyConfigForm({ ...workyConfigForm, companyId: e.target.value })}
+                      onChange={(e) =>
+                        setWorkyConfigForm({ ...workyConfigForm, companyId: e.target.value })
+                      }
                       placeholder="ID de empresa en Worky"
                     />
                   </FormField>
                   <FormField label="Frecuencia de Sincronizacion">
                     <Select
                       value={workyConfigForm.syncFrequency}
-                      onChange={(e) => setWorkyConfigForm({ ...workyConfigForm, syncFrequency: e.target.value })}
+                      onChange={(e) =>
+                        setWorkyConfigForm({ ...workyConfigForm, syncFrequency: e.target.value })
+                      }
                     >
                       <option value="MANUAL">Manual</option>
                       <option value="DAILY">Diario</option>
@@ -1645,22 +1779,32 @@ export default function NominaPage() {
 
                 <div className="mt-6 flex gap-3">
                   <Button onClick={saveWorkyConfig} disabled={loadingWorky}>
-                    {loadingWorky ? <Loader2 className="h-4 w-4 animate-spin" /> : <Settings className="h-4 w-4" />}
+                    {loadingWorky ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Settings className="h-4 w-4" />
+                    )}
                     Guardar
                   </Button>
                   <Button variant="outline" onClick={testWorkyConnection} disabled={loadingWorky}>
-                    {loadingWorky ? <Loader2 className="h-4 w-4 animate-spin" /> : <Link2 className="h-4 w-4" />}
+                    {loadingWorky ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Link2 className="h-4 w-4" />
+                    )}
                     Probar Conexion
                   </Button>
                 </div>
 
                 {/* Test result */}
                 {workyTestResult && (
-                  <div className={`mt-4 rounded-lg p-3 text-sm ${
-                    workyTestResult.success
-                      ? "border border-green-200 bg-green-50 text-green-700"
-                      : "border border-red-200 bg-red-50 text-red-700"
-                  }`}>
+                  <div
+                    className={`mt-4 rounded-lg p-3 text-sm ${
+                      workyTestResult.success
+                        ? "border border-green-200 bg-green-50 text-green-700"
+                        : "border border-red-200 bg-red-50 text-red-700"
+                    }`}
+                  >
                     <div className="flex items-center gap-2">
                       {workyTestResult.success ? (
                         <CheckCircle className="h-4 w-4" />
@@ -1671,7 +1815,8 @@ export default function NominaPage() {
                     </div>
                     {workyTestResult.success && workyTestResult.companyName && (
                       <p className="mt-1 text-xs">
-                        Empresa: {workyTestResult.companyName} | Empleados: {workyTestResult.employeeCount}
+                        Empresa: {workyTestResult.companyName} | Empleados:{" "}
+                        {workyTestResult.employeeCount}
                       </p>
                     )}
                   </div>
@@ -1717,7 +1862,9 @@ export default function NominaPage() {
                       </div>
                       <div>
                         <span className="text-gray-500">Creados:</span>{" "}
-                        <span className="font-medium text-green-600">{workySyncResult.created}</span>
+                        <span className="font-medium text-green-600">
+                          {workySyncResult.created}
+                        </span>
                       </div>
                       <div>
                         <span className="text-gray-500">Actualizados:</span>{" "}
@@ -1758,13 +1905,12 @@ export default function NominaPage() {
 
                 <div className="space-y-4">
                   <FormField label="Sucursal destino" required>
-                    <Select
-                      value={csvBranchId}
-                      onChange={(e) => setCsvBranchId(e.target.value)}
-                    >
+                    <Select value={csvBranchId} onChange={(e) => setCsvBranchId(e.target.value)}>
                       <option value="">Seleccionar sucursal...</option>
                       {branches.map((b: any) => (
-                        <option key={b.id} value={b.id}>{b.name}</option>
+                        <option key={b.id} value={b.id}>
+                          {b.name}
+                        </option>
                       ))}
                     </Select>
                   </FormField>
@@ -1784,7 +1930,10 @@ export default function NominaPage() {
                     </p>
                   )}
 
-                  <Button onClick={importWorkyCsv} disabled={csvImporting || !csvContent || !csvBranchId}>
+                  <Button
+                    onClick={importWorkyCsv}
+                    disabled={csvImporting || !csvContent || !csvBranchId}
+                  >
                     {csvImporting ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
                     ) : (
@@ -1801,14 +1950,17 @@ export default function NominaPage() {
                     employeeNumber,firstName,lastName,curp,rfc,nss,hireDate,position,department,dailySalary,bankAccount,clabe
                   </p>
                   <p className="mt-1 text-xs text-amber-600">
-                    Ejemplo: EMP-001,Juan,Perez Lopez,PELJ900101...,PELJ900101ABC,12345678901,2024-01-15,Pokero,Operaciones,350.00,1234567890,012345678901234567
+                    Ejemplo: EMP-001,Juan,Perez
+                    Lopez,PELJ900101...,PELJ900101ABC,12345678901,2024-01-15,Pokero,Operaciones,350.00,1234567890,012345678901234567
                   </p>
                 </div>
 
                 {/* CSV result */}
                 {csvResult && (
                   <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-4">
-                    <h4 className="text-sm font-semibold text-gray-700">Resultado de Importacion</h4>
+                    <h4 className="text-sm font-semibold text-gray-700">
+                      Resultado de Importacion
+                    </h4>
                     <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
                       <div>
                         <span className="text-gray-500">Total registros:</span>{" "}
@@ -1836,7 +1988,9 @@ export default function NominaPage() {
                           </p>
                         ))}
                         {csvResult.errors.length > 10 && (
-                          <p className="text-xs text-red-400">...y {csvResult.errors.length - 10} errores mas</p>
+                          <p className="text-xs text-red-400">
+                            ...y {csvResult.errors.length - 10} errores mas
+                          </p>
                         )}
                       </div>
                     )}
@@ -1874,7 +2028,9 @@ export default function NominaPage() {
                         FAILED: "Fallido",
                       };
                       return (
-                        <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${variants[r.status] || "bg-gray-100 text-gray-700"}`}>
+                        <span
+                          className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${variants[r.status] || "bg-gray-100 text-gray-700"}`}
+                        >
                           {labels[r.status] || r.status}
                         </span>
                       );
@@ -1905,7 +2061,10 @@ export default function NominaPage() {
                     header: "",
                     render: (r: any) => (
                       <button
-                        onClick={(e) => { e.stopPropagation(); viewSyncDetail(r.id); }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          viewSyncDetail(r.id);
+                        }}
                         className="text-sm font-medium text-black hover:text-gray-700"
                       >
                         <Eye className="h-4 w-4" />
@@ -1937,14 +2096,20 @@ export default function NominaPage() {
               </div>
               <div>
                 <span className="text-gray-500">Estado:</span>{" "}
-                <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                  workySyncDetail.status === "COMPLETED"
-                    ? "bg-green-100 text-green-700"
+                <span
+                  className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                    workySyncDetail.status === "COMPLETED"
+                      ? "bg-green-100 text-green-700"
+                      : workySyncDetail.status === "FAILED"
+                        ? "bg-red-100 text-red-700"
+                        : "bg-gray-100 text-gray-700"
+                  }`}
+                >
+                  {workySyncDetail.status === "COMPLETED"
+                    ? "Completado"
                     : workySyncDetail.status === "FAILED"
-                      ? "bg-red-100 text-red-700"
-                      : "bg-gray-100 text-gray-700"
-                }`}>
-                  {workySyncDetail.status === "COMPLETED" ? "Completado" : workySyncDetail.status === "FAILED" ? "Fallido" : workySyncDetail.status}
+                      ? "Fallido"
+                      : workySyncDetail.status}
                 </span>
               </div>
               <div>
@@ -1976,11 +2141,15 @@ export default function NominaPage() {
             {/* Errors list */}
             {Array.isArray(workySyncDetail.errors) && workySyncDetail.errors.length > 0 && (
               <div>
-                <h4 className="mb-2 text-sm font-semibold text-red-600">Errores ({workySyncDetail.errors.length})</h4>
+                <h4 className="mb-2 text-sm font-semibold text-red-600">
+                  Errores ({workySyncDetail.errors.length})
+                </h4>
                 <div className="max-h-60 overflow-y-auto rounded-lg border border-red-200 bg-red-50 p-3">
                   {workySyncDetail.errors.map((err: any, idx: number) => (
                     <div key={idx} className="mb-1 text-xs text-red-700">
-                      <span className="font-medium">{err.employee || err.row ? `Fila ${err.row}` : "General"}:</span>{" "}
+                      <span className="font-medium">
+                        {err.employee || err.row ? `Fila ${err.row}` : "General"}:
+                      </span>{" "}
                       {err.error}
                     </div>
                   ))}
@@ -1990,7 +2159,9 @@ export default function NominaPage() {
           </div>
         )}
         <div className="mt-6 flex justify-end">
-          <Button variant="outline" onClick={() => setShowSyncDetailModal(false)}>Cerrar</Button>
+          <Button variant="outline" onClick={() => setShowSyncDetailModal(false)}>
+            Cerrar
+          </Button>
         </div>
       </Modal>
 
@@ -2032,7 +2203,9 @@ export default function NominaPage() {
             >
               <option value="">Seleccionar...</option>
               {branches.map((b: any) => (
-                <option key={b.id} value={b.id}>{b.name}</option>
+                <option key={b.id} value={b.id}>
+                  {b.name}
+                </option>
               ))}
             </Select>
           </FormField>
@@ -2063,7 +2236,9 @@ export default function NominaPage() {
               disabled={!!editingEmp}
             >
               {CONTRACT_TYPES.map((c) => (
-                <option key={c.value} value={c.value}>{c.label}</option>
+                <option key={c.value} value={c.value}>
+                  {c.label}
+                </option>
               ))}
             </Select>
           </FormField>
@@ -2073,7 +2248,9 @@ export default function NominaPage() {
               onChange={(e) => setEmpForm({ ...empForm, paymentFrequency: e.target.value })}
             >
               {PAYMENT_FREQUENCIES.map((f) => (
-                <option key={f.value} value={f.value}>{f.label}</option>
+                <option key={f.value} value={f.value}>
+                  {f.label}
+                </option>
               ))}
             </Select>
           </FormField>
@@ -2125,7 +2302,9 @@ export default function NominaPage() {
           </FormField>
         </div>
         <div className="mt-6 flex justify-end gap-3">
-          <Button variant="outline" onClick={() => setShowEmpModal(false)}>Cancelar</Button>
+          <Button variant="outline" onClick={() => setShowEmpModal(false)}>
+            Cancelar
+          </Button>
           <Button onClick={saveEmployee}>
             {editingEmp ? "Guardar Cambios" : "Crear Empleado"}
           </Button>
@@ -2139,19 +2318,21 @@ export default function NominaPage() {
         title="Dar de Baja Empleado"
       >
         <p className="text-sm text-gray-600">
-          ¿Confirmas la baja de <span className="font-semibold">{terminatingEmp?.firstName} {terminatingEmp?.lastName}</span>?
+          ¿Confirmas la baja de{" "}
+          <span className="font-semibold">
+            {terminatingEmp?.firstName} {terminatingEmp?.lastName}
+          </span>
+          ?
         </p>
         <div className="mt-4">
           <FormField label="Fecha de Baja" required>
-            <Input
-              type="date"
-              value={termDate}
-              onChange={(e) => setTermDate(e.target.value)}
-            />
+            <Input type="date" value={termDate} onChange={(e) => setTermDate(e.target.value)} />
           </FormField>
         </div>
         <div className="mt-6 flex justify-end gap-3">
-          <Button variant="outline" onClick={() => setShowTermModal(false)}>Cancelar</Button>
+          <Button variant="outline" onClick={() => setShowTermModal(false)}>
+            Cancelar
+          </Button>
           <Button variant="destructive" onClick={confirmTerminate}>
             <UserX className="h-4 w-4" /> Confirmar Baja
           </Button>
@@ -2171,7 +2352,9 @@ export default function NominaPage() {
               onChange={(e) => setPerForm({ ...perForm, periodType: e.target.value })}
             >
               {PAYMENT_FREQUENCIES.map((f) => (
-                <option key={f.value} value={f.value}>{f.label}</option>
+                <option key={f.value} value={f.value}>
+                  {f.label}
+                </option>
               ))}
             </Select>
           </FormField>
@@ -2191,7 +2374,9 @@ export default function NominaPage() {
           </FormField>
         </div>
         <div className="mt-6 flex justify-end gap-3">
-          <Button variant="outline" onClick={() => setShowPerModal(false)}>Cancelar</Button>
+          <Button variant="outline" onClick={() => setShowPerModal(false)}>
+            Cancelar
+          </Button>
           <Button onClick={createPeriod}>Crear Período</Button>
         </div>
       </Modal>

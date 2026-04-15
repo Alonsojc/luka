@@ -1,20 +1,9 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Param,
-  Body,
-  Query,
-  UseGuards,
-} from "@nestjs/common";
+import { Controller, Get, Post, Param, Body, Query, UseGuards } from "@nestjs/common";
 import { ApiTags, ApiBearerAuth } from "@nestjs/swagger";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
 import { Permissions } from "../../common/decorators/roles.decorator";
-import {
-  CurrentUser,
-  JwtPayload,
-} from "../../common/decorators/current-user.decorator";
+import { CurrentUser, JwtPayload } from "../../common/decorators/current-user.decorator";
 import { AccountsReceivableService } from "./accounts-receivable.service";
 
 @ApiTags("Bancos - Cuentas por Cobrar")
@@ -22,9 +11,7 @@ import { AccountsReceivableService } from "./accounts-receivable.service";
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller("bancos/receivable")
 export class AccountsReceivableController {
-  constructor(
-    private accountsReceivableService: AccountsReceivableService,
-  ) {}
+  constructor(private accountsReceivableService: AccountsReceivableService) {}
 
   @Get()
   @Permissions("bancos:view")
@@ -81,10 +68,6 @@ export class AccountsReceivableController {
       reference?: string;
     },
   ) {
-    return this.accountsReceivableService.registerPayment(
-      user.organizationId,
-      id,
-      body,
-    );
+    return this.accountsReceivableService.registerPayment(user.organizationId, id, body);
   }
 }

@@ -98,8 +98,7 @@ export class AccountsPayableService {
       });
 
       const newBalance = Number(payable.balanceDue) - data.amount;
-      const newStatus =
-        newBalance <= 0 ? "PAID" : "PARTIALLY_PAID";
+      const newStatus = newBalance <= 0 ? "PAID" : "PARTIALLY_PAID";
 
       const updated = await tx.accountPayable.update({
         where: { id },

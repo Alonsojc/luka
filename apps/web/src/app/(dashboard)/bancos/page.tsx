@@ -154,7 +154,11 @@ const isOverdue = (dueDate: string, status: string) => {
 // Component
 // ---------------------------------------------------------------------------
 
-const normalize = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+const normalize = (s: string) =>
+  s
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
 
 export default function BancosPage() {
   const { authFetch, loading: authLoading } = useAuth();
@@ -167,9 +171,14 @@ export default function BancosPage() {
   const PAGE_SIZE = 10;
 
   // Reset page when search changes
-  useEffect(() => { setCurrentPage(1); }, [searchTerm]);
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
   // Reset search when tab changes
-  useEffect(() => { setSearchTerm(""); setCurrentPage(1); }, [activeTab]);
+  useEffect(() => {
+    setSearchTerm("");
+    setCurrentPage(1);
+  }, [activeTab]);
 
   // Shared data
   const [branches, setBranches] = useState<Branch[]>([]);
@@ -215,7 +224,11 @@ export default function BancosPage() {
     amount: 0,
     dueDate: "",
   });
-  const [paymentModal, setPaymentModal] = useState<{ type: "cxp" | "cxc"; id: string; balanceDue: number } | null>(null);
+  const [paymentModal, setPaymentModal] = useState<{
+    type: "cxp" | "cxc";
+    id: string;
+    balanceDue: number;
+  } | null>(null);
   const [paymentForm, setPaymentForm] = useState({
     amount: 0,
     paymentDate: "",
@@ -242,13 +255,30 @@ export default function BancosPage() {
   // Import modal
   const [importModal, setImportModal] = useState(false);
   const [importMode, setImportMode] = useState<"csv" | "manual">("csv");
-  const [csvPreview, setCsvPreview] = useState<Array<{ date: string; amount: number; type: "credit" | "debit"; reference: string; description: string }>>([]);
-  const [manualImportForm, setManualImportForm] = useState({ date: "", amount: 0, type: "credit" as "credit" | "debit", reference: "", description: "" });
+  const [csvPreview, setCsvPreview] = useState<
+    Array<{
+      date: string;
+      amount: number;
+      type: "credit" | "debit";
+      reference: string;
+      description: string;
+    }>
+  >([]);
+  const [manualImportForm, setManualImportForm] = useState({
+    date: "",
+    amount: 0,
+    type: "credit" as "credit" | "debit",
+    reference: "",
+    description: "",
+  });
   const [importLoading, setImportLoading] = useState(false);
   // Manual reconcile modal
   const [reconcileModal, setReconcileModal] = useState<RecTransaction | null>(null);
   const [matchSearch, setMatchSearch] = useState("");
-  const [matchCandidates, setMatchCandidates] = useState<{ payables: MatchCandidate[]; receivables: MatchCandidate[] }>({ payables: [], receivables: [] });
+  const [matchCandidates, setMatchCandidates] = useState<{
+    payables: MatchCandidate[];
+    receivables: MatchCandidate[];
+  }>({ payables: [], receivables: [] });
   const [matchLoading, setMatchLoading] = useState(false);
 
   // ---------------------------------------------------------------------------
@@ -275,7 +305,10 @@ export default function BancosPage() {
       }
       setTxLoading(true);
       try {
-        const data = await authFetch<Transaction[]>("get", `/bancos/transactions/account/${accountId}`);
+        const data = await authFetch<Transaction[]>(
+          "get",
+          `/bancos/transactions/account/${accountId}`,
+        );
         setTransactions(data);
       } catch (err) {
         toast(err instanceof Error ? err.message : "Error al cargar datos", "error");
@@ -284,7 +317,7 @@ export default function BancosPage() {
         setTxLoading(false);
       }
     },
-    [authFetch]
+    [authFetch],
   );
 
   const fetchPayables = useCallback(async () => {
@@ -327,9 +360,15 @@ export default function BancosPage() {
   // Reconciliation fetchers
   const fetchRecSummary = useCallback(
     async (accountId: string) => {
-      if (!accountId) { setRecSummary(null); return; }
+      if (!accountId) {
+        setRecSummary(null);
+        return;
+      }
       try {
-        const data = await authFetch<ReconciliationSummary>("get", `/bancos/accounts/${accountId}/reconciliation-summary`);
+        const data = await authFetch<ReconciliationSummary>(
+          "get",
+          `/bancos/accounts/${accountId}/reconciliation-summary`,
+        );
         setRecSummary(data);
       } catch (err) {
         toast(err instanceof Error ? err.message : "Error al cargar datos", "error");
@@ -341,16 +380,23 @@ export default function BancosPage() {
 
   const fetchRecTransactions = useCallback(
     async (accountId: string) => {
-      if (!accountId) { setRecTransactions([]); return; }
+      if (!accountId) {
+        setRecTransactions([]);
+        return;
+      }
       setRecLoading(true);
       try {
-        const data = await authFetch<RecTransaction[]>("get", `/bancos/transactions/account/${accountId}`);
+        const data = await authFetch<RecTransaction[]>(
+          "get",
+          `/bancos/transactions/account/${accountId}`,
+        );
         setRecTransactions(data);
       } catch (err) {
         toast(err instanceof Error ? err.message : "Error al cargar datos", "error");
         setRecTransactions([]);
+      } finally {
+        setRecLoading(false);
       }
-      finally { setRecLoading(false); }
     },
     [authFetch],
   );
@@ -363,22 +409,30 @@ export default function BancosPage() {
       await Promise.all([fetchRecSummary(recAccountId), fetchRecTransactions(recAccountId)]);
     } catch (err) {
       toast(err instanceof Error ? err.message : "Error al actualizar", "error");
+    } finally {
+      setRecAutoLoading(false);
     }
-    finally { setRecAutoLoading(false); }
   }, [authFetch, recAccountId, fetchRecSummary, fetchRecTransactions]);
 
   const handleImportCSV = useCallback(async () => {
     if (!recAccountId || csvPreview.length === 0) return;
     setImportLoading(true);
     try {
-      await authFetch("post", `/bancos/accounts/${recAccountId}/import`, { transactions: csvPreview });
+      await authFetch("post", `/bancos/accounts/${recAccountId}/import`, {
+        transactions: csvPreview,
+      });
       setCsvPreview([]);
       setImportModal(false);
-      await Promise.all([fetchRecSummary(recAccountId), fetchRecTransactions(recAccountId), fetchAccounts()]);
+      await Promise.all([
+        fetchRecSummary(recAccountId),
+        fetchRecTransactions(recAccountId),
+        fetchAccounts(),
+      ]);
     } catch (err) {
       toast(err instanceof Error ? err.message : "Error al guardar", "error");
+    } finally {
+      setImportLoading(false);
     }
-    finally { setImportLoading(false); }
   }, [authFetch, recAccountId, csvPreview, fetchRecSummary, fetchRecTransactions, fetchAccounts]);
 
   const handleImportManual = useCallback(async () => {
@@ -390,46 +444,74 @@ export default function BancosPage() {
       });
       setManualImportForm({ date: "", amount: 0, type: "credit", reference: "", description: "" });
       setImportModal(false);
-      await Promise.all([fetchRecSummary(recAccountId), fetchRecTransactions(recAccountId), fetchAccounts()]);
+      await Promise.all([
+        fetchRecSummary(recAccountId),
+        fetchRecTransactions(recAccountId),
+        fetchAccounts(),
+      ]);
     } catch (err) {
       toast(err instanceof Error ? err.message : "Error al guardar", "error");
+    } finally {
+      setImportLoading(false);
     }
-    finally { setImportLoading(false); }
-  }, [authFetch, recAccountId, manualImportForm, fetchRecSummary, fetchRecTransactions, fetchAccounts]);
+  }, [
+    authFetch,
+    recAccountId,
+    manualImportForm,
+    fetchRecSummary,
+    fetchRecTransactions,
+    fetchAccounts,
+  ]);
 
-  const handleManualReconcile = useCallback(async (transactionId: string, type: string, entityId: string) => {
-    try {
-      await authFetch("post", `/bancos/transactions/${transactionId}/reconcile`, { type, entityId });
-      setReconcileModal(null);
-      await Promise.all([fetchRecSummary(recAccountId), fetchRecTransactions(recAccountId)]);
-    } catch (err) {
-      toast(err instanceof Error ? err.message : "Error al actualizar", "error");
-    }
-  }, [authFetch, recAccountId, fetchRecSummary, fetchRecTransactions]);
+  const handleManualReconcile = useCallback(
+    async (transactionId: string, type: string, entityId: string) => {
+      try {
+        await authFetch("post", `/bancos/transactions/${transactionId}/reconcile`, {
+          type,
+          entityId,
+        });
+        setReconcileModal(null);
+        await Promise.all([fetchRecSummary(recAccountId), fetchRecTransactions(recAccountId)]);
+      } catch (err) {
+        toast(err instanceof Error ? err.message : "Error al actualizar", "error");
+      }
+    },
+    [authFetch, recAccountId, fetchRecSummary, fetchRecTransactions],
+  );
 
-  const handleUnreconcile = useCallback(async (transactionId: string) => {
-    try {
-      await authFetch("post", `/bancos/transactions/${transactionId}/unreconcile`);
-      await Promise.all([fetchRecSummary(recAccountId), fetchRecTransactions(recAccountId)]);
-    } catch (err) {
-      toast(err instanceof Error ? err.message : "Error al actualizar", "error");
-    }
-  }, [authFetch, recAccountId, fetchRecSummary, fetchRecTransactions]);
+  const handleUnreconcile = useCallback(
+    async (transactionId: string) => {
+      try {
+        await authFetch("post", `/bancos/transactions/${transactionId}/unreconcile`);
+        await Promise.all([fetchRecSummary(recAccountId), fetchRecTransactions(recAccountId)]);
+      } catch (err) {
+        toast(err instanceof Error ? err.message : "Error al actualizar", "error");
+      }
+    },
+    [authFetch, recAccountId, fetchRecSummary, fetchRecTransactions],
+  );
 
-  const searchMatches = useCallback(async (amount?: number, reference?: string) => {
-    setMatchLoading(true);
-    try {
-      const params = new URLSearchParams();
-      if (amount) params.set("amount", String(amount));
-      if (reference) params.set("reference", reference);
-      const data = await authFetch<{ payables: MatchCandidate[]; receivables: MatchCandidate[] }>("get", `/bancos/reconciliation/search-matches?${params.toString()}`);
-      setMatchCandidates(data);
-    } catch (err) {
-      toast(err instanceof Error ? err.message : "Error al cargar datos", "error");
-      setMatchCandidates({ payables: [], receivables: [] });
-    }
-    finally { setMatchLoading(false); }
-  }, [authFetch]);
+  const searchMatches = useCallback(
+    async (amount?: number, reference?: string) => {
+      setMatchLoading(true);
+      try {
+        const params = new URLSearchParams();
+        if (amount) params.set("amount", String(amount));
+        if (reference) params.set("reference", reference);
+        const data = await authFetch<{ payables: MatchCandidate[]; receivables: MatchCandidate[] }>(
+          "get",
+          `/bancos/reconciliation/search-matches?${params.toString()}`,
+        );
+        setMatchCandidates(data);
+      } catch (err) {
+        toast(err instanceof Error ? err.message : "Error al cargar datos", "error");
+        setMatchCandidates({ payables: [], receivables: [] });
+      } finally {
+        setMatchLoading(false);
+      }
+    },
+    [authFetch],
+  );
 
   // Load reconciliation data when account changes
   useEffect(() => {
@@ -446,7 +528,13 @@ export default function BancosPage() {
   const parseCSV = useCallback((text: string) => {
     const lines = text.trim().split("\n");
     if (lines.length < 2) return;
-    const rows: Array<{ date: string; amount: number; type: "credit" | "debit"; reference: string; description: string }> = [];
+    const rows: Array<{
+      date: string;
+      amount: number;
+      type: "credit" | "debit";
+      reference: string;
+      description: string;
+    }> = [];
     for (let i = 1; i < lines.length; i++) {
       const cols = lines[i].split(",").map((c) => c.trim().replace(/^"|"$/g, ""));
       if (cols.length < 3) continue;
@@ -488,7 +576,14 @@ export default function BancosPage() {
 
   const openCreateAccount = () => {
     setEditingAccount(null);
-    setAccountForm({ bankName: "", accountNumber: "", clabe: "", branchId: "", currency: "MXN", currentBalance: 0 });
+    setAccountForm({
+      bankName: "",
+      accountNumber: "",
+      clabe: "",
+      branchId: "",
+      currency: "MXN",
+      currentBalance: 0,
+    });
     setAccountModal(true);
   };
 
@@ -675,10 +770,18 @@ export default function BancosPage() {
       header: "Acciones",
       render: (row: BankAccount) => (
         <div className="flex items-center gap-2">
-          <button onClick={() => openEditAccount(row)} className="p-1 hover:bg-gray-100 rounded" title="Editar">
+          <button
+            onClick={() => openEditAccount(row)}
+            className="p-1 hover:bg-gray-100 rounded"
+            title="Editar"
+          >
             <Pencil className="h-4 w-4 text-gray-500" />
           </button>
-          <button onClick={() => setDeleteConfirm(row.id)} className="p-1 hover:bg-red-50 rounded" title="Eliminar">
+          <button
+            onClick={() => setDeleteConfirm(row.id)}
+            className="p-1 hover:bg-red-50 rounded"
+            title="Eliminar"
+          >
             <Trash2 className="h-4 w-4 text-red-500" />
           </button>
         </div>
@@ -696,7 +799,10 @@ export default function BancosPage() {
       key: "type",
       header: "Tipo",
       render: (row: Transaction) => (
-        <StatusBadge label={row.type === "credit" ? "Credito" : "Debito"} variant={row.type === "credit" ? "green" : "red"} />
+        <StatusBadge
+          label={row.type === "credit" ? "Credito" : "Debito"}
+          variant={row.type === "credit" ? "green" : "red"}
+        />
       ),
     },
     {
@@ -704,7 +810,11 @@ export default function BancosPage() {
       header: "Monto",
       render: (row: Transaction) => {
         const signed = row.type === "debit" ? -row.amount : row.amount;
-        return <span className={row.type === "debit" ? "text-red-600" : "text-green-600"}>{fmtMXN(signed)}</span>;
+        return (
+          <span className={row.type === "debit" ? "text-red-600" : "text-green-600"}>
+            {fmtMXN(signed)}
+          </span>
+        );
       },
       className: "text-right",
     },
@@ -714,7 +824,10 @@ export default function BancosPage() {
       key: "reconciled",
       header: "Conciliado",
       render: (row: Transaction) => (
-        <StatusBadge label={row.reconciled ? "Si" : "No"} variant={row.reconciled ? "green" : "gray"} />
+        <StatusBadge
+          label={row.reconciled ? "Si" : "No"}
+          variant={row.reconciled ? "green" : "gray"}
+        />
       ),
     },
     {
@@ -774,7 +887,9 @@ export default function BancosPage() {
       header: "Estado",
       render: (row: Payable) => {
         const displayStatus = isOverdue(row.dueDate, row.status) ? "OVERDUE" : row.status;
-        return <StatusBadge label={statusLabel(displayStatus)} variant={statusVariant(displayStatus)} />;
+        return (
+          <StatusBadge label={statusLabel(displayStatus)} variant={statusVariant(displayStatus)} />
+        );
       },
     },
     {
@@ -782,7 +897,11 @@ export default function BancosPage() {
       header: "Acciones",
       render: (row: Payable) =>
         row.status !== "PAID" && row.status !== "CANCELLED" ? (
-          <Button variant="outline" size="sm" onClick={() => openPayment("cxp", row.id, row.balanceDue)}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => openPayment("cxp", row.id, row.balanceDue)}
+          >
             <DollarSign className="h-3.5 w-3.5" />
             Registrar Pago
           </Button>
@@ -835,7 +954,9 @@ export default function BancosPage() {
       header: "Estado",
       render: (row: Receivable) => {
         const displayStatus = isOverdue(row.dueDate, row.status) ? "OVERDUE" : row.status;
-        return <StatusBadge label={statusLabel(displayStatus)} variant={statusVariant(displayStatus)} />;
+        return (
+          <StatusBadge label={statusLabel(displayStatus)} variant={statusVariant(displayStatus)} />
+        );
       },
     },
     {
@@ -843,7 +964,11 @@ export default function BancosPage() {
       header: "Acciones",
       render: (row: Receivable) =>
         row.status !== "PAID" && row.status !== "CANCELLED" ? (
-          <Button variant="outline" size="sm" onClick={() => openPayment("cxc", row.id, row.balanceDue)}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => openPayment("cxc", row.id, row.balanceDue)}
+          >
             <DollarSign className="h-3.5 w-3.5" />
             Registrar Pago
           </Button>
@@ -856,8 +981,12 @@ export default function BancosPage() {
   // ---------------------------------------------------------------------------
 
   const totalBancos = accounts.reduce((sum, a) => sum + safeNum(a.currentBalance), 0);
-  const totalCxC = receivables.filter((r) => r.status !== "PAID" && r.status !== "CANCELLED").reduce((sum, r) => sum + safeNum(r.balanceDue), 0);
-  const totalCxP = payables.filter((p) => p.status !== "PAID" && p.status !== "CANCELLED").reduce((sum, p) => sum + safeNum(p.balanceDue), 0);
+  const totalCxC = receivables
+    .filter((r) => r.status !== "PAID" && r.status !== "CANCELLED")
+    .reduce((sum, r) => sum + safeNum(r.balanceDue), 0);
+  const totalCxP = payables
+    .filter((p) => p.status !== "PAID" && p.status !== "CANCELLED")
+    .reduce((sum, p) => sum + safeNum(p.balanceDue), 0);
   const flujoNeto = totalBancos + totalCxC - totalCxP;
 
   // ---------------------------------------------------------------------------
@@ -868,9 +997,7 @@ export default function BancosPage() {
     if (!searchTerm) return transactions;
     const q = normalize(searchTerm);
     return transactions.filter(
-      (t) =>
-        normalize(t.description || '').includes(q) ||
-        normalize(t.reference || '').includes(q),
+      (t) => normalize(t.description || "").includes(q) || normalize(t.reference || "").includes(q),
     );
   }, [transactions, searchTerm]);
 
@@ -880,7 +1007,7 @@ export default function BancosPage() {
     return payables.filter(
       (p) =>
         (p.supplier?.name && normalize(p.supplier.name).includes(q)) ||
-        normalize(p.invoiceNumber || '').includes(q) ||
+        normalize(p.invoiceNumber || "").includes(q) ||
         (p.branch?.name && normalize(p.branch.name).includes(q)),
     );
   }, [payables, searchTerm]);
@@ -903,26 +1030,41 @@ export default function BancosPage() {
     if (!searchTerm) return list;
     const q = normalize(searchTerm);
     return list.filter(
-      (t) =>
-        normalize(t.description || "").includes(q) ||
-        normalize(t.reference || "").includes(q),
+      (t) => normalize(t.description || "").includes(q) || normalize(t.reference || "").includes(q),
     );
   }, [recTransactions, recFilter, searchTerm]);
 
   const currentFilteredBancos =
-    activeTab === "Movimientos" ? filteredTransactions
-    : activeTab === "Cuentas por Pagar" ? filteredPayables
-    : activeTab === "Cuentas por Cobrar" ? filteredReceivables
-    : activeTab === "Conciliacion" ? filteredRecTransactions
-    : [];
+    activeTab === "Movimientos"
+      ? filteredTransactions
+      : activeTab === "Cuentas por Pagar"
+        ? filteredPayables
+        : activeTab === "Cuentas por Cobrar"
+          ? filteredReceivables
+          : activeTab === "Conciliacion"
+            ? filteredRecTransactions
+            : [];
 
   const totalPagesBancos = Math.ceil(currentFilteredBancos.length / PAGE_SIZE);
-  const paginatedTransactions = filteredTransactions.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
-  const paginatedPayables = filteredPayables.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
-  const paginatedReceivables = filteredReceivables.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
-  const paginatedRecTransactions = filteredRecTransactions.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  const paginatedTransactions = filteredTransactions.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE,
+  );
+  const paginatedPayables = filteredPayables.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE,
+  );
+  const paginatedReceivables = filteredReceivables.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE,
+  );
+  const paginatedRecTransactions = filteredRecTransactions.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE,
+  );
 
-  const paginationStartBancos = currentFilteredBancos.length === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1;
+  const paginationStartBancos =
+    currentFilteredBancos.length === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1;
   const paginationEndBancos = Math.min(currentPage * PAGE_SIZE, currentFilteredBancos.length);
 
   // ---------------------------------------------------------------------------
@@ -962,25 +1104,27 @@ export default function BancosPage() {
         <div className="flex gap-3">
           {activeTab === "Movimientos" && selectedAccountId && (
             <button
-              onClick={() => exportToCSV(
-                transactions.map(t => ({
-                  date: new Date(t.transactionDate).toLocaleDateString("es-MX"),
-                  type: t.type === "credit" ? "Credito" : "Debito",
-                  description: t.description,
-                  reference: t.reference,
-                  amount: t.type === "debit" ? -t.amount : t.amount,
-                  account: accounts.find(a => a.id === t.bankAccountId)?.bankName ?? "",
-                })),
-                "movimientos",
-                [
-                  { key: "date", label: "Fecha" },
-                  { key: "type", label: "Tipo" },
-                  { key: "description", label: "Descripcion" },
-                  { key: "reference", label: "Referencia" },
-                  { key: "amount", label: "Monto" },
-                  { key: "account", label: "Cuenta" },
-                ]
-              )}
+              onClick={() =>
+                exportToCSV(
+                  transactions.map((t) => ({
+                    date: new Date(t.transactionDate).toLocaleDateString("es-MX"),
+                    type: t.type === "credit" ? "Credito" : "Debito",
+                    description: t.description,
+                    reference: t.reference,
+                    amount: t.type === "debit" ? -t.amount : t.amount,
+                    account: accounts.find((a) => a.id === t.bankAccountId)?.bankName ?? "",
+                  })),
+                  "movimientos",
+                  [
+                    { key: "date", label: "Fecha" },
+                    { key: "type", label: "Tipo" },
+                    { key: "description", label: "Descripcion" },
+                    { key: "reference", label: "Referencia" },
+                    { key: "amount", label: "Monto" },
+                    { key: "account", label: "Cuenta" },
+                  ],
+                )
+              }
               className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
             >
               <Download className="h-4 w-4" />
@@ -1007,7 +1151,10 @@ export default function BancosPage() {
             </>
           )}
           {activeTab !== "Flujo de Efectivo" && activeTab !== "Conciliacion" && (
-            <Button onClick={addButtonAction[activeTab]} disabled={activeTab === "Movimientos" && !selectedAccountId}>
+            <Button
+              onClick={addButtonAction[activeTab]}
+              disabled={activeTab === "Movimientos" && !selectedAccountId}
+            >
               <Plus className="h-4 w-4" />
               {addButtonLabel[activeTab]}
             </Button>
@@ -1035,7 +1182,10 @@ export default function BancosPage() {
       </div>
 
       {/* Search bar for Movimientos, CxP, CxC, Conciliacion tabs */}
-      {(activeTab === "Movimientos" || activeTab === "Cuentas por Pagar" || activeTab === "Cuentas por Cobrar" || activeTab === "Conciliacion") && (
+      {(activeTab === "Movimientos" ||
+        activeTab === "Cuentas por Pagar" ||
+        activeTab === "Cuentas por Cobrar" ||
+        activeTab === "Conciliacion") && (
         <div className="mt-6">
           <div className="relative max-w-sm">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
@@ -1064,7 +1214,12 @@ export default function BancosPage() {
         {/* TAB 1 : Cuentas Bancarias                                       */}
         {/* ================================================================ */}
         {activeTab === "Cuentas Bancarias" && (
-          <DataTable columns={accountColumns} data={accounts} loading={accountsLoading} emptyMessage="No hay cuentas bancarias registradas." />
+          <DataTable
+            columns={accountColumns}
+            data={accounts}
+            loading={accountsLoading}
+            emptyMessage="No hay cuentas bancarias registradas."
+          />
         )}
 
         {/* ================================================================ */}
@@ -1074,7 +1229,10 @@ export default function BancosPage() {
           <>
             <div className="mb-4 max-w-sm">
               <FormField label="Cuenta bancaria">
-                <Select value={selectedAccountId} onChange={(e) => setSelectedAccountId(e.target.value)}>
+                <Select
+                  value={selectedAccountId}
+                  onChange={(e) => setSelectedAccountId(e.target.value)}
+                >
                   <option value="">Seleccionar cuenta...</option>
                   {accounts.map((a) => (
                     <option key={a.id} value={a.id}>
@@ -1086,13 +1244,19 @@ export default function BancosPage() {
             </div>
             {selectedAccountId ? (
               <>
-                <DataTable columns={txColumns} data={paginatedTransactions} loading={txLoading} emptyMessage="No hay movimientos para esta cuenta." />
+                <DataTable
+                  columns={txColumns}
+                  data={paginatedTransactions}
+                  loading={txLoading}
+                  emptyMessage="No hay movimientos para esta cuenta."
+                />
 
                 {/* Pagination controls */}
                 {filteredTransactions.length > 0 && (
                   <div className="mt-4 flex items-center justify-between">
                     <p className="text-sm text-gray-500">
-                      Mostrando {paginationStartBancos}-{paginationEndBancos} de {filteredTransactions.length}
+                      Mostrando {paginationStartBancos}-{paginationEndBancos} de{" "}
+                      {filteredTransactions.length}
                     </p>
                     <div className="flex items-center gap-2">
                       <button
@@ -1126,13 +1290,19 @@ export default function BancosPage() {
         {/* ================================================================ */}
         {activeTab === "Cuentas por Pagar" && (
           <>
-            <DataTable columns={payableColumns} data={paginatedPayables} loading={payablesLoading} emptyMessage="No hay cuentas por pagar." />
+            <DataTable
+              columns={payableColumns}
+              data={paginatedPayables}
+              loading={payablesLoading}
+              emptyMessage="No hay cuentas por pagar."
+            />
 
             {/* Pagination controls */}
             {filteredPayables.length > 0 && (
               <div className="mt-4 flex items-center justify-between">
                 <p className="text-sm text-gray-500">
-                  Mostrando {paginationStartBancos}-{paginationEndBancos} de {filteredPayables.length}
+                  Mostrando {paginationStartBancos}-{paginationEndBancos} de{" "}
+                  {filteredPayables.length}
                 </p>
                 <div className="flex items-center gap-2">
                   <button
@@ -1160,13 +1330,19 @@ export default function BancosPage() {
         {/* ================================================================ */}
         {activeTab === "Cuentas por Cobrar" && (
           <>
-            <DataTable columns={receivableColumns} data={paginatedReceivables} loading={receivablesLoading} emptyMessage="No hay cuentas por cobrar." />
+            <DataTable
+              columns={receivableColumns}
+              data={paginatedReceivables}
+              loading={receivablesLoading}
+              emptyMessage="No hay cuentas por cobrar."
+            />
 
             {/* Pagination controls */}
             {filteredReceivables.length > 0 && (
               <div className="mt-4 flex items-center justify-between">
                 <p className="text-sm text-gray-500">
-                  Mostrando {paginationStartBancos}-{paginationEndBancos} de {filteredReceivables.length}
+                  Mostrando {paginationStartBancos}-{paginationEndBancos} de{" "}
+                  {filteredReceivables.length}
                 </p>
                 <div className="flex items-center gap-2">
                   <button
@@ -1230,8 +1406,12 @@ export default function BancosPage() {
                             <CheckCircle className="h-5 w-5 text-green-600" />
                           </div>
                         </div>
-                        <p className="mt-3 text-2xl font-bold text-gray-900">{recSummary.reconciled}</p>
-                        <p className="text-xs text-gray-500">{fmtMXN(recSummary.reconciledAmount)}</p>
+                        <p className="mt-3 text-2xl font-bold text-gray-900">
+                          {recSummary.reconciled}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {fmtMXN(recSummary.reconciledAmount)}
+                        </p>
                       </div>
                       <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
                         <div className="flex items-center justify-between">
@@ -1240,7 +1420,9 @@ export default function BancosPage() {
                             <XCircle className="h-5 w-5 text-red-600" />
                           </div>
                         </div>
-                        <p className="mt-3 text-2xl font-bold text-gray-900">{recSummary.unreconciled}</p>
+                        <p className="mt-3 text-2xl font-bold text-gray-900">
+                          {recSummary.unreconciled}
+                        </p>
                         <p className="text-xs text-gray-500">{fmtMXN(recSummary.pendingAmount)}</p>
                       </div>
                       <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
@@ -1250,7 +1432,9 @@ export default function BancosPage() {
                             <RefreshCw className="h-5 w-5 text-blue-600" />
                           </div>
                         </div>
-                        <p className="mt-3 text-2xl font-bold text-gray-900">{recSummary.percentage}%</p>
+                        <p className="mt-3 text-2xl font-bold text-gray-900">
+                          {recSummary.percentage}%
+                        </p>
                         <div className="mt-2 h-2 w-full rounded-full bg-gray-200">
                           <div
                             className="h-2 rounded-full bg-black transition-all"
@@ -1267,7 +1451,10 @@ export default function BancosPage() {
                   {(["all", "reconciled", "unreconciled"] as const).map((f) => (
                     <button
                       key={f}
-                      onClick={() => { setRecFilter(f); setCurrentPage(1); }}
+                      onClick={() => {
+                        setRecFilter(f);
+                        setCurrentPage(1);
+                      }}
                       className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
                         recFilter === f
                           ? "bg-black text-white"
@@ -1281,21 +1468,39 @@ export default function BancosPage() {
 
                 {/* Transactions table */}
                 {recLoading ? (
-                  <div className="border rounded-lg p-8 text-center text-gray-500">Cargando transacciones...</div>
+                  <div className="border rounded-lg p-8 text-center text-gray-500">
+                    Cargando transacciones...
+                  </div>
                 ) : (
                   <>
                     <div className="overflow-x-auto rounded-lg border border-gray-200">
                       <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                           <tr>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fecha</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Referencia</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Descripcion</th>
-                            <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Monto</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tipo</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Estado</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Vinculado a</th>
-                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Acciones</th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                              Fecha
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                              Referencia
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                              Descripcion
+                            </th>
+                            <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+                              Monto
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                              Tipo
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                              Estado
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                              Vinculado a
+                            </th>
+                            <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                              Acciones
+                            </th>
                           </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
@@ -1308,16 +1513,29 @@ export default function BancosPage() {
                           ) : (
                             paginatedRecTransactions.map((t) => (
                               <tr key={t.id} className="hover:bg-gray-50">
-                                <td className="px-4 py-3 text-sm text-gray-900">{new Date(t.transactionDate).toLocaleDateString("es-MX")}</td>
-                                <td className="px-4 py-3 text-sm text-gray-600">{t.reference || "-"}</td>
-                                <td className="px-4 py-3 text-sm text-gray-600">{t.description || "-"}</td>
+                                <td className="px-4 py-3 text-sm text-gray-900">
+                                  {new Date(t.transactionDate).toLocaleDateString("es-MX")}
+                                </td>
+                                <td className="px-4 py-3 text-sm text-gray-600">
+                                  {t.reference || "-"}
+                                </td>
+                                <td className="px-4 py-3 text-sm text-gray-600">
+                                  {t.description || "-"}
+                                </td>
                                 <td className="px-4 py-3 text-sm text-right">
-                                  <span className={t.type === "debit" ? "text-red-600" : "text-green-600"}>
+                                  <span
+                                    className={
+                                      t.type === "debit" ? "text-red-600" : "text-green-600"
+                                    }
+                                  >
                                     {fmtMXN(t.type === "debit" ? -t.amount : t.amount)}
                                   </span>
                                 </td>
                                 <td className="px-4 py-3 text-sm">
-                                  <StatusBadge label={t.type === "credit" ? "Credito" : "Debito"} variant={t.type === "credit" ? "green" : "red"} />
+                                  <StatusBadge
+                                    label={t.type === "credit" ? "Credito" : "Debito"}
+                                    variant={t.type === "credit" ? "green" : "red"}
+                                  />
                                 </td>
                                 <td className="px-4 py-3 text-sm">
                                   <StatusBadge
@@ -1370,7 +1588,8 @@ export default function BancosPage() {
                     {filteredRecTransactions.length > 0 && (
                       <div className="mt-4 flex items-center justify-between">
                         <p className="text-sm text-gray-500">
-                          Mostrando {paginationStartBancos}-{paginationEndBancos} de {filteredRecTransactions.length}
+                          Mostrando {paginationStartBancos}-{paginationEndBancos} de{" "}
+                          {filteredRecTransactions.length}
                         </p>
                         <div className="flex items-center gap-2">
                           <button
@@ -1408,9 +1627,24 @@ export default function BancosPage() {
           <>
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
               {[
-                { title: "Total en Bancos", value: fmtMXN(totalBancos), icon: Landmark, color: "blue" },
-                { title: "CxC Pendiente", value: fmtMXN(totalCxC), icon: ArrowDownCircle, color: "green" },
-                { title: "CxP Pendiente", value: fmtMXN(totalCxP), icon: ArrowUpCircle, color: "red" },
+                {
+                  title: "Total en Bancos",
+                  value: fmtMXN(totalBancos),
+                  icon: Landmark,
+                  color: "blue",
+                },
+                {
+                  title: "CxC Pendiente",
+                  value: fmtMXN(totalCxC),
+                  icon: ArrowDownCircle,
+                  color: "green",
+                },
+                {
+                  title: "CxP Pendiente",
+                  value: fmtMXN(totalCxP),
+                  icon: ArrowUpCircle,
+                  color: "red",
+                },
                 {
                   title: "Flujo Neto",
                   value: fmtMXN(flujoNeto),
@@ -1430,10 +1664,15 @@ export default function BancosPage() {
                   red: "text-red-600",
                 };
                 return (
-                  <div key={stat.title} className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+                  <div
+                    key={stat.title}
+                    className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm"
+                  >
                     <div className="flex items-center justify-between">
                       <p className="text-sm font-medium text-gray-500">{stat.title}</p>
-                      <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${bgMap[stat.color]}`}>
+                      <div
+                        className={`flex h-10 w-10 items-center justify-center rounded-lg ${bgMap[stat.color]}`}
+                      >
                         <Icon className={`h-5 w-5 ${textMap[stat.color]}`} />
                       </div>
                     </div>
@@ -1446,7 +1685,10 @@ export default function BancosPage() {
             <h2 className="mt-8 text-lg font-semibold text-gray-900">Saldos por Cuenta</h2>
             <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {accounts.map((a) => (
-                <div key={a.id} className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                <div
+                  key={a.id}
+                  className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
+                >
                   <div className="flex items-center gap-3">
                     <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gray-100">
                       <Landmark className="h-4 w-4 text-black" />
@@ -1457,11 +1699,15 @@ export default function BancosPage() {
                     </div>
                   </div>
                   <p className="mt-3 text-xl font-bold text-gray-900">{fmtMXN(a.currentBalance)}</p>
-                  <p className="text-xs text-gray-500">{a.currency} &middot; {a.branch ? a.branch.name : "Corporativa"}</p>
+                  <p className="text-xs text-gray-500">
+                    {a.currency} &middot; {a.branch ? a.branch.name : "Corporativa"}
+                  </p>
                 </div>
               ))}
               {accounts.length === 0 && (
-                <p className="text-sm text-gray-500 col-span-full">No hay cuentas bancarias registradas.</p>
+                <p className="text-sm text-gray-500 col-span-full">
+                  No hay cuentas bancarias registradas.
+                </p>
               )}
             </div>
           </>
@@ -1501,7 +1747,10 @@ export default function BancosPage() {
             />
           </FormField>
           <FormField label="Sucursal">
-            <Select value={accountForm.branchId} onChange={(e) => setAccountForm({ ...accountForm, branchId: e.target.value })}>
+            <Select
+              value={accountForm.branchId}
+              onChange={(e) => setAccountForm({ ...accountForm, branchId: e.target.value })}
+            >
               <option value="">Corporativa</option>
               {branches.map((b) => (
                 <option key={b.id} value={b.id}>
@@ -1511,7 +1760,10 @@ export default function BancosPage() {
             </Select>
           </FormField>
           <FormField label="Moneda">
-            <Select value={accountForm.currency} onChange={(e) => setAccountForm({ ...accountForm, currency: e.target.value })}>
+            <Select
+              value={accountForm.currency}
+              onChange={(e) => setAccountForm({ ...accountForm, currency: e.target.value })}
+            >
               <option value="MXN">MXN</option>
               <option value="USD">USD</option>
             </Select>
@@ -1521,14 +1773,19 @@ export default function BancosPage() {
               type="number"
               step="0.01"
               value={accountForm.currentBalance}
-              onChange={(e) => setAccountForm({ ...accountForm, currentBalance: Number(e.target.value) })}
+              onChange={(e) =>
+                setAccountForm({ ...accountForm, currentBalance: Number(e.target.value) })
+              }
             />
           </FormField>
           <div className="flex justify-end gap-3 pt-2">
             <Button variant="outline" onClick={() => setAccountModal(false)}>
               Cancelar
             </Button>
-            <Button onClick={saveAccount} disabled={!accountForm.bankName || !accountForm.accountNumber || !accountForm.clabe}>
+            <Button
+              onClick={saveAccount}
+              disabled={!accountForm.bankName || !accountForm.accountNumber || !accountForm.clabe}
+            >
               {editingAccount ? "Guardar Cambios" : "Crear Cuenta"}
             </Button>
           </div>
@@ -1536,7 +1793,11 @@ export default function BancosPage() {
       </Modal>
 
       {/* Delete confirmation */}
-      <Modal open={!!deleteConfirm} onClose={() => setDeleteConfirm(null)} title="Confirmar Eliminacion">
+      <Modal
+        open={!!deleteConfirm}
+        onClose={() => setDeleteConfirm(null)}
+        title="Confirmar Eliminacion"
+      >
         <p className="text-sm text-gray-600 mb-6">
           Esta seguro de que desea eliminar esta cuenta bancaria? Esta accion no se puede deshacer.
         </p>
@@ -1544,7 +1805,10 @@ export default function BancosPage() {
           <Button variant="outline" onClick={() => setDeleteConfirm(null)}>
             Cancelar
           </Button>
-          <Button variant="destructive" onClick={() => deleteConfirm && deleteAccount(deleteConfirm)}>
+          <Button
+            variant="destructive"
+            onClick={() => deleteConfirm && deleteAccount(deleteConfirm)}
+          >
             <Trash2 className="h-4 w-4" />
             Eliminar
           </Button>
@@ -1555,7 +1819,10 @@ export default function BancosPage() {
       <Modal open={txModal} onClose={() => setTxModal(false)} title="Nuevo Movimiento">
         <div className="space-y-4">
           <FormField label="Cuenta Bancaria" required>
-            <Select value={txForm.bankAccountId} onChange={(e) => setTxForm({ ...txForm, bankAccountId: e.target.value })}>
+            <Select
+              value={txForm.bankAccountId}
+              onChange={(e) => setTxForm({ ...txForm, bankAccountId: e.target.value })}
+            >
               {accounts.map((a) => (
                 <option key={a.id} value={a.id}>
                   {a.bankName} - {a.accountNumber}
@@ -1564,28 +1831,51 @@ export default function BancosPage() {
             </Select>
           </FormField>
           <FormField label="Fecha" required>
-            <Input type="date" value={txForm.transactionDate} onChange={(e) => setTxForm({ ...txForm, transactionDate: e.target.value })} />
+            <Input
+              type="date"
+              value={txForm.transactionDate}
+              onChange={(e) => setTxForm({ ...txForm, transactionDate: e.target.value })}
+            />
           </FormField>
           <FormField label="Monto" required>
-            <Input type="number" step="0.01" value={txForm.amount} onChange={(e) => setTxForm({ ...txForm, amount: Number(e.target.value) })} />
+            <Input
+              type="number"
+              step="0.01"
+              value={txForm.amount}
+              onChange={(e) => setTxForm({ ...txForm, amount: Number(e.target.value) })}
+            />
           </FormField>
           <FormField label="Tipo" required>
-            <Select value={txForm.type} onChange={(e) => setTxForm({ ...txForm, type: e.target.value as "credit" | "debit" })}>
+            <Select
+              value={txForm.type}
+              onChange={(e) => setTxForm({ ...txForm, type: e.target.value as "credit" | "debit" })}
+            >
               <option value="credit">Credito</option>
               <option value="debit">Debito</option>
             </Select>
           </FormField>
           <FormField label="Referencia">
-            <Input value={txForm.reference} onChange={(e) => setTxForm({ ...txForm, reference: e.target.value })} placeholder="Ej: REF-001" />
+            <Input
+              value={txForm.reference}
+              onChange={(e) => setTxForm({ ...txForm, reference: e.target.value })}
+              placeholder="Ej: REF-001"
+            />
           </FormField>
           <FormField label="Descripcion">
-            <Input value={txForm.description} onChange={(e) => setTxForm({ ...txForm, description: e.target.value })} placeholder="Descripcion del movimiento" />
+            <Input
+              value={txForm.description}
+              onChange={(e) => setTxForm({ ...txForm, description: e.target.value })}
+              placeholder="Descripcion del movimiento"
+            />
           </FormField>
           <div className="flex justify-end gap-3 pt-2">
             <Button variant="outline" onClick={() => setTxModal(false)}>
               Cancelar
             </Button>
-            <Button onClick={saveTx} disabled={!txForm.bankAccountId || !txForm.transactionDate || !txForm.amount}>
+            <Button
+              onClick={saveTx}
+              disabled={!txForm.bankAccountId || !txForm.transactionDate || !txForm.amount}
+            >
               Crear Movimiento
             </Button>
           </div>
@@ -1596,7 +1886,10 @@ export default function BancosPage() {
       <Modal open={cxpModal} onClose={() => setCxpModal(false)} title="Nueva Cuenta por Pagar">
         <div className="space-y-4">
           <FormField label="Proveedor" required>
-            <Select value={cxpForm.supplierId} onChange={(e) => setCxpForm({ ...cxpForm, supplierId: e.target.value })}>
+            <Select
+              value={cxpForm.supplierId}
+              onChange={(e) => setCxpForm({ ...cxpForm, supplierId: e.target.value })}
+            >
               <option value="">Seleccionar proveedor...</option>
               {suppliers.map((s) => (
                 <option key={s.id} value={s.id}>
@@ -1606,7 +1899,10 @@ export default function BancosPage() {
             </Select>
           </FormField>
           <FormField label="Sucursal" required>
-            <Select value={cxpForm.branchId} onChange={(e) => setCxpForm({ ...cxpForm, branchId: e.target.value })}>
+            <Select
+              value={cxpForm.branchId}
+              onChange={(e) => setCxpForm({ ...cxpForm, branchId: e.target.value })}
+            >
               <option value="">Seleccionar sucursal...</option>
               {branches.map((b) => (
                 <option key={b.id} value={b.id}>
@@ -1623,10 +1919,19 @@ export default function BancosPage() {
             />
           </FormField>
           <FormField label="Monto" required>
-            <Input type="number" step="0.01" value={cxpForm.amount} onChange={(e) => setCxpForm({ ...cxpForm, amount: Number(e.target.value) })} />
+            <Input
+              type="number"
+              step="0.01"
+              value={cxpForm.amount}
+              onChange={(e) => setCxpForm({ ...cxpForm, amount: Number(e.target.value) })}
+            />
           </FormField>
           <FormField label="Fecha de Vencimiento" required>
-            <Input type="date" value={cxpForm.dueDate} onChange={(e) => setCxpForm({ ...cxpForm, dueDate: e.target.value })} />
+            <Input
+              type="date"
+              value={cxpForm.dueDate}
+              onChange={(e) => setCxpForm({ ...cxpForm, dueDate: e.target.value })}
+            />
           </FormField>
           <div className="flex justify-end gap-3 pt-2">
             <Button variant="outline" onClick={() => setCxpModal(false)}>
@@ -1634,7 +1939,13 @@ export default function BancosPage() {
             </Button>
             <Button
               onClick={saveCxP}
-              disabled={!cxpForm.supplierId || !cxpForm.branchId || !cxpForm.invoiceNumber || !cxpForm.amount || !cxpForm.dueDate}
+              disabled={
+                !cxpForm.supplierId ||
+                !cxpForm.branchId ||
+                !cxpForm.invoiceNumber ||
+                !cxpForm.amount ||
+                !cxpForm.dueDate
+              }
             >
               Crear CxP
             </Button>
@@ -1646,7 +1957,10 @@ export default function BancosPage() {
       <Modal open={cxcModal} onClose={() => setCxcModal(false)} title="Nueva Cuenta por Cobrar">
         <div className="space-y-4">
           <FormField label="Sucursal" required>
-            <Select value={cxcForm.branchId} onChange={(e) => setCxcForm({ ...cxcForm, branchId: e.target.value })}>
+            <Select
+              value={cxcForm.branchId}
+              onChange={(e) => setCxcForm({ ...cxcForm, branchId: e.target.value })}
+            >
               <option value="">Seleccionar sucursal...</option>
               {branches.map((b) => (
                 <option key={b.id} value={b.id}>
@@ -1656,16 +1970,28 @@ export default function BancosPage() {
             </Select>
           </FormField>
           <FormField label="Monto" required>
-            <Input type="number" step="0.01" value={cxcForm.amount} onChange={(e) => setCxcForm({ ...cxcForm, amount: Number(e.target.value) })} />
+            <Input
+              type="number"
+              step="0.01"
+              value={cxcForm.amount}
+              onChange={(e) => setCxcForm({ ...cxcForm, amount: Number(e.target.value) })}
+            />
           </FormField>
           <FormField label="Fecha de Vencimiento" required>
-            <Input type="date" value={cxcForm.dueDate} onChange={(e) => setCxcForm({ ...cxcForm, dueDate: e.target.value })} />
+            <Input
+              type="date"
+              value={cxcForm.dueDate}
+              onChange={(e) => setCxcForm({ ...cxcForm, dueDate: e.target.value })}
+            />
           </FormField>
           <div className="flex justify-end gap-3 pt-2">
             <Button variant="outline" onClick={() => setCxcModal(false)}>
               Cancelar
             </Button>
-            <Button onClick={saveCxC} disabled={!cxcForm.branchId || !cxcForm.amount || !cxcForm.dueDate}>
+            <Button
+              onClick={saveCxC}
+              disabled={!cxcForm.branchId || !cxcForm.amount || !cxcForm.dueDate}
+            >
               Crear CxC
             </Button>
           </div>
@@ -1688,10 +2014,17 @@ export default function BancosPage() {
             />
           </FormField>
           <FormField label="Fecha de Pago" required>
-            <Input type="date" value={paymentForm.paymentDate} onChange={(e) => setPaymentForm({ ...paymentForm, paymentDate: e.target.value })} />
+            <Input
+              type="date"
+              value={paymentForm.paymentDate}
+              onChange={(e) => setPaymentForm({ ...paymentForm, paymentDate: e.target.value })}
+            />
           </FormField>
           <FormField label="Metodo de Pago" required>
-            <Select value={paymentForm.paymentMethod} onChange={(e) => setPaymentForm({ ...paymentForm, paymentMethod: e.target.value })}>
+            <Select
+              value={paymentForm.paymentMethod}
+              onChange={(e) => setPaymentForm({ ...paymentForm, paymentMethod: e.target.value })}
+            >
               <option value="Efectivo">Efectivo</option>
               <option value="Transferencia">Transferencia</option>
               <option value="Cheque">Cheque</option>
@@ -1701,7 +2034,10 @@ export default function BancosPage() {
             <Button variant="outline" onClick={() => setPaymentModal(null)}>
               Cancelar
             </Button>
-            <Button onClick={savePayment} disabled={!paymentForm.amount || !paymentForm.paymentDate}>
+            <Button
+              onClick={savePayment}
+              disabled={!paymentForm.amount || !paymentForm.paymentDate}
+            >
               <DollarSign className="h-4 w-4" />
               Registrar Pago
             </Button>
@@ -1710,22 +2046,39 @@ export default function BancosPage() {
       </Modal>
 
       {/* Import transactions modal */}
-      <Modal open={importModal} onClose={() => { setImportModal(false); setCsvPreview([]); }} title="Importar Transacciones">
+      <Modal
+        open={importModal}
+        onClose={() => {
+          setImportModal(false);
+          setCsvPreview([]);
+        }}
+        title="Importar Transacciones"
+      >
         <div className="space-y-4">
           {/* Mode toggle */}
           <div className="flex gap-2">
             <button
-              onClick={() => { setImportMode("csv"); setCsvPreview([]); }}
+              onClick={() => {
+                setImportMode("csv");
+                setCsvPreview([]);
+              }}
               className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
-                importMode === "csv" ? "bg-black text-white" : "bg-white border border-gray-200 text-gray-700 hover:bg-gray-50"
+                importMode === "csv"
+                  ? "bg-black text-white"
+                  : "bg-white border border-gray-200 text-gray-700 hover:bg-gray-50"
               }`}
             >
               Archivo CSV
             </button>
             <button
-              onClick={() => { setImportMode("manual"); setCsvPreview([]); }}
+              onClick={() => {
+                setImportMode("manual");
+                setCsvPreview([]);
+              }}
               className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
-                importMode === "manual" ? "bg-black text-white" : "bg-white border border-gray-200 text-gray-700 hover:bg-gray-50"
+                importMode === "manual"
+                  ? "bg-black text-white"
+                  : "bg-white border border-gray-200 text-gray-700 hover:bg-gray-50"
               }`}
             >
               Entrada Manual
@@ -1757,7 +2110,9 @@ export default function BancosPage() {
 
               {csvPreview.length > 0 && (
                 <div>
-                  <p className="mb-2 text-sm font-medium text-gray-700">{csvPreview.length} transacciones detectadas:</p>
+                  <p className="mb-2 text-sm font-medium text-gray-700">
+                    {csvPreview.length} transacciones detectadas:
+                  </p>
                   <div className="max-h-60 overflow-auto rounded-lg border border-gray-200">
                     <table className="min-w-full divide-y divide-gray-200 text-xs">
                       <thead className="bg-gray-50">
@@ -1765,8 +2120,12 @@ export default function BancosPage() {
                           <th className="px-3 py-2 text-left font-medium text-gray-500">Fecha</th>
                           <th className="px-3 py-2 text-right font-medium text-gray-500">Monto</th>
                           <th className="px-3 py-2 text-left font-medium text-gray-500">Tipo</th>
-                          <th className="px-3 py-2 text-left font-medium text-gray-500">Referencia</th>
-                          <th className="px-3 py-2 text-left font-medium text-gray-500">Descripcion</th>
+                          <th className="px-3 py-2 text-left font-medium text-gray-500">
+                            Referencia
+                          </th>
+                          <th className="px-3 py-2 text-left font-medium text-gray-500">
+                            Descripcion
+                          </th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100">
@@ -1775,14 +2134,21 @@ export default function BancosPage() {
                             <td className="px-3 py-2">{row.date}</td>
                             <td className="px-3 py-2 text-right">{fmtMXN(row.amount)}</td>
                             <td className="px-3 py-2">
-                              <StatusBadge label={row.type === "credit" ? "Credito" : "Debito"} variant={row.type === "credit" ? "green" : "red"} />
+                              <StatusBadge
+                                label={row.type === "credit" ? "Credito" : "Debito"}
+                                variant={row.type === "credit" ? "green" : "red"}
+                              />
                             </td>
                             <td className="px-3 py-2">{row.reference || "-"}</td>
                             <td className="px-3 py-2">{row.description || "-"}</td>
                           </tr>
                         ))}
                         {csvPreview.length > 20 && (
-                          <tr><td colSpan={5} className="px-3 py-2 text-center text-gray-500">...y {csvPreview.length - 20} mas</td></tr>
+                          <tr>
+                            <td colSpan={5} className="px-3 py-2 text-center text-gray-500">
+                              ...y {csvPreview.length - 20} mas
+                            </td>
+                          </tr>
                         )}
                       </tbody>
                     </table>
@@ -1791,10 +2157,19 @@ export default function BancosPage() {
               )}
 
               <div className="flex justify-end gap-3 pt-2">
-                <Button variant="outline" onClick={() => { setImportModal(false); setCsvPreview([]); }}>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setImportModal(false);
+                    setCsvPreview([]);
+                  }}
+                >
                   Cancelar
                 </Button>
-                <Button onClick={handleImportCSV} disabled={csvPreview.length === 0 || importLoading}>
+                <Button
+                  onClick={handleImportCSV}
+                  disabled={csvPreview.length === 0 || importLoading}
+                >
                   <Upload className="h-4 w-4" />
                   {importLoading ? "Importando..." : `Importar ${csvPreview.length} transacciones`}
                 </Button>
@@ -1803,28 +2178,64 @@ export default function BancosPage() {
           ) : (
             <>
               <FormField label="Fecha" required>
-                <Input type="date" value={manualImportForm.date} onChange={(e) => setManualImportForm({ ...manualImportForm, date: e.target.value })} />
+                <Input
+                  type="date"
+                  value={manualImportForm.date}
+                  onChange={(e) =>
+                    setManualImportForm({ ...manualImportForm, date: e.target.value })
+                  }
+                />
               </FormField>
               <FormField label="Monto" required>
-                <Input type="number" step="0.01" value={manualImportForm.amount} onChange={(e) => setManualImportForm({ ...manualImportForm, amount: Number(e.target.value) })} />
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={manualImportForm.amount}
+                  onChange={(e) =>
+                    setManualImportForm({ ...manualImportForm, amount: Number(e.target.value) })
+                  }
+                />
               </FormField>
               <FormField label="Tipo" required>
-                <Select value={manualImportForm.type} onChange={(e) => setManualImportForm({ ...manualImportForm, type: e.target.value as "credit" | "debit" })}>
+                <Select
+                  value={manualImportForm.type}
+                  onChange={(e) =>
+                    setManualImportForm({
+                      ...manualImportForm,
+                      type: e.target.value as "credit" | "debit",
+                    })
+                  }
+                >
                   <option value="credit">Credito</option>
                   <option value="debit">Debito</option>
                 </Select>
               </FormField>
               <FormField label="Referencia">
-                <Input value={manualImportForm.reference} onChange={(e) => setManualImportForm({ ...manualImportForm, reference: e.target.value })} placeholder="Ej: REF-001" />
+                <Input
+                  value={manualImportForm.reference}
+                  onChange={(e) =>
+                    setManualImportForm({ ...manualImportForm, reference: e.target.value })
+                  }
+                  placeholder="Ej: REF-001"
+                />
               </FormField>
               <FormField label="Descripcion">
-                <Input value={manualImportForm.description} onChange={(e) => setManualImportForm({ ...manualImportForm, description: e.target.value })} placeholder="Descripcion de la transaccion" />
+                <Input
+                  value={manualImportForm.description}
+                  onChange={(e) =>
+                    setManualImportForm({ ...manualImportForm, description: e.target.value })
+                  }
+                  placeholder="Descripcion de la transaccion"
+                />
               </FormField>
               <div className="flex justify-end gap-3 pt-2">
                 <Button variant="outline" onClick={() => setImportModal(false)}>
                   Cancelar
                 </Button>
-                <Button onClick={handleImportManual} disabled={!manualImportForm.date || !manualImportForm.amount || importLoading}>
+                <Button
+                  onClick={handleImportManual}
+                  disabled={!manualImportForm.date || !manualImportForm.amount || importLoading}
+                >
                   <Upload className="h-4 w-4" />
                   {importLoading ? "Importando..." : "Importar Transaccion"}
                 </Button>
@@ -1837,7 +2248,11 @@ export default function BancosPage() {
       {/* Manual reconcile modal */}
       <Modal
         open={!!reconcileModal}
-        onClose={() => { setReconcileModal(null); setMatchSearch(""); setMatchCandidates({ payables: [], receivables: [] }); }}
+        onClose={() => {
+          setReconcileModal(null);
+          setMatchSearch("");
+          setMatchCandidates({ payables: [], receivables: [] });
+        }}
         title="Conciliar Transaccion"
       >
         {reconcileModal && (
@@ -1849,13 +2264,24 @@ export default function BancosPage() {
                   <p className="text-sm font-medium text-gray-900">
                     {new Date(reconcileModal.transactionDate).toLocaleDateString("es-MX")}
                   </p>
-                  <p className="text-xs text-gray-500">{reconcileModal.description || reconcileModal.reference || "Sin descripcion"}</p>
+                  <p className="text-xs text-gray-500">
+                    {reconcileModal.description || reconcileModal.reference || "Sin descripcion"}
+                  </p>
                 </div>
                 <div className="text-right">
-                  <p className={`text-lg font-bold ${reconcileModal.type === "debit" ? "text-red-600" : "text-green-600"}`}>
-                    {fmtMXN(reconcileModal.type === "debit" ? -reconcileModal.amount : reconcileModal.amount)}
+                  <p
+                    className={`text-lg font-bold ${reconcileModal.type === "debit" ? "text-red-600" : "text-green-600"}`}
+                  >
+                    {fmtMXN(
+                      reconcileModal.type === "debit"
+                        ? -reconcileModal.amount
+                        : reconcileModal.amount,
+                    )}
                   </p>
-                  <StatusBadge label={reconcileModal.type === "credit" ? "Credito" : "Debito"} variant={reconcileModal.type === "credit" ? "green" : "red"} />
+                  <StatusBadge
+                    label={reconcileModal.type === "credit" ? "Credito" : "Debito"}
+                    variant={reconcileModal.type === "credit" ? "green" : "red"}
+                  />
                 </div>
               </div>
             </div>
@@ -1891,7 +2317,9 @@ export default function BancosPage() {
               <div className="max-h-60 overflow-auto space-y-2">
                 {matchCandidates.payables.length > 0 && (
                   <div>
-                    <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Cuentas por Pagar</p>
+                    <p className="text-xs font-semibold text-gray-500 uppercase mb-1">
+                      Cuentas por Pagar
+                    </p>
                     {matchCandidates.payables.map((p) => (
                       <div
                         key={p.id}
@@ -1903,7 +2331,8 @@ export default function BancosPage() {
                             {p.supplier?.name || "Proveedor"} - {p.invoiceNumber || "Sin factura"}
                           </p>
                           <p className="text-xs text-gray-500">
-                            Vence: {new Date(p.dueDate).toLocaleDateString("es-MX")} | {p.branch?.name || ""}
+                            Vence: {new Date(p.dueDate).toLocaleDateString("es-MX")} |{" "}
+                            {p.branch?.name || ""}
                           </p>
                         </div>
                         <div className="text-right">
@@ -1917,7 +2346,9 @@ export default function BancosPage() {
 
                 {matchCandidates.receivables.length > 0 && (
                   <div>
-                    <p className="text-xs font-semibold text-gray-500 uppercase mb-1">Cuentas por Cobrar</p>
+                    <p className="text-xs font-semibold text-gray-500 uppercase mb-1">
+                      Cuentas por Cobrar
+                    </p>
                     {matchCandidates.receivables.map((r) => (
                       <div
                         key={r.id}
@@ -1929,7 +2360,8 @@ export default function BancosPage() {
                             {r.customer?.name || "Cliente"} - CxC
                           </p>
                           <p className="text-xs text-gray-500">
-                            Vence: {new Date(r.dueDate).toLocaleDateString("es-MX")} | {r.branch?.name || ""}
+                            Vence: {new Date(r.dueDate).toLocaleDateString("es-MX")} |{" "}
+                            {r.branch?.name || ""}
                           </p>
                         </div>
                         <div className="text-right">
@@ -1941,16 +2373,24 @@ export default function BancosPage() {
                   </div>
                 )}
 
-                {matchCandidates.payables.length === 0 && matchCandidates.receivables.length === 0 && (
-                  <div className="text-center text-sm text-gray-500 py-4">
-                    No se encontraron coincidencias. Intenta buscar con otro criterio.
-                  </div>
-                )}
+                {matchCandidates.payables.length === 0 &&
+                  matchCandidates.receivables.length === 0 && (
+                    <div className="text-center text-sm text-gray-500 py-4">
+                      No se encontraron coincidencias. Intenta buscar con otro criterio.
+                    </div>
+                  )}
               </div>
             )}
 
             <div className="flex justify-end pt-2">
-              <Button variant="outline" onClick={() => { setReconcileModal(null); setMatchSearch(""); setMatchCandidates({ payables: [], receivables: [] }); }}>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setReconcileModal(null);
+                  setMatchSearch("");
+                  setMatchCandidates({ payables: [], receivables: [] });
+                }}
+              >
                 Cancelar
               </Button>
             </div>

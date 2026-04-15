@@ -1,23 +1,10 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Put,
-  Param,
-  Body,
-  Query,
-  Res,
-  UseGuards,
-} from "@nestjs/common";
+import { Controller, Get, Post, Put, Param, Body, Query, Res, UseGuards } from "@nestjs/common";
 import { ApiTags, ApiBearerAuth } from "@nestjs/swagger";
 import type { Response } from "express";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
 import { Permissions } from "../../common/decorators/roles.decorator";
-import {
-  CurrentUser,
-  JwtPayload,
-} from "../../common/decorators/current-user.decorator";
+import { CurrentUser, JwtPayload } from "../../common/decorators/current-user.decorator";
 import { AttendanceService } from "./attendance.service";
 
 @ApiTags("Nomina - Asistencia")
@@ -29,35 +16,19 @@ export class AttendanceController {
 
   @Post("clock-in")
   @Permissions("nomina:edit")
-  clockIn(
-    @CurrentUser() user: JwtPayload,
-    @Body() body: { employeeId: string; branchId: string },
-  ) {
-    return this.attendanceService.clockIn(
-      user.organizationId,
-      body.employeeId,
-      body.branchId,
-    );
+  clockIn(@CurrentUser() user: JwtPayload, @Body() body: { employeeId: string; branchId: string }) {
+    return this.attendanceService.clockIn(user.organizationId, body.employeeId, body.branchId);
   }
 
   @Post("clock-out")
   @Permissions("nomina:edit")
-  clockOut(
-    @CurrentUser() user: JwtPayload,
-    @Body() body: { employeeId: string },
-  ) {
-    return this.attendanceService.clockOut(
-      user.organizationId,
-      body.employeeId,
-    );
+  clockOut(@CurrentUser() user: JwtPayload, @Body() body: { employeeId: string }) {
+    return this.attendanceService.clockOut(user.organizationId, body.employeeId);
   }
 
   @Get("today")
   @Permissions("nomina:view")
-  getToday(
-    @CurrentUser() user: JwtPayload,
-    @Query("branchId") branchId: string,
-  ) {
+  getToday(@CurrentUser() user: JwtPayload, @Query("branchId") branchId: string) {
     return this.attendanceService.getToday(user.organizationId, branchId);
   }
 
@@ -69,12 +40,7 @@ export class AttendanceController {
     @Query("startDate") startDate: string,
     @Query("endDate") endDate: string,
   ) {
-    return this.attendanceService.getByDateRange(
-      user.organizationId,
-      branchId,
-      startDate,
-      endDate,
-    );
+    return this.attendanceService.getByDateRange(user.organizationId, branchId, startDate, endDate);
   }
 
   @Get("export")
@@ -131,28 +97,14 @@ export class AttendanceController {
 
   @Post("mark-absent")
   @Permissions("nomina:edit")
-  markAbsent(
-    @CurrentUser() user: JwtPayload,
-    @Body() body: { employeeId: string; date: string },
-  ) {
-    return this.attendanceService.markAbsent(
-      user.organizationId,
-      body.employeeId,
-      body.date,
-    );
+  markAbsent(@CurrentUser() user: JwtPayload, @Body() body: { employeeId: string; date: string }) {
+    return this.attendanceService.markAbsent(user.organizationId, body.employeeId, body.date);
   }
 
   @Post("mark-holiday")
   @Permissions("nomina:edit")
-  markHoliday(
-    @CurrentUser() user: JwtPayload,
-    @Body() body: { branchId: string; date: string },
-  ) {
-    return this.attendanceService.markHoliday(
-      user.organizationId,
-      body.branchId,
-      body.date,
-    );
+  markHoliday(@CurrentUser() user: JwtPayload, @Body() body: { branchId: string; date: string }) {
+    return this.attendanceService.markHoliday(user.organizationId, body.branchId, body.date);
   }
 
   @Put(":id")

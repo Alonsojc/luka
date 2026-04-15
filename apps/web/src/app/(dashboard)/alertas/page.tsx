@@ -105,14 +105,7 @@ EVENT_TYPES.forEach((e) => {
 });
 
 const EVENT_VARIABLES: Record<string, string[]> = {
-  STOCK_LOW: [
-    "branchName",
-    "productName",
-    "sku",
-    "currentStock",
-    "minimumStock",
-    "unit",
-  ],
+  STOCK_LOW: ["branchName", "productName", "sku", "currentStock", "minimumStock", "unit"],
   LOT_EXPIRING: [
     "branchName",
     "productName",
@@ -122,13 +115,7 @@ const EVENT_VARIABLES: Record<string, string[]> = {
     "quantity",
     "unit",
   ],
-  REQUISITION_NEW: [
-    "branchName",
-    "requestedBy",
-    "itemCount",
-    "priority",
-    "deliveryDate",
-  ],
+  REQUISITION_NEW: ["branchName", "requestedBy", "itemCount", "priority", "deliveryDate"],
   REQUISITION_APPROVED: ["branchName", "folio", "approvedBy", "itemCount"],
   DELIVERY_NEW: ["branchName", "platform", "customerName", "total"],
   DAILY_SUMMARY: [
@@ -200,11 +187,9 @@ export default function AlertasPage() {
     total: number;
     page: number;
     totalPages: number;
-  }>(
-    `/whatsapp/logs?${logsQueryString}`,
-    ["alert-logs", logsQueryString],
-    { enabled: tab === "Historial" },
-  );
+  }>(`/whatsapp/logs?${logsQueryString}`, ["alert-logs", logsQueryString], {
+    enabled: tab === "Historial",
+  });
   const logs = logsResponse?.data ?? [];
   const logsTotalPages = logsResponse?.totalPages ?? 1;
   const logsTotal = logsResponse?.total ?? 0;
@@ -238,10 +223,9 @@ export default function AlertasPage() {
   }, [config]);
 
   // Templates (React Query)
-  const { data: templates = {} } = useApiQuery<Record<string, string>>(
-    "/whatsapp/templates",
-    ["whatsapp-templates"],
-  );
+  const { data: templates = {} } = useApiQuery<Record<string, string>>("/whatsapp/templates", [
+    "whatsapp-templates",
+  ]);
 
   // Checking alerts
   const [checking, setChecking] = useState(false);
@@ -289,9 +273,7 @@ export default function AlertasPage() {
       toast("La plantilla de mensaje es requerida", "error");
       return;
     }
-    const validRecipients = ruleForm.recipients.filter(
-      (r) => r.phone.trim() && r.name.trim(),
-    );
+    const validRecipients = ruleForm.recipients.filter((r) => r.phone.trim() && r.name.trim());
     if (validRecipients.length === 0) {
       toast("Agrega al menos un destinatario", "error");
       return;
@@ -357,10 +339,7 @@ export default function AlertasPage() {
       );
       setPreviewMessage(res.message || "");
       setPreviewModal(true);
-      toast(
-        `Test enviado a ${res.results?.length || 0} destinatario(s)`,
-        "success",
-      );
+      toast(`Test enviado a ${res.results?.length || 0} destinatario(s)`, "success");
     } catch {
       toast("Error al enviar test", "error");
     } finally {
@@ -387,9 +366,7 @@ export default function AlertasPage() {
         (res.dailySummary?.triggered || 0);
 
       toast(
-        total > 0
-          ? `${total} alerta(s) disparada(s)`
-          : "Sin alertas pendientes",
+        total > 0 ? `${total} alerta(s) disparada(s)` : "Sin alertas pendientes",
         total > 0 ? "success" : "info",
       );
       queryClient.invalidateQueries({ queryKey: ["alert-rules"] });
@@ -436,16 +413,10 @@ export default function AlertasPage() {
     }));
   }
 
-  function updateRecipient(
-    idx: number,
-    field: keyof Recipient,
-    value: string,
-  ) {
+  function updateRecipient(idx: number, field: keyof Recipient, value: string) {
     setRuleForm((f) => ({
       ...f,
-      recipients: f.recipients.map((r, i) =>
-        i === idx ? { ...r, [field]: value } : r,
-      ),
+      recipients: f.recipients.map((r, i) => (i === idx ? { ...r, [field]: value } : r)),
     }));
   }
 
@@ -488,11 +459,7 @@ export default function AlertasPage() {
   // -------------------------------------------------------------------------
 
   if (authLoading) {
-    return (
-      <div className="flex items-center justify-center h-64 text-gray-400">
-        Cargando...
-      </div>
-    );
+    return <div className="flex items-center justify-center h-64 text-gray-400">Cargando...</div>;
   }
 
   return (
@@ -506,11 +473,7 @@ export default function AlertasPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            onClick={checkAlerts}
-            disabled={checking}
-          >
+          <Button variant="outline" onClick={checkAlerts} disabled={checking}>
             <RefreshCw className={`h-4 w-4 ${checking ? "animate-spin" : ""}`} />
             {checking ? "Verificando..." : "Verificar Alertas"}
           </Button>
@@ -551,18 +514,13 @@ export default function AlertasPage() {
             {
               key: "name",
               header: "Nombre",
-              render: (r: AlertRule) => (
-                <span className="font-medium">{r.name}</span>
-              ),
+              render: (r: AlertRule) => <span className="font-medium">{r.name}</span>,
             },
             {
               key: "eventType",
               header: "Evento",
               render: (r: AlertRule) => (
-                <StatusBadge
-                  label={EVENT_LABEL[r.eventType] || r.eventType}
-                  variant="blue"
-                />
+                <StatusBadge label={EVENT_LABEL[r.eventType] || r.eventType} variant="blue" />
               ),
             },
             {
@@ -571,7 +529,9 @@ export default function AlertasPage() {
               render: (r: AlertRule) => {
                 const count = (r.recipients as Recipient[])?.length || 0;
                 return (
-                  <span className="text-gray-600">{count} destinatario{count !== 1 ? "s" : ""}</span>
+                  <span className="text-gray-600">
+                    {count} destinatario{count !== 1 ? "s" : ""}
+                  </span>
                 );
               },
             },
@@ -579,9 +539,7 @@ export default function AlertasPage() {
               key: "lastTriggeredAt",
               header: "Ultima ejecucion",
               render: (r: AlertRule) => (
-                <span className="text-gray-500 text-xs">
-                  {formatDate(r.lastTriggeredAt)}
-                </span>
+                <span className="text-gray-500 text-xs">{formatDate(r.lastTriggeredAt)}</span>
               ),
             },
             {
@@ -700,9 +658,7 @@ export default function AlertasPage() {
                 key: "createdAt",
                 header: "Fecha",
                 render: (l: AlertLog) => (
-                  <span className="text-xs text-gray-600">
-                    {formatDate(l.createdAt)}
-                  </span>
+                  <span className="text-xs text-gray-600">{formatDate(l.createdAt)}</span>
                 ),
               },
               {
@@ -710,9 +666,7 @@ export default function AlertasPage() {
                 header: "Regla",
                 render: (l: AlertLog) => (
                   <div>
-                    <span className="font-medium text-sm">
-                      {l.alertRule?.name || "-"}
-                    </span>
+                    <span className="font-medium text-sm">{l.alertRule?.name || "-"}</span>
                     {l.alertRule?.eventType && (
                       <span className="ml-2">
                         <StatusBadge
@@ -727,18 +681,13 @@ export default function AlertasPage() {
               {
                 key: "recipient",
                 header: "Destinatario",
-                render: (l: AlertLog) => (
-                  <span className="text-sm">{l.recipient}</span>
-                ),
+                render: (l: AlertLog) => <span className="text-sm">{l.recipient}</span>,
               },
               {
                 key: "status",
                 header: "Estado",
                 render: (l: AlertLog) => (
-                  <StatusBadge
-                    label={l.status}
-                    variant={STATUS_VARIANT[l.status] || "gray"}
-                  />
+                  <StatusBadge label={l.status} variant={STATUS_VARIANT[l.status] || "gray"} />
                 ),
               },
               {
@@ -776,9 +725,7 @@ export default function AlertasPage() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() =>
-                  setLogsPage((p) => Math.min(logsTotalPages, p + 1))
-                }
+                onClick={() => setLogsPage((p) => Math.min(logsTotalPages, p + 1))}
                 disabled={logsPage >= logsTotalPages}
               >
                 <ChevronRight className="h-4 w-4" />
@@ -801,9 +748,7 @@ export default function AlertasPage() {
                 <FormField label="Proveedor">
                   <Select
                     value={configForm.provider}
-                    onChange={(e) =>
-                      setConfigForm((f) => ({ ...f, provider: e.target.value }))
-                    }
+                    onChange={(e) => setConfigForm((f) => ({ ...f, provider: e.target.value }))}
                   >
                     <option value="mock">Mock (desarrollo)</option>
                     <option value="twilio">Twilio</option>
@@ -869,9 +814,7 @@ export default function AlertasPage() {
                       }
                       className="rounded"
                     />
-                    <span className="text-sm font-medium">
-                      WhatsApp activo
-                    </span>
+                    <span className="text-sm font-medium">WhatsApp activo</span>
                   </label>
                   <StatusBadge
                     label={configForm.isActive ? "Activo" : "Inactivo"}
@@ -881,8 +824,8 @@ export default function AlertasPage() {
 
                 {configForm.provider === "mock" && (
                   <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-sm text-yellow-800">
-                    En modo mock los mensajes se registran en el historial pero
-                    no se envian realmente. Ideal para desarrollo y pruebas.
+                    En modo mock los mensajes se registran en el historial pero no se envian
+                    realmente. Ideal para desarrollo y pruebas.
                   </div>
                 )}
               </div>
@@ -913,9 +856,7 @@ export default function AlertasPage() {
           <FormField label="Nombre" required>
             <Input
               value={ruleForm.name}
-              onChange={(e) =>
-                setRuleForm((f) => ({ ...f, name: e.target.value }))
-              }
+              onChange={(e) => setRuleForm((f) => ({ ...f, name: e.target.value }))}
               placeholder="Ej: Alerta stock bajo CEDIS"
             />
           </FormField>
@@ -934,7 +875,7 @@ export default function AlertasPage() {
           </FormField>
 
           {/* Dynamic conditions */}
-          {(ruleForm.eventType === "LOT_EXPIRING") && (
+          {ruleForm.eventType === "LOT_EXPIRING" && (
             <FormField label="Dias de anticipacion">
               <Input
                 type="number"
@@ -970,25 +911,19 @@ export default function AlertasPage() {
                 <div key={idx} className="flex items-center gap-2">
                   <Input
                     value={r.name}
-                    onChange={(e) =>
-                      updateRecipient(idx, "name", e.target.value)
-                    }
+                    onChange={(e) => updateRecipient(idx, "name", e.target.value)}
                     placeholder="Nombre"
                     className="flex-1"
                   />
                   <Input
                     value={r.phone}
-                    onChange={(e) =>
-                      updateRecipient(idx, "phone", e.target.value)
-                    }
+                    onChange={(e) => updateRecipient(idx, "phone", e.target.value)}
                     placeholder="+52 55 1234 5678"
                     className="flex-1"
                   />
                   <Input
                     value={r.role || ""}
-                    onChange={(e) =>
-                      updateRecipient(idx, "role", e.target.value)
-                    }
+                    onChange={(e) => updateRecipient(idx, "role", e.target.value)}
                     placeholder="Rol (opcional)"
                     className="w-32"
                   />
@@ -1023,9 +958,7 @@ export default function AlertasPage() {
           {/* Variable hints */}
           {EVENT_VARIABLES[ruleForm.eventType] && (
             <div className="bg-gray-50 rounded-lg p-3">
-              <p className="text-xs font-medium text-gray-600 mb-1">
-                Variables disponibles:
-              </p>
+              <p className="text-xs font-medium text-gray-600 mb-1">Variables disponibles:</p>
               <div className="flex flex-wrap gap-1.5">
                 {EVENT_VARIABLES[ruleForm.eventType].map((v) => (
                   <button
@@ -1054,9 +987,7 @@ export default function AlertasPage() {
             <input
               type="checkbox"
               checked={ruleForm.isActive}
-              onChange={(e) =>
-                setRuleForm((f) => ({ ...f, isActive: e.target.checked }))
-              }
+              onChange={(e) => setRuleForm((f) => ({ ...f, isActive: e.target.checked }))}
               className="rounded"
             />
             <span className="text-sm">Regla activa</span>
@@ -1068,11 +999,7 @@ export default function AlertasPage() {
               Cancelar
             </Button>
             <Button onClick={saveRule} disabled={saving}>
-              {saving
-                ? "Guardando..."
-                : editingRule
-                  ? "Actualizar Regla"
-                  : "Crear Regla"}
+              {saving ? "Guardando..." : editingRule ? "Actualizar Regla" : "Crear Regla"}
             </Button>
           </div>
         </div>

@@ -35,8 +35,18 @@ const STATUS_MAP: Record<string, { label: string; variant: string }> = {
 };
 
 const MONTH_NAMES = [
-  "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
-  "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
+  "Enero",
+  "Febrero",
+  "Marzo",
+  "Abril",
+  "Mayo",
+  "Junio",
+  "Julio",
+  "Agosto",
+  "Septiembre",
+  "Octubre",
+  "Noviembre",
+  "Diciembre",
 ];
 
 function fmtTime(d: string | null | undefined): string {
@@ -120,7 +130,10 @@ export default function AsistenciaPage() {
     if (!selectedBranch) return;
     setLoadingToday(true);
     try {
-      const data = await authFetch<any>("get", `/nomina/attendance/today?branchId=${selectedBranch}`);
+      const data = await authFetch<any>(
+        "get",
+        `/nomina/attendance/today?branchId=${selectedBranch}`,
+      );
       setTodayData(data);
     } catch {
       toast("Error al cargar asistencia de hoy", "error");
@@ -216,9 +229,10 @@ export default function AsistenciaPage() {
     }
   }, [activeTab, selectedBranch, fetchHistory]);
 
-  const filteredHistory = histStatusFilter === "ALL"
-    ? historyRecords
-    : historyRecords.filter((r: any) => r.status === histStatusFilter);
+  const filteredHistory =
+    histStatusFilter === "ALL"
+      ? historyRecords
+      : historyRecords.filter((r: any) => r.status === histStatusFilter);
 
   // ── Edit record ──
   function openEditModal(record: any) {
@@ -281,9 +295,7 @@ export default function AsistenciaPage() {
             <UserCheck className="h-7 w-7" />
             Asistencia
           </h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Checador de asistencia y control de horas
-          </p>
+          <p className="text-sm text-gray-500 mt-1">Checador de asistencia y control de horas</p>
         </div>
         <div className="flex items-center gap-3">
           <Select
@@ -293,7 +305,9 @@ export default function AsistenciaPage() {
           >
             <option value="">Seleccionar sucursal</option>
             {branches.map((b: any) => (
-              <option key={b.id} value={b.id}>{b.name}</option>
+              <option key={b.id} value={b.id}>
+                {b.name}
+              </option>
             ))}
           </Select>
         </div>
@@ -365,11 +379,7 @@ export default function AsistenciaPage() {
 
               {/* Actions */}
               <div className="flex justify-end">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowHolidayModal(true)}
-                >
+                <Button variant="outline" size="sm" onClick={() => setShowHolidayModal(true)}>
                   <CalendarOff className="h-4 w-4" />
                   Marcar Dia Festivo
                 </Button>
@@ -399,9 +409,7 @@ export default function AsistenciaPage() {
                     key: "schedule",
                     header: "Horario",
                     render: (row: any) =>
-                      row.shift
-                        ? `${row.shift.startTime} - ${row.shift.endTime}`
-                        : "Sin turno",
+                      row.shift ? `${row.shift.startTime} - ${row.shift.endTime}` : "Sin turno",
                   },
                   {
                     key: "clockIn",
@@ -410,7 +418,11 @@ export default function AsistenciaPage() {
                       if (!row.record?.clockIn) return <span className="text-gray-400">---</span>;
                       const isLate = row.record.status === "LATE";
                       return (
-                        <span className={isLate ? "text-red-600 font-medium" : "text-green-600 font-medium"}>
+                        <span
+                          className={
+                            isLate ? "text-red-600 font-medium" : "text-green-600 font-medium"
+                          }
+                        >
                           {fmtTime(row.record.clockIn)}
                         </span>
                       );
@@ -431,7 +443,10 @@ export default function AsistenciaPage() {
                       if (!row.record) {
                         return <StatusBadge label="Sin registro" variant="gray" />;
                       }
-                      const s = STATUS_MAP[row.record.status] || { label: row.record.status, variant: "gray" };
+                      const s = STATUS_MAP[row.record.status] || {
+                        label: row.record.status,
+                        variant: "gray",
+                      };
                       return <StatusBadge label={s.label} variant={s.variant as any} />;
                     },
                   },
@@ -528,7 +543,9 @@ export default function AsistenciaPage() {
                   >
                     <option value="ALL">Todos</option>
                     {Object.entries(STATUS_MAP).map(([k, v]) => (
-                      <option key={k} value={k}>{v.label}</option>
+                      <option key={k} value={k}>
+                        {v.label}
+                      </option>
                     ))}
                   </Select>
                 </FormField>
@@ -566,7 +583,11 @@ export default function AsistenciaPage() {
                       if (!row.clockIn) return <span className="text-gray-400">---</span>;
                       const isLate = row.status === "LATE";
                       return (
-                        <span className={isLate ? "text-red-600 font-medium" : "text-green-600 font-medium"}>
+                        <span
+                          className={
+                            isLate ? "text-red-600 font-medium" : "text-green-600 font-medium"
+                          }
+                        >
                           {fmtTime(row.clockIn)}
                         </span>
                       );
@@ -576,7 +597,11 @@ export default function AsistenciaPage() {
                     key: "clockOut",
                     header: "Salida",
                     render: (row: any) =>
-                      row.clockOut ? fmtTime(row.clockOut) : <span className="text-gray-400">---</span>,
+                      row.clockOut ? (
+                        fmtTime(row.clockOut)
+                      ) : (
+                        <span className="text-gray-400">---</span>
+                      ),
                   },
                   {
                     key: "workedHours",
@@ -630,7 +655,9 @@ export default function AsistenciaPage() {
                     onChange={(e) => setReportMonth(Number(e.target.value))}
                   >
                     {MONTH_NAMES.map((m, i) => (
-                      <option key={i} value={i + 1}>{m}</option>
+                      <option key={i} value={i + 1}>
+                        {m}
+                      </option>
                     ))}
                   </Select>
                 </FormField>
@@ -640,7 +667,9 @@ export default function AsistenciaPage() {
                     onChange={(e) => setReportYear(Number(e.target.value))}
                   >
                     {[now.getFullYear() - 1, now.getFullYear(), now.getFullYear() + 1].map((y) => (
-                      <option key={y} value={y}>{y}</option>
+                      <option key={y} value={y}>
+                        {y}
+                      </option>
                     ))}
                   </Select>
                 </FormField>
@@ -749,12 +778,24 @@ export default function AsistenciaPage() {
                     key: "punctuality",
                     header: "Puntualidad",
                     render: (row: any) => {
-                      const pct = ((safeNum(row.present) + safeNum(row.late)) > 0
-                        ? ((safeNum(row.present) - safeNum(row.late)) / (safeNum(row.present) + safeNum(row.late))) * 100
-                        : 0).toFixed(0);
+                      const pct = (
+                        safeNum(row.present) + safeNum(row.late) > 0
+                          ? ((safeNum(row.present) - safeNum(row.late)) /
+                              (safeNum(row.present) + safeNum(row.late))) *
+                            100
+                          : 0
+                      ).toFixed(0);
                       const val = safeNum(pct);
                       return (
-                        <span className={val >= 80 ? "text-green-700 font-medium" : val >= 50 ? "text-yellow-700 font-medium" : "text-red-700 font-medium"}>
+                        <span
+                          className={
+                            val >= 80
+                              ? "text-green-700 font-medium"
+                              : val >= 50
+                                ? "text-yellow-700 font-medium"
+                                : "text-red-700 font-medium"
+                          }
+                        >
                           {pct}%
                         </span>
                       );
@@ -797,7 +838,9 @@ export default function AsistenciaPage() {
               onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
             >
               {Object.entries(STATUS_MAP).map(([k, v]) => (
-                <option key={k} value={k}>{v.label}</option>
+                <option key={k} value={k}>
+                  {v.label}
+                </option>
               ))}
             </Select>
           </FormField>
@@ -812,9 +855,7 @@ export default function AsistenciaPage() {
             <Button variant="outline" onClick={() => setShowEditModal(false)}>
               Cancelar
             </Button>
-            <Button onClick={handleEditSave}>
-              Guardar
-            </Button>
+            <Button onClick={handleEditSave}>Guardar</Button>
           </div>
         </div>
       </Modal>
@@ -840,9 +881,7 @@ export default function AsistenciaPage() {
             <Button variant="outline" onClick={() => setShowHolidayModal(false)}>
               Cancelar
             </Button>
-            <Button onClick={handleMarkHoliday}>
-              Confirmar
-            </Button>
+            <Button onClick={handleMarkHoliday}>Confirmar</Button>
           </div>
         </div>
       </Modal>
