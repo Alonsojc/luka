@@ -134,10 +134,20 @@ jobs:
       - name: Install Playwright browsers
         run: pnpm --filter @luka/web exec playwright install --with-deps chromium
 
-      - name: Build and start API
+      - name: Build API
+        run: pnpm --filter @luka/api build
+
+      - name: Build Web
+        run: pnpm --filter @luka/web build
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:3001/api
+
+      - name: Prepare standalone Web
         run: |
-          pnpm --filter @luka/api build
-          pnpm --filter @luka/api start &
+          cp -r apps/web/public apps/web/.next/standalone/apps/web/public 2>/dev/null || true
+          cp -r apps/web/.next/static apps/web/.next/standalone/apps/web/.next/static 2>/dev/null || true
+
+      - name: Start services and wait
         env:
           DATABASE_URL: postgresql://luka:luka_test@localhost:5432/luka_test?schema=public
           JWT_SECRET: test-secret-minimum-32-characters-long
@@ -145,18 +155,45 @@ jobs:
           REDIS_HOST: localhost
           REDIS_PORT: 6379
           API_PORT: 3001
-
-      - name: Build and start Web
+          NODE_ENV: test
         run: |
-          pnpm --filter @luka/web build
-          pnpm --filter @luka/web start &
-        env:
-          NEXT_PUBLIC_API_URL: http://localhost:3001/api
+          # Start API in background
+          nohup node apps/api/dist/main.js > /tmp/api.log 2>&1 &
+          echo "API PID: $!"
 
-      - name: Wait for services
-        run: |
-          timeout 120 bash -c 'until curl -sf http://localhost:3001/api/health; do sleep 2; done'
-          timeout 60 bash -c 'until curl -sf http://localhost:3000 > /dev/null; do sleep 2; done'
+          # Start Web in background (standalone output nests under apps/web/)
+          nohup node apps/web/.next/standalone/apps/web/server.js > /tmp/web.log 2>&1 &
+          echo "Web PID: $!"
+
+          # Wait for API
+          echo "Waiting for API on :3001..."
+          for i in $(seq 1 60); do
+            if curl -sf http://localhost:3001/api/health > /dev/null 2>&1; then
+              echo "API is up after ${i}s!"
+              break
+            fi
+            if [ $i -eq 60 ]; then
+              echo "API failed to start. Logs:"
+              cat /tmp/api.log
+              exit 1
+            fi
+            sleep 2
+          done
+
+          # Wait for Web
+          echo "Waiting for Web on :3000..."
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:3000 > /dev/null 2>&1; then
+              echo "Web is up after ${i}s!"
+              break
+            fi
+            if [ $i -eq 30 ]; then
+              echo "Web failed to start. Logs:"
+              cat /tmp/web.log
+              exit 1
+            fi
+            sleep 2
+          done
 
       - name: Seed test data
         run: pnpm db:seed
