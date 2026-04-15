@@ -52,7 +52,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - name: Generate Prisma client
-        run: pnpm --filter @luka/database prisma generate
+        run: pnpm exec prisma generate --schema=packages/database/prisma/schema.prisma
 
       - name: Lint
         run: pnpm exec eslint apps/ packages/
@@ -61,7 +61,7 @@ jobs:
         run: pnpm exec prettier --check "apps/**/*.{ts,tsx}" "packages/**/*.ts" || true
 
       - name: Run migrations
-        run: pnpm --filter @luka/database prisma migrate deploy
+        run: pnpm exec prisma migrate deploy --schema=packages/database/prisma/schema.prisma
         env:
           DATABASE_URL: postgresql://luka:luka_test@localhost:5432/luka_test?schema=public
 
@@ -123,10 +123,10 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - name: Generate Prisma client
-        run: pnpm --filter @luka/database prisma generate
+        run: pnpm exec prisma generate --schema=packages/database/prisma/schema.prisma
 
       - name: Run migrations
-        run: pnpm --filter @luka/database prisma migrate deploy
+        run: pnpm exec prisma migrate deploy --schema=packages/database/prisma/schema.prisma
         env:
           DATABASE_URL: postgresql://luka:luka_test@localhost:5432/luka_test?schema=public
 
@@ -193,7 +193,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - name: Generate Prisma client
-        run: pnpm --filter @luka/database prisma generate
+        run: pnpm exec prisma generate --schema=packages/database/prisma/schema.prisma
 
       - name: Build API
         run: pnpm --filter @luka/api build
