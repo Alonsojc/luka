@@ -57,7 +57,7 @@ jobs:
         run: pnpm --filter @luka/database prisma generate
 
       - name: Lint
-        run: pnpm exec eslint apps/ packages/ --max-warnings 0 || pnpm exec eslint apps/ packages/
+        run: pnpm exec eslint apps/ packages/
 
       - name: Check formatting
         run: pnpm exec prettier --check "apps/**/*.{ts,tsx}" "packages/**/*.ts" || true

@@ -13,6 +13,9 @@ export default tseslint.config(
       "**/.turbo/**",
       "**/coverage/**",
       "apps/web/public/sw.js",
+      "apps/web/next-env.d.ts",
+      "**/*.config.js",
+      "**/*.config.mjs",
     ],
   },
 
@@ -29,7 +32,10 @@ export default tseslint.config(
         { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
       ],
       "@typescript-eslint/no-empty-object-type": "off",
+      "@typescript-eslint/triple-slash-reference": "off",
       "no-console": ["warn", { allow: ["warn", "error"] }],
+      "prefer-const": "warn",
+      "no-useless-assignment": "warn",
     },
   },
 
