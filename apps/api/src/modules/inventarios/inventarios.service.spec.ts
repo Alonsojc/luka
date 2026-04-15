@@ -35,6 +35,12 @@ const mockAuditService = {
   log: vi.fn().mockResolvedValue(undefined),
 };
 
+const mockCacheService = {
+  get: vi.fn(),
+  set: vi.fn().mockResolvedValue(undefined),
+  del: vi.fn().mockResolvedValue(undefined),
+};
+
 // ---------------------------------------------------------------------------
 // ProductsService
 // ---------------------------------------------------------------------------
@@ -50,6 +56,7 @@ describe("ProductsService", () => {
           provide: CacheService,
           useValue: { get: vi.fn(), set: vi.fn(), del: vi.fn(), invalidatePattern: vi.fn() },
         },
+        { provide: CacheService, useValue: mockCacheService },
         { provide: AuditService, useValue: mockAuditService },
       ],
     }).compile();
