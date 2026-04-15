@@ -11,8 +11,26 @@ import { FinancialReportsController } from "./financial-reports.controller";
 import { FinancialReportsService } from "./financial-reports.service";
 
 @Module({
-  controllers: [ReportesController, AnalyticsController, RoleDashboardController, BudgetController, FinancialReportsController],
-  providers: [ReportesService, AnalyticsService, RoleDashboardService, BudgetService, FinancialReportsService],
-  exports: [ReportesService, AnalyticsService, RoleDashboardService, BudgetService, FinancialReportsService],
+  controllers: [
+    ReportesController,
+    AnalyticsController,
+    RoleDashboardController,
+    BudgetController,
+    FinancialReportsController,
+  ],
+  providers: [
+    ReportesService,
+    AnalyticsService,
+    RoleDashboardService,
+    BudgetService,
+    FinancialReportsService,
+  ],
+  exports: [
+    ReportesService,
+    AnalyticsService,
+    RoleDashboardService,
+    BudgetService,
+    FinancialReportsService,
+  ],
 })
 export class ReportesModule {}

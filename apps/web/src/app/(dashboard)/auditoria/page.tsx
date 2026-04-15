@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useState } from "react";
 import {
   Shield,
   Search,
@@ -28,6 +28,7 @@ import {
   Line,
 } from "recharts";
 import { useAuth } from "@/hooks/use-auth";
+import { useApiQuery } from "@/hooks/use-api-query";
 import { Button } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/form-field";
 
@@ -215,8 +216,8 @@ export default function AuditoriaPage() {
       </div>
 
       {/* Tab Content */}
-      {tab === "actividad" && <ActividadTab authFetch={authFetch} />}
-      {tab === "estadisticas" && <EstadisticasTab authFetch={authFetch} />}
+      {tab === "actividad" && <ActividadTab />}
+      {tab === "estadisticas" && <EstadisticasTab />}
       {tab === "buscar" && <BuscarEntidadTab authFetch={authFetch} />}
     </div>
   );
@@ -226,13 +227,7 @@ export default function AuditoriaPage() {
 // Actividad Tab
 // ---------------------------------------------------------------------------
 
-function ActividadTab({
-  authFetch,
-}: {
-  authFetch: <T>(method: "get" | "post" | "patch" | "put" | "delete", path: string, body?: unknown) => Promise<T>;
-}) {
-  const [data, setData] = useState<PaginatedLogs | null>(null);
-  const [loading, setLoading] = useState(true);
+function ActividadTab() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   // Filters
@@ -243,29 +238,19 @@ function ActividadTab({
   const [page, setPage] = useState(1);
   const [filtersOpen, setFiltersOpen] = useState(false);
 
-  const fetchLogs = useCallback(async () => {
-    setLoading(true);
-    try {
-      const params = new URLSearchParams();
-      params.set("page", String(page));
-      params.set("limit", "20");
-      if (filterModule) params.set("module", filterModule);
-      if (filterAction) params.set("action", filterAction);
-      if (filterStartDate) params.set("startDate", filterStartDate);
-      if (filterEndDate) params.set("endDate", filterEndDate);
+  // Build query string for audit logs
+  const auditParams = new URLSearchParams();
+  auditParams.set("page", String(page));
+  auditParams.set("limit", "20");
+  if (filterModule) auditParams.set("module", filterModule);
+  if (filterAction) auditParams.set("action", filterAction);
+  if (filterStartDate) auditParams.set("startDate", filterStartDate);
+  if (filterEndDate) auditParams.set("endDate", filterEndDate);
 
-      const result = await authFetch<PaginatedLogs>("get", `/audit?${params.toString()}`);
-      setData(result);
-    } catch {
-      // silent
-    } finally {
-      setLoading(false);
-    }
-  }, [authFetch, page, filterModule, filterAction, filterStartDate, filterEndDate]);
-
-  useEffect(() => {
-    fetchLogs();
-  }, [fetchLogs]);
+  const { data, isLoading: loading } = useApiQuery<PaginatedLogs>(
+    `/audit?${auditParams.toString()}`,
+    ["audit-logs", String(page), filterModule, filterAction, filterStartDate, filterEndDate],
+  );
 
   const clearFilters = () => {
     setFilterModule("");
@@ -308,11 +293,16 @@ function ActividadTab({
                 <label className="block text-xs font-medium text-gray-500 mb-1">Modulo</label>
                 <Select
                   value={filterModule}
-                  onChange={(e) => { setFilterModule(e.target.value); setPage(1); }}
+                  onChange={(e) => {
+                    setFilterModule(e.target.value);
+                    setPage(1);
+                  }}
                 >
                   <option value="">Todos</option>
                   {MODULES.map((m) => (
-                    <option key={m} value={m}>{m}</option>
+                    <option key={m} value={m}>
+                      {m}
+                    </option>
                   ))}
                 </Select>
               </div>
@@ -320,11 +310,16 @@ function ActividadTab({
                 <label className="block text-xs font-medium text-gray-500 mb-1">Accion</label>
                 <Select
                   value={filterAction}
-                  onChange={(e) => { setFilterAction(e.target.value); setPage(1); }}
+                  onChange={(e) => {
+                    setFilterAction(e.target.value);
+                    setPage(1);
+                  }}
                 >
                   <option value="">Todas</option>
                   {ACTIONS.map((a) => (
-                    <option key={a} value={a}>{a}</option>
+                    <option key={a} value={a}>
+                      {a}
+                    </option>
                   ))}
                 </Select>
               </div>
@@ -333,7 +328,10 @@ function ActividadTab({
                 <Input
                   type="date"
                   value={filterStartDate}
-                  onChange={(e) => { setFilterStartDate(e.target.value); setPage(1); }}
+                  onChange={(e) => {
+                    setFilterStartDate(e.target.value);
+                    setPage(1);
+                  }}
                 />
               </div>
               <div>
@@ -341,7 +339,10 @@ function ActividadTab({
                 <Input
                   type="date"
                   value={filterEndDate}
-                  onChange={(e) => { setFilterEndDate(e.target.value); setPage(1); }}
+                  onChange={(e) => {
+                    setFilterEndDate(e.target.value);
+                    setPage(1);
+                  }}
                 />
               </div>
             </div>
@@ -373,11 +374,21 @@ function ActividadTab({
                 <thead>
                   <tr className="border-b bg-gray-50/50">
                     <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">Fecha</th>
-                    <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">Usuario</th>
-                    <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">Accion</th>
-                    <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">Modulo</th>
-                    <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">Descripcion</th>
-                    <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">Entidad</th>
+                    <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">
+                      Usuario
+                    </th>
+                    <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">
+                      Accion
+                    </th>
+                    <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">
+                      Modulo
+                    </th>
+                    <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">
+                      Descripcion
+                    </th>
+                    <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">
+                      Entidad
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -455,13 +466,13 @@ function LogRow({
             <div className="flex h-7 w-7 items-center justify-center rounded-full bg-black text-[10px] font-bold text-white flex-shrink-0">
               {userInitials(log)}
             </div>
-            <span className="text-sm text-gray-900 truncate max-w-[120px]">
-              {userName(log)}
-            </span>
+            <span className="text-sm text-gray-900 truncate max-w-[120px]">{userName(log)}</span>
           </div>
         </td>
         <td className="px-4 py-3">
-          <span className={`inline-block rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${actionBadge(log.action)}`}>
+          <span
+            className={`inline-block rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${actionBadge(log.action)}`}
+          >
             {log.action}
           </span>
         </td>
@@ -501,11 +512,15 @@ function LogRow({
                   <div key={field} className="flex items-start gap-3 text-sm">
                     <span className="font-medium text-gray-700 min-w-[120px]">{field}</span>
                     <span className="rounded bg-red-50 px-2 py-0.5 text-red-700 line-through text-xs">
-                      {change.old !== null && change.old !== undefined ? String(change.old) : "null"}
+                      {change.old !== null && change.old !== undefined
+                        ? String(change.old)
+                        : "null"}
                     </span>
                     <span className="text-gray-400">&rarr;</span>
                     <span className="rounded bg-green-50 px-2 py-0.5 text-green-700 text-xs">
-                      {change.new !== null && change.new !== undefined ? String(change.new) : "null"}
+                      {change.new !== null && change.new !== undefined
+                        ? String(change.new)
+                        : "null"}
                     </span>
                   </div>
                 ))}
@@ -522,35 +537,20 @@ function LogRow({
 // Estadisticas Tab
 // ---------------------------------------------------------------------------
 
-function EstadisticasTab({
-  authFetch,
-}: {
-  authFetch: <T>(method: "get" | "post" | "patch" | "put" | "delete", path: string, body?: unknown) => Promise<T>;
-}) {
-  const [stats, setStats] = useState<AuditStats | null>(null);
-  const [loading, setLoading] = useState(true);
+function EstadisticasTab() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
 
-  const fetchStats = useCallback(async () => {
-    setLoading(true);
-    try {
-      const params = new URLSearchParams();
-      if (startDate) params.set("startDate", startDate);
-      if (endDate) params.set("endDate", endDate);
-      const qs = params.toString();
-      const result = await authFetch<AuditStats>("get", `/audit/stats${qs ? `?${qs}` : ""}`);
-      setStats(result);
-    } catch {
-      // silent
-    } finally {
-      setLoading(false);
-    }
-  }, [authFetch, startDate, endDate]);
+  // Build query string for audit stats
+  const statsParams = new URLSearchParams();
+  if (startDate) statsParams.set("startDate", startDate);
+  if (endDate) statsParams.set("endDate", endDate);
+  const statsQs = statsParams.toString();
 
-  useEffect(() => {
-    fetchStats();
-  }, [fetchStats]);
+  const { data: stats, isLoading: loading } = useApiQuery<AuditStats>(
+    `/audit/stats${statsQs ? `?${statsQs}` : ""}`,
+    ["audit-stats", startDate, endDate],
+  );
 
   if (loading) {
     return (
@@ -599,21 +599,9 @@ function EstadisticasTab({
           value={stats.totalActions.toLocaleString("es-MX")}
           icon={Activity}
         />
-        <KpiCard
-          title="Usuarios Activos"
-          value={stats.activeUsers}
-          icon={Users}
-        />
-        <KpiCard
-          title="Modulo Mas Activo"
-          value={stats.topModule}
-          icon={BarChart3}
-        />
-        <KpiCard
-          title="Hora Pico"
-          value={stats.peakHour}
-          icon={Clock}
-        />
+        <KpiCard title="Usuarios Activos" value={stats.activeUsers} icon={Users} />
+        <KpiCard title="Modulo Mas Activo" value={stats.topModule} icon={BarChart3} />
+        <KpiCard title="Hora Pico" value={stats.peakHour} icon={Clock} />
       </div>
 
       {/* Charts */}
@@ -644,7 +632,9 @@ function EstadisticasTab({
 
         {/* Line chart: daily activity */}
         <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-          <h3 className="text-sm font-semibold text-gray-700 mb-4">Actividad Diaria (ultimos 30 dias)</h3>
+          <h3 className="text-sm font-semibold text-gray-700 mb-4">
+            Actividad Diaria (ultimos 30 dias)
+          </h3>
           {stats.dailyActivity.length === 0 ? (
             <p className="text-sm text-gray-400 py-8 text-center">Sin datos</p>
           ) : (
@@ -657,9 +647,7 @@ function EstadisticasTab({
                   tickFormatter={(v) => formatShortDate(v)}
                 />
                 <YAxis tick={{ fontSize: 11 }} />
-                <Tooltip
-                  labelFormatter={(v) => formatShortDate(String(v))}
-                />
+                <Tooltip labelFormatter={(v) => formatShortDate(String(v))} />
                 <Line
                   type="monotone"
                   dataKey="count"
@@ -693,7 +681,9 @@ function EstadisticasTab({
               {stats.byUser.map((u, i) => (
                 <tr key={u.userId || i} className="border-b border-gray-50">
                   <td className="px-4 py-3 text-sm text-gray-400">{i + 1}</td>
-                  <td className="px-4 py-3 text-sm text-gray-900">{u.userName || u.userId || "Desconocido"}</td>
+                  <td className="px-4 py-3 text-sm text-gray-900">
+                    {u.userName || u.userId || "Desconocido"}
+                  </td>
                   <td className="px-4 py-3 text-sm text-gray-700 text-right font-medium">
                     {u.count.toLocaleString("es-MX")}
                   </td>
@@ -740,7 +730,11 @@ function KpiCard({
 function BuscarEntidadTab({
   authFetch,
 }: {
-  authFetch: <T>(method: "get" | "post" | "patch" | "put" | "delete", path: string, body?: unknown) => Promise<T>;
+  authFetch: <T>(
+    method: "get" | "post" | "patch" | "put" | "delete",
+    path: string,
+    body?: unknown,
+  ) => Promise<T>;
 }) {
   const [entityType, setEntityType] = useState("");
   const [entityId, setEntityId] = useState("");
@@ -776,7 +770,9 @@ function BuscarEntidadTab({
             <Select value={entityType} onChange={(e) => setEntityType(e.target.value)}>
               <option value="">Seleccionar...</option>
               {ENTITY_TYPES.map((et) => (
-                <option key={et.value} value={et.value}>{et.label}</option>
+                <option key={et.value} value={et.value}>
+                  {et.label}
+                </option>
               ))}
             </Select>
           </div>
@@ -787,11 +783,17 @@ function BuscarEntidadTab({
               placeholder="Ej: clxyz123abc..."
               value={entityId}
               onChange={(e) => setEntityId(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter") search(); }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") search();
+              }}
             />
           </div>
           <Button onClick={search} disabled={!entityType || !entityId.trim() || loading}>
-            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+            {loading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Search className="h-4 w-4" />
+            )}
             Buscar
           </Button>
         </div>
@@ -822,21 +824,25 @@ function BuscarEntidadTab({
                     <div key={log.id} className="relative">
                       {/* Timeline dot */}
                       <div className="absolute -left-[31px] top-1 flex h-4 w-4 items-center justify-center rounded-full border-2 border-gray-200 bg-white">
-                        <div className={`h-2 w-2 rounded-full ${
-                          log.action === "CREATE" ? "bg-green-500" :
-                          log.action === "DELETE" ? "bg-red-500" :
-                          "bg-blue-500"
-                        }`} />
+                        <div
+                          className={`h-2 w-2 rounded-full ${
+                            log.action === "CREATE"
+                              ? "bg-green-500"
+                              : log.action === "DELETE"
+                                ? "bg-red-500"
+                                : "bg-blue-500"
+                          }`}
+                        />
                       </div>
 
                       <div className="rounded-lg border border-gray-100 bg-gray-50 p-4">
                         <div className="flex flex-wrap items-center gap-2 mb-2">
-                          <span className={`inline-block rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${actionBadge(log.action)}`}>
+                          <span
+                            className={`inline-block rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${actionBadge(log.action)}`}
+                          >
                             {log.action}
                           </span>
-                          <span className="text-xs text-gray-500">
-                            {formatDate(log.createdAt)}
-                          </span>
+                          <span className="text-xs text-gray-500">{formatDate(log.createdAt)}</span>
                           <span className="text-xs text-gray-400">por</span>
                           <div className="flex items-center gap-1">
                             <div className="flex h-5 w-5 items-center justify-center rounded-full bg-black text-[8px] font-bold text-white">
@@ -869,13 +875,19 @@ function BuscarEntidadTab({
                           <div className="mt-3 rounded-lg border border-gray-200 bg-white p-3 space-y-2">
                             {Object.entries(log.changes!).map(([field, change]) => (
                               <div key={field} className="flex items-start gap-3 text-sm">
-                                <span className="font-medium text-gray-700 min-w-[100px] text-xs">{field}</span>
+                                <span className="font-medium text-gray-700 min-w-[100px] text-xs">
+                                  {field}
+                                </span>
                                 <span className="rounded bg-red-50 px-2 py-0.5 text-red-700 line-through text-xs">
-                                  {change.old !== null && change.old !== undefined ? String(change.old) : "null"}
+                                  {change.old !== null && change.old !== undefined
+                                    ? String(change.old)
+                                    : "null"}
                                 </span>
                                 <span className="text-gray-400">&rarr;</span>
                                 <span className="rounded bg-green-50 px-2 py-0.5 text-green-700 text-xs">
-                                  {change.new !== null && change.new !== undefined ? String(change.new) : "null"}
+                                  {change.new !== null && change.new !== undefined
+                                    ? String(change.new)
+                                    : "null"}
                                 </span>
                               </div>
                             ))}

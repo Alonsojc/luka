@@ -26,8 +26,18 @@ const EXPECTED_COLUMNS: Record<string, string[]> = {
   PRODUCTS: ["sku", "name", "category", "unit", "minStock", "maxStock", "price", "cost"],
   SUPPLIERS: ["rfc", "name", "contactName", "email", "phone", "address", "paymentTerms"],
   EMPLOYEES: [
-    "employeeNumber", "firstName", "lastName", "curp", "rfc", "nss",
-    "hireDate", "position", "department", "dailySalary", "bankAccount", "clabe",
+    "employeeNumber",
+    "firstName",
+    "lastName",
+    "curp",
+    "rfc",
+    "nss",
+    "hireDate",
+    "position",
+    "department",
+    "dailySalary",
+    "bankAccount",
+    "clabe",
   ],
   INVENTORY: ["sku", "quantity", "minStock", "maxStock"],
   CUSTOMERS: ["name", "rfc", "email", "phone", "address"],
@@ -159,7 +169,11 @@ export class DataImportService {
     // Warn about unexpected columns
     for (const header of headers) {
       if (!expectedCols.includes(header)) {
-        warnings.push({ row: 0, field: header, message: `Columna "${header}" no es esperada y sera ignorada` });
+        warnings.push({
+          row: 0,
+          field: header,
+          message: `Columna "${header}" no es esperada y sera ignorada`,
+        });
       }
     }
 
@@ -192,11 +206,19 @@ export class DataImportService {
 
       if (importType === "EMPLOYEES") {
         if (row.dailySalary && isNaN(Number(row.dailySalary))) {
-          errors.push({ row: rowNum, field: "dailySalary", message: "Salario diario debe ser un numero" });
+          errors.push({
+            row: rowNum,
+            field: "dailySalary",
+            message: "Salario diario debe ser un numero",
+          });
           rowValid = false;
         }
         if (row.hireDate && isNaN(Date.parse(row.hireDate))) {
-          errors.push({ row: rowNum, field: "hireDate", message: "Fecha de contratacion no valida (usar YYYY-MM-DD)" });
+          errors.push({
+            row: rowNum,
+            field: "hireDate",
+            message: "Fecha de contratacion no valida (usar YYYY-MM-DD)",
+          });
           rowValid = false;
         }
       }
@@ -328,11 +350,7 @@ export class DataImportService {
   // Import Suppliers
   // ---------------------------------------------------------------------------
 
-  async importSuppliers(
-    orgId: string,
-    userId: string,
-    csvContent: string,
-  ): Promise<ImportResult> {
+  async importSuppliers(orgId: string, userId: string, csvContent: string): Promise<ImportResult> {
     const { rows } = this.parseCsv(csvContent);
     const errors: ValidationError[] = [];
     let importedRows = 0;
@@ -468,7 +486,11 @@ export class DataImportService {
       try {
         if (!row.employeeNumber?.trim() || !row.firstName?.trim() || !row.lastName?.trim()) {
           skippedRows++;
-          errors.push({ row: rowNum, field: "employeeNumber/firstName/lastName", message: "Numero de empleado, nombre y apellido son requeridos" });
+          errors.push({
+            row: rowNum,
+            field: "employeeNumber/firstName/lastName",
+            message: "Numero de empleado, nombre y apellido son requeridos",
+          });
           continue;
         }
 
@@ -477,7 +499,11 @@ export class DataImportService {
 
         if (isNaN(hireDate.getTime())) {
           skippedRows++;
-          errors.push({ row: rowNum, field: "hireDate", message: "Fecha de contratacion no valida" });
+          errors.push({
+            row: rowNum,
+            field: "hireDate",
+            message: "Fecha de contratacion no valida",
+          });
           continue;
         }
 
@@ -560,7 +586,9 @@ export class DataImportService {
     branchId: string,
   ): Promise<ImportResult> {
     if (!branchId) {
-      throw new BadRequestException("Se requiere seleccionar una sucursal para importar inventario");
+      throw new BadRequestException(
+        "Se requiere seleccionar una sucursal para importar inventario",
+      );
     }
 
     const branch = await this.prisma.branch.findFirst({
@@ -612,12 +640,16 @@ export class DataImportService {
 
         if (!product) {
           skippedRows++;
-          errors.push({ row: rowNum, field: "sku", message: `Producto con SKU "${row.sku}" no encontrado` });
+          errors.push({
+            row: rowNum,
+            field: "sku",
+            message: `Producto con SKU "${row.sku}" no encontrado`,
+          });
           continue;
         }
 
         const minStock = row.minStock ? Number(row.minStock) : 0;
-        const maxStock = row.maxStock ? Number(row.maxStock) : undefined;
+        const _maxStock = row.maxStock ? Number(row.maxStock) : undefined;
 
         await this.prisma.branchInventory.upsert({
           where: {
@@ -666,11 +698,7 @@ export class DataImportService {
   // Import Customers
   // ---------------------------------------------------------------------------
 
-  async importCustomers(
-    orgId: string,
-    userId: string,
-    csvContent: string,
-  ): Promise<ImportResult> {
+  async importCustomers(orgId: string, userId: string, csvContent: string): Promise<ImportResult> {
     const { rows } = this.parseCsv(csvContent);
     const errors: ValidationError[] = [];
     let importedRows = 0;

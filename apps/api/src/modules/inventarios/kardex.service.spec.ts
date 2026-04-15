@@ -24,10 +24,7 @@ describe("KardexService", () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        KardexService,
-        { provide: PrismaService, useValue: mockPrisma },
-      ],
+      providers: [KardexService, { provide: PrismaService, useValue: mockPrisma }],
     }).compile();
 
     service = module.get<KardexService>(KardexService);
@@ -212,9 +209,7 @@ describe("KardexService", () => {
         product: { name: "Salmon", sku: "SAL-001", unitOfMeasure: "KG", costPerUnit: 10 },
       };
 
-      mockPrisma.inventoryMovement.findMany.mockResolvedValue([
-        adjustmentMovement,
-      ]);
+      mockPrisma.inventoryMovement.findMany.mockResolvedValue([adjustmentMovement]);
       mockPrisma.user.findMany.mockResolvedValue([]);
 
       const result = await service.getKardex("org-1", "p1");
@@ -225,9 +220,7 @@ describe("KardexService", () => {
     });
 
     it("should compute totalCost = |signed| * unitCost for each movement", async () => {
-      mockPrisma.inventoryMovement.findMany.mockResolvedValue([
-        baseMovements[0],
-      ]);
+      mockPrisma.inventoryMovement.findMany.mockResolvedValue([baseMovements[0]]);
       mockPrisma.user.findMany.mockResolvedValue([
         { id: "u1", firstName: "Juan", lastName: "Perez" },
       ]);

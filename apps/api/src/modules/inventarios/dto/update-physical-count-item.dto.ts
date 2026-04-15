@@ -1,11 +1,4 @@
-import {
-  IsNumber,
-  IsOptional,
-  IsString,
-  IsArray,
-  ValidateNested,
-  Min,
-} from "class-validator";
+import { IsNumber, IsOptional, IsString, IsArray, ValidateNested, Min } from "class-validator";
 import { Type } from "class-transformer";
 
 export class UpdatePhysicalCountItemDto {

@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-} from "@nestjs/common";
+import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
 import { PrismaService } from "../../common/prisma/prisma.service";
 import { AuditService } from "../audit/audit.service";
 import { TransferStatus } from "@luka/database";
@@ -85,15 +81,9 @@ export class TransfersService {
     return transfer;
   }
 
-  async create(
-    userId: string,
-    organizationId: string,
-    dto: CreateTransferDto,
-  ) {
+  async create(userId: string, organizationId: string, dto: CreateTransferDto) {
     if (dto.fromBranchId === dto.toBranchId) {
-      throw new BadRequestException(
-        "La sucursal de origen y destino no pueden ser la misma",
-      );
+      throw new BadRequestException("La sucursal de origen y destino no pueden ser la misma");
     }
 
     // Validate both branches belong to the organization
@@ -119,9 +109,7 @@ export class TransfersService {
       where: { id: { in: productIds }, organizationId },
     });
     if (products.length !== productIds.length) {
-      throw new BadRequestException(
-        "Uno o mas productos no existen en la organizacion",
-      );
+      throw new BadRequestException("Uno o mas productos no existen en la organizacion");
     }
 
     const transfer = await this.prisma.interBranchTransfer.create({
@@ -156,9 +144,7 @@ export class TransfersService {
   async approve(id: string, userId: string, organizationId: string) {
     const transfer = await this.findOne(id);
     if (transfer.status !== TransferStatus.PENDING) {
-      throw new BadRequestException(
-        "Solo se pueden aprobar transferencias pendientes",
-      );
+      throw new BadRequestException("Solo se pueden aprobar transferencias pendientes");
     }
 
     const updated = await this.prisma.interBranchTransfer.update({
@@ -186,18 +172,14 @@ export class TransfersService {
   async ship(id: string, dto: ShipTransferDto, userId: string, organizationId: string) {
     const transfer = await this.findOne(id);
     if (transfer.status !== TransferStatus.APPROVED) {
-      throw new BadRequestException(
-        "Solo se pueden enviar transferencias aprobadas",
-      );
+      throw new BadRequestException("Solo se pueden enviar transferencias aprobadas");
     }
 
     // Validate stock availability at origin branch
     for (const item of dto.items) {
       const transferItem = transfer.items.find((ti) => ti.id === item.itemId);
       if (!transferItem) {
-        throw new BadRequestException(
-          `Item de transferencia ${item.itemId} no encontrado`,
-        );
+        throw new BadRequestException(`Item de transferencia ${item.itemId} no encontrado`);
       }
 
       const inventory = await this.prisma.branchInventory.findUnique({
@@ -274,17 +256,10 @@ export class TransfersService {
     return result;
   }
 
-  async receive(
-    id: string,
-    dto: ReceiveTransferDto,
-    userId: string,
-    organizationId: string,
-  ) {
+  async receive(id: string, dto: ReceiveTransferDto, userId: string, organizationId: string) {
     const transfer = await this.findOne(id);
     if (transfer.status !== TransferStatus.IN_TRANSIT) {
-      throw new BadRequestException(
-        "Solo se pueden recibir transferencias en transito",
-      );
+      throw new BadRequestException("Solo se pueden recibir transferencias en transito");
     }
 
     const result = await this.prisma.$transaction(async (tx) => {

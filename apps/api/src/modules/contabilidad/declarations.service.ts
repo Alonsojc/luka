@@ -57,10 +57,7 @@ export class DeclarationsService {
       select: { subtotal: true, total: true },
     });
 
-    const totalIngresos = ingresoCfdis.reduce(
-      (sum, c) => sum + Number(c.subtotal),
-      0,
-    );
+    const totalIngresos = ingresoCfdis.reduce((sum, c) => sum + Number(c.subtotal), 0);
     const ivaCausado = totalIngresos * IVA_RATE;
 
     // IVA Acreditable: 16% of deductible expenses (payments to suppliers in the month)
@@ -73,10 +70,7 @@ export class DeclarationsService {
       select: { amount: true },
     });
 
-    const totalGastos = supplierPayments.reduce(
-      (sum, p) => sum + Number(p.amount),
-      0,
-    );
+    const totalGastos = supplierPayments.reduce((sum, p) => sum + Number(p.amount), 0);
     // Deductible base is the subtotal (amount / 1.16 for IVA-inclusive payments)
     const gastosSinIva = totalGastos / (1 + IVA_RATE);
     const ivaAcreditable = gastosSinIva * IVA_RATE;
@@ -140,10 +134,7 @@ export class DeclarationsService {
       select: { subtotal: true, stampedAt: true },
     });
 
-    const ingresosAcumulados = ingresoCfdis.reduce(
-      (sum, c) => sum + Number(c.subtotal),
-      0,
-    );
+    const ingresosAcumulados = ingresoCfdis.reduce((sum, c) => sum + Number(c.subtotal), 0);
 
     // Build monthly breakdown of income
     const ingresosMensuales: Array<{ month: number; amount: number }> = [];
@@ -212,10 +203,7 @@ export class DeclarationsService {
       select: { amount: true },
     });
 
-    const isrPagadoPrevio = previousDeclarations.reduce(
-      (sum, d) => sum + Number(d.amount),
-      0,
-    );
+    const isrPagadoPrevio = previousDeclarations.reduce((sum, d) => sum + Number(d.amount), 0);
 
     // ISR a Pagar = ISR causado - pagos previos
     const isrPagar = Math.max(0, isrCausado - isrPagadoPrevio);
@@ -238,11 +226,7 @@ export class DeclarationsService {
   // Combined Summary
   // ------------------------------------------------------------------
 
-  async getDeclarationSummary(
-    organizationId: string,
-    year: number,
-    month: number,
-  ) {
+  async getDeclarationSummary(organizationId: string, year: number, month: number) {
     const [iva, isr] = await Promise.all([
       this.calculateIvaProvisional(organizationId, year, month),
       this.calculateIsrProvisional(organizationId, year, month),
@@ -258,12 +242,8 @@ export class DeclarationsService {
       },
     });
 
-    const ivaDeclaration = declarations.find(
-      (d) => d.type === "IVA_PROVISIONAL",
-    );
-    const isrDeclaration = declarations.find(
-      (d) => d.type === "ISR_PROVISIONAL",
-    );
+    const ivaDeclaration = declarations.find((d) => d.type === "IVA_PROVISIONAL");
+    const isrDeclaration = declarations.find((d) => d.type === "ISR_PROVISIONAL");
 
     return {
       year,
@@ -305,12 +285,8 @@ export class DeclarationsService {
         this.calculateIsrProvisional(organizationId, year, m),
       ]);
 
-      const ivaDecl = allDeclarations.find(
-        (d) => d.month === m && d.type === "IVA_PROVISIONAL",
-      );
-      const isrDecl = allDeclarations.find(
-        (d) => d.month === m && d.type === "ISR_PROVISIONAL",
-      );
+      const ivaDecl = allDeclarations.find((d) => d.month === m && d.type === "IVA_PROVISIONAL");
+      const isrDecl = allDeclarations.find((d) => d.month === m && d.type === "ISR_PROVISIONAL");
 
       months.push({
         month: m,
@@ -351,18 +327,10 @@ export class DeclarationsService {
     let amount = filingData.amount;
     if (amount === undefined) {
       if (type === "IVA_PROVISIONAL") {
-        const iva = await this.calculateIvaProvisional(
-          organizationId,
-          year,
-          month,
-        );
+        const iva = await this.calculateIvaProvisional(organizationId, year, month);
         amount = iva.ivaPagar;
       } else {
-        const isr = await this.calculateIsrProvisional(
-          organizationId,
-          year,
-          month,
-        );
+        const isr = await this.calculateIsrProvisional(organizationId, year, month);
         amount = isr.isrPagar;
       }
     }

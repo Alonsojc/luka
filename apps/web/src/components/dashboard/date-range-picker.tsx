@@ -24,7 +24,10 @@ const PRESETS: Array<{ label: string; getDates: () => { startDate: string; endDa
     getDates: () => {
       const end = new Date();
       const start = new Date(end.getTime() - 7 * 86400000);
-      return { startDate: start.toISOString().split("T")[0], endDate: end.toISOString().split("T")[0] };
+      return {
+        startDate: start.toISOString().split("T")[0],
+        endDate: end.toISOString().split("T")[0],
+      };
     },
   },
   {
@@ -32,7 +35,10 @@ const PRESETS: Array<{ label: string; getDates: () => { startDate: string; endDa
     getDates: () => {
       const end = new Date();
       const start = new Date(end.getTime() - 30 * 86400000);
-      return { startDate: start.toISOString().split("T")[0], endDate: end.toISOString().split("T")[0] };
+      return {
+        startDate: start.toISOString().split("T")[0],
+        endDate: end.toISOString().split("T")[0],
+      };
     },
   },
   {
@@ -40,7 +46,10 @@ const PRESETS: Array<{ label: string; getDates: () => { startDate: string; endDa
     getDates: () => {
       const now = new Date();
       const start = new Date(now.getFullYear(), now.getMonth(), 1);
-      return { startDate: start.toISOString().split("T")[0], endDate: now.toISOString().split("T")[0] };
+      return {
+        startDate: start.toISOString().split("T")[0],
+        endDate: now.toISOString().split("T")[0],
+      };
     },
   },
   {
@@ -49,7 +58,10 @@ const PRESETS: Array<{ label: string; getDates: () => { startDate: string; endDa
       const now = new Date();
       const start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
       const end = new Date(now.getFullYear(), now.getMonth(), 0);
-      return { startDate: start.toISOString().split("T")[0], endDate: end.toISOString().split("T")[0] };
+      return {
+        startDate: start.toISOString().split("T")[0],
+        endDate: end.toISOString().split("T")[0],
+      };
     },
   },
   {
@@ -57,7 +69,10 @@ const PRESETS: Array<{ label: string; getDates: () => { startDate: string; endDa
     getDates: () => {
       const now = new Date();
       const start = new Date(now.getFullYear(), 0, 1);
-      return { startDate: start.toISOString().split("T")[0], endDate: now.toISOString().split("T")[0] };
+      return {
+        startDate: start.toISOString().split("T")[0],
+        endDate: now.toISOString().split("T")[0],
+      };
     },
   },
 ];
@@ -109,7 +124,10 @@ export function DateRangePicker({
         <span className="hidden sm:inline">{value.label}</span>
         <span className="sm:hidden text-xs">
           {value.startDate === value.endDate
-            ? new Date(value.startDate + "T12:00:00").toLocaleDateString("es-MX", { day: "numeric", month: "short" })
+            ? new Date(value.startDate + "T12:00:00").toLocaleDateString("es-MX", {
+                day: "numeric",
+                month: "short",
+              })
             : `${new Date(value.startDate + "T12:00:00").toLocaleDateString("es-MX", { day: "numeric", month: "short" })} - ${new Date(value.endDate + "T12:00:00").toLocaleDateString("es-MX", { day: "numeric", month: "short" })}`}
         </span>
         <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />

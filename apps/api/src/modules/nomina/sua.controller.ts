@@ -1,20 +1,10 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Query,
-  Res,
-  UseGuards,
-} from "@nestjs/common";
+import { Controller, Get, Post, Query, Res, UseGuards } from "@nestjs/common";
 import { ApiTags, ApiBearerAuth } from "@nestjs/swagger";
 import { Response } from "express";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
 import { Permissions } from "../../common/decorators/roles.decorator";
-import {
-  CurrentUser,
-  JwtPayload,
-} from "../../common/decorators/current-user.decorator";
+import { CurrentUser, JwtPayload } from "../../common/decorators/current-user.decorator";
 import { SuaService } from "./sua.service";
 
 @ApiTags("Nomina - SUA / IMSS")
@@ -36,11 +26,7 @@ export class SuaController {
   ) {
     const year = parseInt(yearStr, 10);
     const month = parseInt(monthStr, 10);
-    return this.suaService.generateSuaMovements(
-      user.organizationId,
-      year,
-      month,
-    );
+    return this.suaService.generateSuaMovements(user.organizationId, year, month);
   }
 
   /**
@@ -55,11 +41,7 @@ export class SuaController {
   ) {
     const year = parseInt(yearStr, 10);
     const month = parseInt(monthStr, 10);
-    return this.suaService.generateSuaPaymentSummary(
-      user.organizationId,
-      year,
-      month,
-    );
+    return this.suaService.generateSuaPaymentSummary(user.organizationId, year, month);
   }
 
   /**
@@ -74,12 +56,7 @@ export class SuaController {
   ) {
     const year = parseInt(yearStr, 10);
     const month = parseInt(monthStr, 10);
-    return this.suaService.saveSuaExport(
-      user.organizationId,
-      year,
-      month,
-      user.sub,
-    );
+    return this.suaService.saveSuaExport(user.organizationId, year, month, user.sub);
   }
 
   /**
@@ -95,11 +72,7 @@ export class SuaController {
   ) {
     const year = parseInt(yearStr, 10);
     const month = parseInt(monthStr, 10);
-    const content = await this.suaService.getSuaFileContent(
-      user.organizationId,
-      year,
-      month,
-    );
+    const content = await this.suaService.getSuaFileContent(user.organizationId, year, month);
 
     const monthPad = String(month).padStart(2, "0");
     const filename = `SUA_${year}_${monthPad}.sua`;

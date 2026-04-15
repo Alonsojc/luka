@@ -1,11 +1,4 @@
-import {
-  IsString,
-  IsOptional,
-  IsBoolean,
-  MinLength,
-  MaxLength,
-  Matches,
-} from "class-validator";
+import { IsString, IsOptional, IsBoolean, MinLength, MaxLength, Matches } from "class-validator";
 
 export class UpdateLegalEntityDto {
   @IsOptional()

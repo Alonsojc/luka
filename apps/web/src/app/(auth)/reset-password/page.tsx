@@ -35,11 +35,7 @@ function ResetPasswordForm() {
       await api.post("/auth/reset-password", { token, password });
       setSuccess(true);
     } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Error al restablecer la contrasena",
-      );
+      setError(err instanceof Error ? err.message : "Error al restablecer la contrasena");
     } finally {
       setLoading(false);
     }
@@ -49,9 +45,7 @@ function ResetPasswordForm() {
     <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-8">
       {success ? (
         <div className="text-center space-y-4">
-          <p className="text-white/70 text-sm">
-            Tu contrasena ha sido actualizada exitosamente.
-          </p>
+          <p className="text-white/70 text-sm">Tu contrasena ha sido actualizada exitosamente.</p>
           <Link
             href="/login"
             className="inline-block w-full py-3 px-4 bg-white text-black rounded-lg font-medium tracking-wider uppercase text-sm hover:bg-white/90 transition-all text-center"
@@ -146,11 +140,7 @@ export default function ResetPasswordPage() {
 
       <div className="relative w-full max-w-md px-4">
         <div className="text-center mb-10">
-          <img
-            src="/luka-logo.png"
-            alt="Luka Poke House"
-            className="mx-auto h-32 w-auto"
-          />
+          <img src="/luka-logo.png" alt="Luka Poke House" className="mx-auto h-32 w-auto" />
           <p className="mt-4 text-white/50 text-sm tracking-[0.3em] uppercase font-light">
             Nueva Contrasena
           </p>

@@ -1,16 +1,5 @@
-import {
-  IsString,
-  IsOptional,
-  IsEmail,
-  IsNumber,
-  MinLength,
-  Min,
-} from "class-validator";
-import {
-  IsRFC,
-  IsCLABE,
-  IsPhoneMX,
-} from "../../../common/validators/mexican-validators";
+import { IsString, IsOptional, IsEmail, IsNumber, MinLength, Min } from "class-validator";
+import { IsRFC, IsCLABE, IsPhoneMX } from "../../../common/validators/mexican-validators";
 
 export class CreateSupplierDto {
   @IsString()

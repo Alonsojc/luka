@@ -109,6 +109,136 @@ jobs:
       - name: Security audit
         run: corepack pnpm audit --prod --audit-level=high || true
 
+  e2e:
+    needs: test
+    runs-on: ubuntu-latest
+    continue-on-error: true # Informational, no bloquea PR
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: luka
+          POSTGRES_PASSWORD: luka_test
+          POSTGRES_DB: luka_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          package-manager-cache: false
+
+      - name: Enable pnpm via Corepack
+        run: |
+          corepack enable
+          corepack install
+
+      - run: corepack pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: corepack pnpm --filter @luka/database generate
+
+      - name: Run migrations
+        run: corepack pnpm --filter @luka/database migrate:deploy
+        env:
+          DATABASE_URL: postgresql://luka:luka_test@localhost:5432/luka_test?schema=public
+
+      - name: Install Playwright browsers
+        run: corepack pnpm --filter @luka/web exec playwright install --with-deps chromium
+
+      - name: Build API
+        run: corepack pnpm --filter @luka/api build
+
+      - name: Build Web
+        run: corepack pnpm --filter @luka/web build
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:3001/api
+
+      - name: Start services and wait
+        env:
+          DATABASE_URL: postgresql://luka:luka_test@localhost:5432/luka_test?schema=public
+          JWT_SECRET: test-secret-minimum-32-characters-long
+          JWT_REFRESH_SECRET: test-refresh-secret-minimum-32-chars
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+          API_PORT: 3001
+          NODE_ENV: test
+        run: |
+          cd apps/api
+          nohup node dist/main.js > /tmp/api.log 2>&1 &
+          echo "API PID: $!"
+          cd ../..
+
+          cd apps/web
+          nohup npx next start -p 3000 > /tmp/web.log 2>&1 &
+          echo "Web PID: $!"
+          cd ../..
+
+          echo "Waiting for API on :3001..."
+          for i in $(seq 1 60); do
+            if curl -sf http://localhost:3001/api/health > /dev/null 2>&1; then
+              echo "API is up after ${i}s!"
+              break
+            fi
+            if [ $i -eq 60 ]; then
+              echo "API failed to start. Logs:"
+              tail -50 /tmp/api.log
+              exit 1
+            fi
+            sleep 2
+          done
+
+          echo "Waiting for Web on :3000..."
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:3000 > /dev/null 2>&1; then
+              echo "Web is up after ${i}s!"
+              break
+            fi
+            if [ $i -eq 30 ]; then
+              echo "Web failed to start. Logs:"
+              tail -50 /tmp/web.log
+              exit 1
+            fi
+            sleep 2
+          done
+
+      - name: Seed test data
+        run: corepack pnpm db:seed
+        env:
+          DATABASE_URL: postgresql://luka:luka_test@localhost:5432/luka_test?schema=public
+
+      - name: Run Playwright E2E tests
+        run: corepack pnpm --filter @luka/web test:e2e
+        env:
+          PLAYWRIGHT_BASE_URL: http://localhost:3000
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: apps/web/test-results/
+          retention-days: 7
+
   build:
     needs: test
     runs-on: ubuntu-latest

@@ -1,23 +1,10 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Patch,
-  Delete,
-  Param,
-  Body,
-  Res,
-  UseGuards,
-} from "@nestjs/common";
+import { Controller, Get, Post, Patch, Delete, Param, Body, Res, UseGuards } from "@nestjs/common";
 import { ApiTags, ApiBearerAuth } from "@nestjs/swagger";
 import type { Response } from "express";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
 import { Permissions } from "../../common/decorators/roles.decorator";
-import {
-  CurrentUser,
-  JwtPayload,
-} from "../../common/decorators/current-user.decorator";
+import { CurrentUser, JwtPayload } from "../../common/decorators/current-user.decorator";
 import { ProductsService } from "./products.service";
 import { CreateProductDto } from "./dto/create-product.dto";
 
@@ -36,10 +23,7 @@ export class ProductsController {
 
   @Get("export")
   @Permissions("inventarios:view")
-  async exportProducts(
-    @CurrentUser() user: JwtPayload,
-    @Res() res: Response,
-  ) {
+  async exportProducts(@CurrentUser() user: JwtPayload, @Res() res: Response) {
     const products = await this.productsService.findAll(user.organizationId);
 
     const header = [
@@ -84,10 +68,7 @@ export class ProductsController {
 
   @Post()
   @Permissions("inventarios:create")
-  create(
-    @CurrentUser() user: JwtPayload,
-    @Body() body: CreateProductDto,
-  ) {
+  create(@CurrentUser() user: JwtPayload, @Body() body: CreateProductDto) {
     return this.productsService.create(user.organizationId, body, user);
   }
 

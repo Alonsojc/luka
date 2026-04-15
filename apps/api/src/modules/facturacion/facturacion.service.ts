@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-} from "@nestjs/common";
+import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
 import { PrismaService } from "../../common/prisma/prisma.service";
 import {
   buildCfdiXml,
@@ -97,14 +93,8 @@ export class FacturacionService {
   ) {
     const { concepts, cfdiType, ...cfdiData } = data;
 
-    const subtotal = concepts.reduce(
-      (sum, c) => sum + c.quantity * c.unitPrice,
-      0,
-    );
-    const totalDiscount = concepts.reduce(
-      (sum, c) => sum + (c.discount || 0),
-      0,
-    );
+    const subtotal = concepts.reduce((sum, c) => sum + c.quantity * c.unitPrice, 0);
+    const totalDiscount = concepts.reduce((sum, c) => sum + (c.discount || 0), 0);
 
     const conceptsWithAmounts = concepts.map((c) => ({
       ...c,
@@ -174,13 +164,10 @@ export class FacturacionService {
 
     // Attachments can be updated on any invoice (regardless of status)
     // but other fields can only be edited on DRAFT invoices
-    const isAttachmentsOnly =
-      Object.keys(data).length === 1 && data.attachments !== undefined;
+    const isAttachmentsOnly = Object.keys(data).length === 1 && data.attachments !== undefined;
 
     if (!isAttachmentsOnly && invoice.status !== "DRAFT") {
-      throw new BadRequestException(
-        "Solo se pueden editar facturas en borrador",
-      );
+      throw new BadRequestException("Solo se pueden editar facturas en borrador");
     }
 
     const { concepts, ...invoiceData } = data;
@@ -189,18 +176,11 @@ export class FacturacionService {
       if (concepts) {
         await tx.cFDIConcept.deleteMany({ where: { cfdiId: id } });
 
-        const subtotal = concepts.reduce(
-          (sum, c) => sum + c.quantity * c.unitPrice,
-          0,
-        );
-        const totalDiscount = concepts.reduce(
-          (sum, c) => sum + (c.discount || 0),
-          0,
-        );
+        const subtotal = concepts.reduce((sum, c) => sum + c.quantity * c.unitPrice, 0);
+        const totalDiscount = concepts.reduce((sum, c) => sum + (c.discount || 0), 0);
         const taxableAmount = subtotal - totalDiscount;
         const iva = Math.round(taxableAmount * 0.16 * 100) / 100;
-        const total =
-          Math.round((subtotal - totalDiscount + iva) * 100) / 100;
+        const total = Math.round((subtotal - totalDiscount + iva) * 100) / 100;
 
         const conceptsWithAmounts = concepts.map((c) => ({
           cfdiId: id,
@@ -240,9 +220,7 @@ export class FacturacionService {
     const invoice = await this.findOneInvoice(organizationId, id);
 
     if (invoice.status !== "DRAFT") {
-      throw new BadRequestException(
-        "Solo se puede generar XML para facturas en borrador",
-      );
+      throw new BadRequestException("Solo se puede generar XML para facturas en borrador");
     }
 
     const cfdiData = this.buildCfdiDataFromInvoice(invoice);
@@ -327,9 +305,7 @@ export class FacturacionService {
             status: "CANCELLED",
             cancellationReason: motivo,
             cancelledAt: new Date(pacResult.fechaCancelacion),
-            ...(folioSustitucion
-              ? { substituteCfdiId: folioSustitucion }
-              : {}),
+            ...(folioSustitucion ? { substituteCfdiId: folioSustitucion } : {}),
           },
           include: { branch: true, concepts: true },
         });
@@ -339,9 +315,7 @@ export class FacturacionService {
           data: {
             status: "CANCELLATION_PENDING" as any,
             cancellationReason: motivo,
-            ...(folioSustitucion
-              ? { substituteCfdiId: folioSustitucion }
-              : {}),
+            ...(folioSustitucion ? { substituteCfdiId: folioSustitucion } : {}),
           },
           include: { branch: true, concepts: true },
         });
@@ -354,9 +328,7 @@ export class FacturacionService {
           status: "CANCELLED",
           cancellationReason: motivo,
           cancelledAt: new Date(),
-          ...(folioSustitucion
-            ? { substituteCfdiId: folioSustitucion }
-            : {}),
+          ...(folioSustitucion ? { substituteCfdiId: folioSustitucion } : {}),
         },
         include: { branch: true, concepts: true },
       });
@@ -400,16 +372,11 @@ export class FacturacionService {
     const currency = data.currency || "MXN";
 
     if (!data.relatedDocuments || data.relatedDocuments.length === 0) {
-      throw new BadRequestException(
-        "Debe seleccionar al menos un documento relacionado",
-      );
+      throw new BadRequestException("Debe seleccionar al menos un documento relacionado");
     }
 
     // Validate total of related payments matches amount
-    const totalRelated = data.relatedDocuments.reduce(
-      (sum, d) => sum + d.amountPaid,
-      0,
-    );
+    const totalRelated = data.relatedDocuments.reduce((sum, d) => sum + d.amountPaid, 0);
     const roundedTotal = Math.round(totalRelated * 100) / 100;
     const roundedAmount = Math.round(data.amount * 100) / 100;
     if (roundedTotal !== roundedAmount) {
@@ -432,9 +399,7 @@ export class FacturacionService {
     });
 
     if (relatedCfdis.length !== data.relatedDocuments.length) {
-      throw new BadRequestException(
-        "Una o mas facturas relacionadas no fueron encontradas",
-      );
+      throw new BadRequestException("Una o mas facturas relacionadas no fueron encontradas");
     }
 
     // Validate all are PPD and STAMPED
@@ -646,10 +611,7 @@ export class FacturacionService {
   /**
    * Lists all payment complements for the organization with related CFDI info.
    */
-  async getPaymentComplements(
-    organizationId: string,
-    filters?: { status?: string },
-  ) {
+  async getPaymentComplements(organizationId: string, filters?: { status?: string }) {
     const where: any = {
       organizationId,
       cfdiType: "PAGO",
@@ -731,26 +693,28 @@ export class FacturacionService {
     }
 
     // Build response with balance info
-    return ppdCfdis.map((cfdi) => {
-      const total = Number(cfdi.total);
-      const totalPaid = paidMap.get(cfdi.id) || 0;
-      const saldoPendiente = Math.round((total - totalPaid) * 100) / 100;
+    return ppdCfdis
+      .map((cfdi) => {
+        const total = Number(cfdi.total);
+        const totalPaid = paidMap.get(cfdi.id) || 0;
+        const saldoPendiente = Math.round((total - totalPaid) * 100) / 100;
 
-      return {
-        id: cfdi.id,
-        series: cfdi.series,
-        folio: cfdi.folio,
-        uuid: cfdi.uuid,
-        receiverRfc: cfdi.receiverRfc,
-        receiverName: cfdi.receiverName,
-        total,
-        totalPaid: Math.round(totalPaid * 100) / 100,
-        saldoPendiente,
-        currency: cfdi.currency,
-        createdAt: cfdi.createdAt,
-        branchName: cfdi.branch?.name,
-      };
-    }).filter((c) => c.saldoPendiente > 0); // Only return CFDIs with pending balance
+        return {
+          id: cfdi.id,
+          series: cfdi.series,
+          folio: cfdi.folio,
+          uuid: cfdi.uuid,
+          receiverRfc: cfdi.receiverRfc,
+          receiverName: cfdi.receiverName,
+          total,
+          totalPaid: Math.round(totalPaid * 100) / 100,
+          saldoPendiente,
+          currency: cfdi.currency,
+          createdAt: cfdi.createdAt,
+          branchName: cfdi.branch?.name,
+        };
+      })
+      .filter((c) => c.saldoPendiente > 0); // Only return CFDIs with pending balance
   }
 
   // -------------------------------------------------------
@@ -774,8 +738,7 @@ export class FacturacionService {
       const taxDetails = c.taxDetails || {};
 
       // Default: IVA 16% traslado, unless taxDetails specifies otherwise
-      const ivaRate =
-        taxDetails.ivaRate != null ? Number(taxDetails.ivaRate) : 0.16;
+      const ivaRate = taxDetails.ivaRate != null ? Number(taxDetails.ivaRate) : 0.16;
       const objetoImp = taxDetails.objetoImp || "02"; // "02" = Objeto de impuesto
 
       const hasIva = ivaRate > 0 && objetoImp !== "01";
@@ -788,8 +751,7 @@ export class FacturacionService {
                 impuesto: "002", // IVA
                 tipoFactor: "Tasa",
                 tasaOCuota: ivaRate,
-                importe:
-                  Math.round(taxable * ivaRate * 100) / 100,
+                importe: Math.round(taxable * ivaRate * 100) / 100,
               },
             ],
           }
@@ -797,16 +759,13 @@ export class FacturacionService {
 
       // Include retenciones if specified in taxDetails
       if (taxDetails.retenciones && impuestos) {
-        impuestos["retenciones"] = taxDetails.retenciones.map(
-          (r: any) => ({
-            base: taxable,
-            impuesto: r.impuesto || "002",
-            tipoFactor: r.tipoFactor || "Tasa",
-            tasaOCuota: Number(r.tasaOCuota),
-            importe:
-              Math.round(taxable * Number(r.tasaOCuota) * 100) / 100,
-          }),
-        );
+        impuestos["retenciones"] = taxDetails.retenciones.map((r: any) => ({
+          base: taxable,
+          impuesto: r.impuesto || "002",
+          tipoFactor: r.tipoFactor || "Tasa",
+          tasaOCuota: Number(r.tasaOCuota),
+          importe: Math.round(taxable * Number(r.tasaOCuota) * 100) / 100,
+        }));
       }
 
       return {
@@ -840,10 +799,8 @@ export class FacturacionService {
       }
     }
 
-    totalImpuestosTrasladados =
-      Math.round(totalImpuestosTrasladados * 100) / 100;
-    totalImpuestosRetenidos =
-      Math.round(totalImpuestosRetenidos * 100) / 100;
+    totalImpuestosTrasladados = Math.round(totalImpuestosTrasladados * 100) / 100;
+    totalImpuestosRetenidos = Math.round(totalImpuestosRetenidos * 100) / 100;
 
     return {
       serie: invoice.series || "A",
@@ -853,10 +810,7 @@ export class FacturacionService {
       metodoPago: invoice.paymentMethod || "PUE",
       tipoComprobante: CFDI_TYPE_MAP[invoice.cfdiType] || "I",
       moneda: invoice.currency || "MXN",
-      tipoCambio:
-        invoice.exchangeRate != null
-          ? Number(invoice.exchangeRate)
-          : undefined,
+      tipoCambio: invoice.exchangeRate != null ? Number(invoice.exchangeRate) : undefined,
       lugarExpedicion: invoice.branch?.postalCode || "00000",
       exportacion: "01", // Default: no aplica exportacion
 
@@ -877,13 +831,8 @@ export class FacturacionService {
       total,
 
       totalImpuestosTrasladados:
-        totalImpuestosTrasladados > 0
-          ? totalImpuestosTrasladados
-          : undefined,
-      totalImpuestosRetenidos:
-        totalImpuestosRetenidos > 0
-          ? totalImpuestosRetenidos
-          : undefined,
+        totalImpuestosTrasladados > 0 ? totalImpuestosTrasladados : undefined,
+      totalImpuestosRetenidos: totalImpuestosRetenidos > 0 ? totalImpuestosRetenidos : undefined,
     };
   }
 }

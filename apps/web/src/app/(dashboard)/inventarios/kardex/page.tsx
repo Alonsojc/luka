@@ -116,7 +116,7 @@ export default function KardexPage() {
   const [kardexData, setKardexData] = useState<KardexResponse | null>(null);
   const [summary, setSummary] = useState<KardexSummary | null>(null);
   const [loadingKardex, setLoadingKardex] = useState(false);
-  const [loadingSummary, setLoadingSummary] = useState(false);
+  const [_loadingSummary, setLoadingSummary] = useState(false);
 
   // --- Filters ---
   const [selectedProductId, setSelectedProductId] = useState("");
@@ -202,8 +202,7 @@ export default function KardexPage() {
 
   // --- Totals ---
   const totals = useMemo(() => {
-    if (!kardexData?.movements.length)
-      return { entries: 0, exits: 0, netChange: 0 };
+    if (!kardexData?.movements.length) return { entries: 0, exits: 0, netChange: 0 };
     let entries = 0;
     let exits = 0;
     for (const m of kardexData.movements) {
@@ -264,9 +263,7 @@ export default function KardexPage() {
           </div>
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Kardex</h1>
-            <p className="text-sm text-gray-500">
-              Consulta de movimientos por producto
-            </p>
+            <p className="text-sm text-gray-500">Consulta de movimientos por producto</p>
           </div>
         </div>
         {kardexData && kardexData.movements.length > 0 && (
@@ -305,9 +302,7 @@ export default function KardexPage() {
             {showProductDropdown && !selectedProductId && (
               <div className="absolute z-30 mt-1 w-full bg-white border rounded-md shadow-lg max-h-60 overflow-y-auto">
                 {filteredProducts.length === 0 ? (
-                  <div className="px-4 py-3 text-sm text-gray-400">
-                    No se encontraron productos
-                  </div>
+                  <div className="px-4 py-3 text-sm text-gray-400">No se encontraron productos</div>
                 ) : (
                   filteredProducts.map((p) => (
                     <button
@@ -319,13 +314,9 @@ export default function KardexPage() {
                         setShowProductDropdown(false);
                       }}
                     >
-                      <span className="font-mono text-xs text-gray-400">
-                        {p.sku}
-                      </span>
+                      <span className="font-mono text-xs text-gray-400">{p.sku}</span>
                       <span className="truncate">{p.name}</span>
-                      <span className="ml-auto text-xs text-gray-400">
-                        {p.unitOfMeasure}
-                      </span>
+                      <span className="ml-auto text-xs text-gray-400">{p.unitOfMeasure}</span>
                     </button>
                   ))
                 )}
@@ -336,10 +327,7 @@ export default function KardexPage() {
           {/* Branch Filter */}
           <div>
             <label className="block text-sm font-medium mb-1">Sucursal</label>
-            <Select
-              value={selectedBranchId}
-              onChange={(e) => setSelectedBranchId(e.target.value)}
-            >
+            <Select value={selectedBranchId} onChange={(e) => setSelectedBranchId(e.target.value)}>
               <option value="">Todas</option>
               {branches.map((b) => (
                 <option key={b.id} value={b.id}>
@@ -352,10 +340,7 @@ export default function KardexPage() {
           {/* Movement Type Filter */}
           <div>
             <label className="block text-sm font-medium mb-1">Tipo de Movimiento</label>
-            <Select
-              value={movementType}
-              onChange={(e) => setMovementType(e.target.value)}
-            >
+            <Select value={movementType} onChange={(e) => setMovementType(e.target.value)}>
               {MOVEMENT_TYPES.map((t) => (
                 <option key={t.value} value={t.value}>
                   {t.label}
@@ -367,21 +352,13 @@ export default function KardexPage() {
           {/* Date From */}
           <div>
             <label className="block text-sm font-medium mb-1">Fecha Desde</label>
-            <Input
-              type="date"
-              value={dateFrom}
-              onChange={(e) => setDateFrom(e.target.value)}
-            />
+            <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
           </div>
 
           {/* Date To */}
           <div>
             <label className="block text-sm font-medium mb-1">Fecha Hasta</label>
-            <Input
-              type="date"
-              value={dateTo}
-              onChange={(e) => setDateTo(e.target.value)}
-            />
+            <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
           </div>
 
           {/* Clear Filters */}
@@ -476,15 +453,11 @@ export default function KardexPage() {
               <table className="w-full">
                 <thead>
                   <tr className="border-b bg-gray-50/80">
-                    <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">
-                      Fecha
-                    </th>
+                    <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">Fecha</th>
                     <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">
                       Sucursal
                     </th>
-                    <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">
-                      Tipo
-                    </th>
+                    <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">Tipo</th>
                     <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">
                       Referencia
                     </th>
@@ -503,9 +476,7 @@ export default function KardexPage() {
                     <th className="text-right text-xs font-medium text-gray-500 px-4 py-3">
                       Costo Total
                     </th>
-                    <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">
-                      Notas
-                    </th>
+                    <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">Notas</th>
                     <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">
                       Usuario
                     </th>
@@ -530,9 +501,7 @@ export default function KardexPage() {
                             minute: "2-digit",
                           })}
                         </td>
-                        <td className="px-4 py-2.5 text-sm text-gray-700">
-                          {row.branchName}
-                        </td>
+                        <td className="px-4 py-2.5 text-sm text-gray-700">{row.branchName}</td>
                         <td className="px-4 py-2.5">
                           <MovementBadge type={row.movementType} />
                         </td>
@@ -560,9 +529,7 @@ export default function KardexPage() {
                         </td>
                         <td
                           className={`px-4 py-2.5 text-sm text-right font-semibold ${
-                            isNegativeBalance
-                              ? "text-red-700"
-                              : "text-gray-900"
+                            isNegativeBalance ? "text-red-700" : "text-gray-900"
                           }`}
                         >
                           {row.runningBalance.toLocaleString("es-MX", {
@@ -576,9 +543,7 @@ export default function KardexPage() {
                           {formatMXN(row.totalCost)}
                         </td>
                         <td className="px-4 py-2.5 text-sm text-gray-500 max-w-[200px] truncate">
-                          {row.notes || (
-                            <span className="text-gray-300">-</span>
-                          )}
+                          {row.notes || <span className="text-gray-300">-</span>}
                         </td>
                         <td className="px-4 py-2.5 text-sm text-gray-500 whitespace-nowrap">
                           {row.userName}
@@ -589,10 +554,7 @@ export default function KardexPage() {
 
                   {/* Totals row */}
                   <tr className="border-t-2 border-gray-300 bg-gray-50 font-semibold">
-                    <td
-                      className="px-4 py-3 text-sm text-gray-900"
-                      colSpan={4}
-                    >
+                    <td className="px-4 py-3 text-sm text-gray-900" colSpan={4}>
                       TOTALES
                     </td>
                     <td className="px-4 py-3 text-sm text-right text-emerald-700">
@@ -625,9 +587,7 @@ export default function KardexPage() {
       ) : (
         <div className="bg-white border rounded-lg py-20 text-center">
           <BookOpen className="h-16 w-16 mx-auto mb-4 text-gray-200" />
-          <h3 className="text-lg font-medium text-gray-500 mb-1">
-            Selecciona un producto
-          </h3>
+          <h3 className="text-lg font-medium text-gray-500 mb-1">Selecciona un producto</h3>
           <p className="text-sm text-gray-400">
             Busca un producto por SKU o nombre para ver su Kardex completo
           </p>
@@ -655,16 +615,12 @@ function SummaryCard({
   return (
     <div className="bg-white border rounded-lg p-4">
       <div className="flex items-center gap-3">
-        <div
-          className={`flex h-10 w-10 items-center justify-center rounded-lg ${bgColor}`}
-        >
+        <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${bgColor}`}>
           {icon}
         </div>
         <div className="min-w-0">
           <p className="text-xs text-gray-500 truncate">{title}</p>
-          <p className="text-lg font-semibold text-gray-900 truncate">
-            {value}
-          </p>
+          <p className="text-lg font-semibold text-gray-900 truncate">{value}</p>
         </div>
       </div>
     </div>

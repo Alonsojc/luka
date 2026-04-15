@@ -1,22 +1,10 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Patch,
-  Param,
-  Body,
-  Query,
-  UseGuards,
-} from "@nestjs/common";
+import { Controller, Get, Post, Patch, Param, Body, Query, UseGuards } from "@nestjs/common";
 import { ApiTags, ApiBearerAuth } from "@nestjs/swagger";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
 import { BranchAccessGuard } from "../../common/guards/branch-access.guard";
 import { Permissions } from "../../common/decorators/roles.decorator";
-import {
-  CurrentUser,
-  JwtPayload,
-} from "../../common/decorators/current-user.decorator";
+import { CurrentUser, JwtPayload } from "../../common/decorators/current-user.decorator";
 import { PhysicalCountService } from "./physical-count.service";
 import {
   CreatePhysicalCountDto,
@@ -52,10 +40,7 @@ export class PhysicalCountController {
 
   @Get("history/:branchId")
   @Permissions("inventarios:view")
-  getHistory(
-    @CurrentUser() user: JwtPayload,
-    @Param("branchId") branchId: string,
-  ) {
+  getHistory(@CurrentUser() user: JwtPayload, @Param("branchId") branchId: string) {
     return this.physicalCountService.getHistory(user.organizationId, branchId);
   }
 
@@ -67,16 +52,8 @@ export class PhysicalCountController {
 
   @Post()
   @Permissions("inventarios:create")
-  create(
-    @CurrentUser() user: JwtPayload,
-    @Body() dto: CreatePhysicalCountDto,
-  ) {
-    return this.physicalCountService.create(
-      user.organizationId,
-      dto.branchId,
-      user.sub,
-      dto.notes,
-    );
+  create(@CurrentUser() user: JwtPayload, @Body() dto: CreatePhysicalCountDto) {
+    return this.physicalCountService.create(user.organizationId, dto.branchId, user.sub, dto.notes);
   }
 
   @Patch(":id/items/:itemId")
@@ -87,12 +64,7 @@ export class PhysicalCountController {
     @Param("itemId") itemId: string,
     @Body() dto: UpdatePhysicalCountItemDto,
   ) {
-    return this.physicalCountService.updateItem(
-      user.organizationId,
-      countId,
-      itemId,
-      dto,
-    );
+    return this.physicalCountService.updateItem(user.organizationId, countId, itemId, dto);
   }
 
   @Patch(":id/items")
@@ -102,21 +74,13 @@ export class PhysicalCountController {
     @Param("id") countId: string,
     @Body() dto: BulkUpdatePhysicalCountItemsDto,
   ) {
-    return this.physicalCountService.bulkUpdateItems(
-      user.organizationId,
-      countId,
-      dto.items,
-    );
+    return this.physicalCountService.bulkUpdateItems(user.organizationId, countId, dto.items);
   }
 
   @Post(":id/complete")
   @Permissions("inventarios:edit")
   complete(@CurrentUser() user: JwtPayload, @Param("id") countId: string) {
-    return this.physicalCountService.complete(
-      user.organizationId,
-      countId,
-      user.sub,
-    );
+    return this.physicalCountService.complete(user.organizationId, countId, user.sub);
   }
 
   @Post(":id/cancel")

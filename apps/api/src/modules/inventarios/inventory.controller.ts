@@ -1,23 +1,11 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Param,
-  Body,
-  Query,
-  Res,
-  UseGuards,
-} from "@nestjs/common";
+import { Controller, Get, Post, Param, Body, Query, Res, UseGuards } from "@nestjs/common";
 import { ApiTags, ApiBearerAuth } from "@nestjs/swagger";
 import type { Response } from "express";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
 import { BranchAccessGuard } from "../../common/guards/branch-access.guard";
 import { Permissions } from "../../common/decorators/roles.decorator";
-import {
-  CurrentUser,
-  JwtPayload,
-} from "../../common/decorators/current-user.decorator";
+import { CurrentUser, JwtPayload } from "../../common/decorators/current-user.decorator";
 import { InventoryService } from "./inventory.service";
 
 @ApiTags("Inventarios - Stock")
@@ -29,19 +17,12 @@ export class InventoryController {
 
   @Get("export/stock")
   @Permissions("inventarios:view")
-  async exportStock(
-    @Query("branchId") branchId: string,
-    @Res() res: Response,
-  ) {
+  async exportStock(@Query("branchId") branchId: string, @Res() res: Response) {
     const stock = await this.inventoryService.getStockByBranch(branchId);
 
-    const header = [
-      "SKU",
-      "Producto",
-      "Cantidad Actual",
-      "Stock Minimo",
-      "Ultimo Conteo",
-    ].join(";");
+    const header = ["SKU", "Producto", "Cantidad Actual", "Stock Minimo", "Ultimo Conteo"].join(
+      ";",
+    );
 
     const rows = stock.map((s) =>
       [
@@ -49,9 +30,7 @@ export class InventoryController {
         s.product?.name || "",
         Number(s.currentQuantity).toFixed(2),
         Number(s.minimumStock).toFixed(2),
-        s.lastCountDate
-          ? new Date(s.lastCountDate).toISOString().split("T")[0]
-          : "",
+        s.lastCountDate ? new Date(s.lastCountDate).toISOString().split("T")[0] : "",
       ].join(";"),
     );
 
@@ -90,10 +69,7 @@ export class InventoryController {
 
   @Get("movements/:branchId")
   @Permissions("inventarios:view")
-  getMovements(
-    @Param("branchId") branchId: string,
-    @Query("productId") productId?: string,
-  ) {
+  getMovements(@Param("branchId") branchId: string, @Query("productId") productId?: string) {
     return this.inventoryService.getMovements(branchId, productId);
   }
 }

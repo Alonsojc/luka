@@ -81,7 +81,13 @@ const MENU_ITEMS: MenuItem[] = [
   { sku: "APE-GYO", name: "Gyoza (3pzas)", minPrice: 59, maxPrice: 79, category: "appetizer" },
   { sku: "APE-EDA", name: "Edamame", minPrice: 59, maxPrice: 69, category: "appetizer" },
   { sku: "APE-MIS", name: "Miso Soup", minPrice: 49, maxPrice: 65, category: "appetizer" },
-  { sku: "APE-SPR", name: "Spring Rolls (4pzas)", minPrice: 69, maxPrice: 89, category: "appetizer" },
+  {
+    sku: "APE-SPR",
+    name: "Spring Rolls (4pzas)",
+    minPrice: 69,
+    maxPrice: 89,
+    category: "appetizer",
+  },
 ];
 
 const PAYMENT_METHODS = ["CASH", "CARD", "TRANSFER"] as const;
@@ -138,10 +144,7 @@ function generateSalesForDay(
   else if (LOW_VOLUME_CODES.has(branchCode)) multiplier *= 0.7;
   if (dayOfWeek === 0 || dayOfWeek === 6) multiplier *= 1.3;
 
-  const numSales = Math.max(
-    1,
-    Math.round(baseSalesPerDay * multiplier + randInt(-2, 2)),
-  );
+  const numSales = Math.max(1, Math.round(baseSalesPerDay * multiplier + randInt(-2, 2)));
 
   const sales: GeneratedSale[] = [];
   const bowls = MENU_ITEMS.filter((m) => m.category === "bowl");
@@ -213,9 +216,7 @@ function generateSalesForDay(
 // ---------------------------------------------------------------------------
 
 async function main() {
-  console.log(
-    "=== Luka System — POS Seed (PosSale + PosSaleItem + PosSyncLog) ===\n",
-  );
+  console.warn("=== Luka System — POS Seed (PosSale + PosSaleItem + PosSyncLog) ===\n");
 
   // ==================================================================
   // 0. QUERY EXISTING REFERENCES
@@ -223,23 +224,22 @@ async function main() {
   const org = await prisma.organization.findFirstOrThrow({
     where: { rfc: "LUK240101AAA" },
   });
-  console.log("Organization:", org.name);
+  console.warn("Organization:", org.name);
 
   const branchRecords = await prisma.branch.findMany({
     where: { organizationId: org.id },
   });
-  if (branchRecords.length === 0)
-    throw new Error("No branches found. Run seed.ts first.");
+  if (branchRecords.length === 0) throw new Error("No branches found. Run seed.ts first.");
 
-  console.log(`Branches found: ${branchRecords.length}`);
+  console.warn(`Branches found: ${branchRecords.length}`);
   for (const b of branchRecords) {
-    console.log(`  ${b.code.padEnd(10)} ${b.name}`);
+    console.warn(`  ${b.code.padEnd(10)} ${b.name}`);
   }
 
   // ==================================================================
   // 1. UPDATE BRANCHES WITH corntechBranchId MAPPING
   // ==================================================================
-  console.log("\n--- Updating branches with corntechBranchId ---");
+  console.warn("\n--- Updating branches with corntechBranchId ---");
 
   for (const branch of branchRecords) {
     const corntechBranchId = `CT-${branch.code}`;
@@ -247,35 +247,35 @@ async function main() {
       where: { id: branch.id },
       data: { corntechBranchId },
     });
-    console.log(`  ${branch.code} -> ${corntechBranchId}`);
+    console.warn(`  ${branch.code} -> ${corntechBranchId}`);
   }
 
   // ==================================================================
   // 2. CLEANUP — delete existing POS records (items first due to FK)
   // ==================================================================
-  console.log("\n--- Cleaning up existing POS data ---");
+  console.warn("\n--- Cleaning up existing POS data ---");
 
   const branchIds = branchRecords.map((b) => b.id);
 
   const deletedItems = await prisma.posSaleItem.deleteMany({
     where: { sale: { branchId: { in: branchIds } } },
   });
-  console.log(`  Deleted ${deletedItems.count} PosSaleItem records`);
+  console.warn(`  Deleted ${deletedItems.count} PosSaleItem records`);
 
   const deletedSales = await prisma.posSale.deleteMany({
     where: { branchId: { in: branchIds } },
   });
-  console.log(`  Deleted ${deletedSales.count} PosSale records`);
+  console.warn(`  Deleted ${deletedSales.count} PosSale records`);
 
   const deletedLogs = await prisma.posSyncLog.deleteMany({
     where: { branchId: { in: branchIds } },
   });
-  console.log(`  Deleted ${deletedLogs.count} PosSyncLog records`);
+  console.warn(`  Deleted ${deletedLogs.count} PosSyncLog records`);
 
   // ==================================================================
   // 3. GENERATE SALES (~500 across all branches over 7 days)
   // ==================================================================
-  console.log("\n--- Generating PosSale records ---");
+  console.warn("\n--- Generating PosSale records ---");
 
   const DAYS = 7;
   // With ~10 branches, 7 days, baseSales ~7 => ~490-510 total
@@ -298,7 +298,7 @@ async function main() {
     }
   }
 
-  console.log(`  Generated ${allSales.length} sales in memory`);
+  console.warn(`  Generated ${allSales.length} sales in memory`);
 
   // Insert sales using createMany (without items — items added separately)
   const BATCH_SIZE = 200;
@@ -331,12 +331,12 @@ async function main() {
     salesInserted += result.count;
   }
 
-  console.log(`  Inserted ${salesInserted} PosSale records`);
+  console.warn(`  Inserted ${salesInserted} PosSale records`);
 
   // ==================================================================
   // 4. CREATE PosSaleItem RECORDS
   // ==================================================================
-  console.log("\n--- Creating PosSaleItem records ---");
+  console.warn("\n--- Creating PosSaleItem records ---");
 
   // Query back all created sales to get their IDs
   const createdSales = await prisma.posSale.findMany({
@@ -386,12 +386,12 @@ async function main() {
     itemsInserted += result.count;
   }
 
-  console.log(`  Inserted ${itemsInserted} PosSaleItem records`);
+  console.warn(`  Inserted ${itemsInserted} PosSaleItem records`);
 
   // ==================================================================
   // 5. CREATE PosSyncLog RECORDS (1 SUCCESS per branch per day)
   // ==================================================================
-  console.log("\n--- Creating PosSyncLog records ---");
+  console.warn("\n--- Creating PosSyncLog records ---");
 
   // Group sales by branch+day to get counts
   const salesByBranchDay = new Map<string, number>();
@@ -445,33 +445,28 @@ async function main() {
     skipDuplicates: true,
   });
 
-  console.log(`  Inserted ${syncResult.count} PosSyncLog records`);
+  console.warn(`  Inserted ${syncResult.count} PosSyncLog records`);
 
   // ==================================================================
   // 6. SUMMARY
   // ==================================================================
-  console.log("\n=== POS Seed Summary ===\n");
+  console.warn("\n=== POS Seed Summary ===\n");
 
   const totalRevenue = allSales.reduce((sum, s) => sum + s.total, 0);
-  console.log(`  Total sales:       ${allSales.length}`);
-  console.log(`  Total items:       ${itemsInserted}`);
-  console.log(
+  console.warn(`  Total sales:       ${allSales.length}`);
+  console.warn(`  Total items:       ${itemsInserted}`);
+  console.warn(
     `  Total revenue:     $${totalRevenue.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
   );
-  console.log(`  Sync logs:         ${syncResult.count}`);
-  console.log(`  Date range:        last ${DAYS} days`);
+  console.warn(`  Sync logs:         ${syncResult.count}`);
+  console.warn(`  Date range:        last ${DAYS} days`);
 
   // Per-branch breakdown
-  console.log("\n  Per-branch breakdown:");
-  console.log(
-    `  ${"Branch".padEnd(12)} ${"Sales".padStart(7)} ${"Revenue".padStart(14)}`,
-  );
-  console.log(`  ${"─".repeat(12)} ${"─".repeat(7)} ${"─".repeat(14)}`);
+  console.warn("\n  Per-branch breakdown:");
+  console.warn(`  ${"Branch".padEnd(12)} ${"Sales".padStart(7)} ${"Revenue".padStart(14)}`);
+  console.warn(`  ${"─".repeat(12)} ${"─".repeat(7)} ${"─".repeat(14)}`);
 
-  const branchSales = new Map<
-    string,
-    { count: number; revenue: number }
-  >();
+  const branchSales = new Map<string, { count: number; revenue: number }>();
   for (const sale of allSales) {
     const existing = branchSales.get(sale.branchCode) || {
       count: 0,
@@ -482,36 +477,27 @@ async function main() {
     branchSales.set(sale.branchCode, existing);
   }
 
-  const sorted = [...branchSales.entries()].sort(
-    (a, b) => b[1].revenue - a[1].revenue,
-  );
+  const sorted = [...branchSales.entries()].sort((a, b) => b[1].revenue - a[1].revenue);
   for (const [code, data] of sorted) {
     const rev = data.revenue.toLocaleString("en-US", {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     });
-    console.log(
-      `  ${code.padEnd(12)} ${String(data.count).padStart(7)} $${rev.padStart(13)}`,
-    );
+    console.warn(`  ${code.padEnd(12)} ${String(data.count).padStart(7)} $${rev.padStart(13)}`);
   }
 
   // Payment method breakdown
-  console.log("\n  Payment method breakdown:");
+  console.warn("\n  Payment method breakdown:");
   const paymentCounts = new Map<string, number>();
   for (const sale of allSales) {
-    paymentCounts.set(
-      sale.paymentMethod,
-      (paymentCounts.get(sale.paymentMethod) || 0) + 1,
-    );
+    paymentCounts.set(sale.paymentMethod, (paymentCounts.get(sale.paymentMethod) || 0) + 1);
   }
   for (const [method, count] of paymentCounts.entries()) {
     const pct = ((count / allSales.length) * 100).toFixed(1);
-    console.log(
-      `  ${method.padEnd(12)} ${String(count).padStart(6)} (${pct}%)`,
-    );
+    console.warn(`  ${method.padEnd(12)} ${String(count).padStart(6)} (${pct}%)`);
   }
 
-  console.log("\nPOS seed completed successfully!");
+  console.warn("\nPOS seed completed successfully!");
 }
 
 main()

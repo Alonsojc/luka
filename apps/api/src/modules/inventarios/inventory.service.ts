@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../../common/prisma/prisma.service";
 
 @Injectable()
@@ -55,9 +55,7 @@ export class InventoryService {
         },
       });
 
-      const previousQty = inventory
-        ? Number(inventory.currentQuantity)
-        : 0;
+      const previousQty = inventory ? Number(inventory.currentQuantity) : 0;
       const diff = adjustedQuantity - previousQty;
 
       await tx.inventoryMovement.create({

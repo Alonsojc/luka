@@ -134,9 +134,7 @@ describe("ProductsService", () => {
     it("should throw NotFoundException when product does not exist", async () => {
       mockPrisma.product.findFirst.mockResolvedValue(null);
 
-      await expect(service.findOne("org-1", "nonexistent")).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(service.findOne("org-1", "nonexistent")).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -237,9 +235,9 @@ describe("ProductsService", () => {
     it("should throw NotFoundException when updating a non-existent product", async () => {
       mockPrisma.product.findFirst.mockResolvedValue(null);
 
-      await expect(
-        service.update("org-1", "nonexistent", { name: "New Name" }),
-      ).rejects.toThrow(NotFoundException);
+      await expect(service.update("org-1", "nonexistent", { name: "New Name" })).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it("should log audit changes when caller is provided", async () => {
@@ -270,10 +268,7 @@ describe("InventoryService", () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        InventoryService,
-        { provide: PrismaService, useValue: mockPrisma },
-      ],
+      providers: [InventoryService, { provide: PrismaService, useValue: mockPrisma }],
     }).compile();
 
     service = module.get<InventoryService>(InventoryService);
@@ -289,9 +284,7 @@ describe("InventoryService", () => {
   // -----------------------------------------------------------------------
   describe("getStockByBranch", () => {
     it("should return inventory for a branch", async () => {
-      const mockInventory = [
-        { branchId: "b1", productId: "p1", currentQuantity: 10 },
-      ];
+      const mockInventory = [{ branchId: "b1", productId: "p1", currentQuantity: 10 }];
       mockPrisma.branchInventory.findMany.mockResolvedValue(mockInventory);
 
       const result = await service.getStockByBranch("b1");
@@ -329,7 +322,6 @@ describe("InventoryService", () => {
       });
 
       expect(result.currentQuantity).toBe(15);
-      // Movement should record the diff (15 - 10 = 5)
       expect(mockPrisma.inventoryMovement.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
           branchId: "b1",
@@ -357,7 +349,6 @@ describe("InventoryService", () => {
       });
 
       expect(result.currentQuantity).toBe(20);
-      // diff should be 20 - 0 = 20 since no prior inventory
       expect(mockPrisma.inventoryMovement.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
           quantity: 20,
@@ -385,7 +376,6 @@ describe("InventoryService", () => {
       });
 
       expect(result.currentQuantity).toBe(5);
-      // diff should be 5 - 30 = -25
       expect(mockPrisma.inventoryMovement.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
           quantity: -25,

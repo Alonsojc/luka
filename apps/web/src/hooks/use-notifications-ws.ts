@@ -118,8 +118,7 @@ export function useNotificationsWs(): UseNotificationsWsReturn {
 
         // Attempt reconnect with backoff
         if (reconnectAttempts.current < MAX_RECONNECT_ATTEMPTS) {
-          const delay =
-            RECONNECT_DELAY_MS * Math.pow(1.5, reconnectAttempts.current);
+          const delay = RECONNECT_DELAY_MS * Math.pow(1.5, reconnectAttempts.current);
           reconnectAttempts.current += 1;
           reconnectTimer.current = setTimeout(connectWs, delay);
         }

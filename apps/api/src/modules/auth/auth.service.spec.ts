@@ -50,7 +50,10 @@ describe("AuthService", () => {
         AuthService,
         { provide: PrismaService, useValue: mockPrisma },
         { provide: JwtService, useValue: mockJwtService },
-        { provide: EmailService, useValue: { sendPasswordReset: vi.fn(), sendWelcomeEmail: vi.fn() } },
+        {
+          provide: EmailService,
+          useValue: { sendPasswordReset: vi.fn(), sendWelcomeEmail: vi.fn() },
+        },
         { provide: AuditService, useValue: { log: vi.fn() } },
       ],
     }).compile();
@@ -93,18 +96,16 @@ describe("AuthService", () => {
         isActive: false,
       });
 
-      await expect(
-        service.login("test@test.com", "password"),
-      ).rejects.toThrow(UnauthorizedException);
+      await expect(service.login("test@test.com", "password")).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
 
     it("should throw UnauthorizedException for wrong password", async () => {
       mockPrisma.user.findUnique.mockResolvedValue(mockUser);
       vi.mocked(bcrypt.compare).mockResolvedValue(false as never);
 
-      await expect(
-        service.login("test@test.com", "wrong"),
-      ).rejects.toThrow(UnauthorizedException);
+      await expect(service.login("test@test.com", "wrong")).rejects.toThrow(UnauthorizedException);
     });
 
     it("should return accessToken, refreshToken, and user for valid credentials", async () => {

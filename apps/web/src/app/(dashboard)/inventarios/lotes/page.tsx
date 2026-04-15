@@ -151,14 +151,7 @@ const PIE_COLORS = ["#22c55e", "#eab308", "#ef4444", "#9ca3af", "#a855f7"];
 
 const STATUS_PIE_ORDER = ["ACTIVE", "LOW", "EXPIRED", "CONSUMED", "DISPOSED"];
 
-const BAR_COLORS = [
-  "#000000",
-  "#333333",
-  "#555555",
-  "#777777",
-  "#999999",
-  "#bbbbbb",
-];
+const _BAR_COLORS = ["#000000", "#333333", "#555555", "#777777", "#999999", "#bbbbbb"];
 
 const EMPTY_FORM = {
   productId: "",
@@ -250,7 +243,7 @@ export default function LotesPage() {
   });
   const [listLoading, setListLoading] = useState(false);
   const [filterBranch, setFilterBranch] = useState("");
-  const [filterProduct, setFilterProduct] = useState("");
+  const [filterProduct, _setFilterProduct] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
   const [filterExpiring, setFilterExpiring] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
@@ -275,9 +268,7 @@ export default function LotesPage() {
   const [alerts, setAlerts] = useState<ExpiringAlerts | null>(null);
   const [alertsLoading, setAlertsLoading] = useState(false);
   const [alertBranch, setAlertBranch] = useState("");
-  const [expandedSection, setExpandedSection] = useState<string | null>(
-    "critical",
-  );
+  const [expandedSection, setExpandedSection] = useState<string | null>("critical");
 
   // ---- Dashboard tab state ----
   const [summary, setSummary] = useState<SummaryData | null>(null);
@@ -333,10 +324,7 @@ export default function LotesPage() {
       if (filterExpiring) params.set("expiringWithin", filterExpiring);
       if (searchTerm) params.set("search", searchTerm);
 
-      const res = await authFetch<LotListResponse>(
-        "get",
-        `/inventarios/lots?${params.toString()}`,
-      );
+      const res = await authFetch<LotListResponse>("get", `/inventarios/lots?${params.toString()}`);
       setLots(res.data);
       setPagination(res.pagination);
     } catch {
@@ -374,10 +362,7 @@ export default function LotesPage() {
   const fetchSummary = useCallback(async () => {
     setSummaryLoading(true);
     try {
-      const res = await authFetch<SummaryData>(
-        "get",
-        "/inventarios/lots/summary",
-      );
+      const res = await authFetch<SummaryData>("get", "/inventarios/lots/summary");
       setSummary(res);
     } catch {
       /* handled by authFetch */
@@ -472,11 +457,7 @@ export default function LotesPage() {
   const handleAutoExpire = async () => {
     setSaving(true);
     try {
-      const res = await authFetch<{ expired: number }>(
-        "post",
-        "/inventarios/lots/auto-expire",
-        {},
-      );
+      const res = await authFetch<{ expired: number }>("post", "/inventarios/lots/auto-expire", {});
       alert(`Se marcaron ${res.expired} lotes como vencidos`);
       fetchAlerts();
       if (activeTab === "activos") fetchLots();
@@ -496,9 +477,7 @@ export default function LotesPage() {
       {
         key: "lotNumber",
         header: "Lote #",
-        render: (row: ProductLot) => (
-          <span className="font-mono text-xs">{row.lotNumber}</span>
-        ),
+        render: (row: ProductLot) => <span className="font-mono text-xs">{row.lotNumber}</span>,
       },
       {
         key: "product",
@@ -527,8 +506,7 @@ export default function LotesPage() {
       {
         key: "batchDate",
         header: "Recepcion",
-        render: (row: ProductLot) =>
-          row.batchDate ? fmtDate(row.batchDate) : "-",
+        render: (row: ProductLot) => (row.batchDate ? fmtDate(row.batchDate) : "-"),
       },
       {
         key: "expirationDate",
@@ -536,7 +514,9 @@ export default function LotesPage() {
         render: (row: ProductLot) => {
           const days = getDaysRemaining(row.expirationDate);
           return (
-            <div className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded ${getExpiryColor(days)}`}>
+            <div
+              className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded ${getExpiryColor(days)}`}
+            >
               <Calendar className="h-3 w-3" />
               <span className="text-xs font-medium">{fmtDate(row.expirationDate)}</span>
             </div>
@@ -578,7 +558,8 @@ export default function LotesPage() {
         key: "actions",
         header: "",
         render: (row: ProductLot) => {
-          if (row.status !== "ACTIVE" && row.status !== "LOW" && row.status !== "EXPIRED") return null;
+          if (row.status !== "ACTIVE" && row.status !== "LOW" && row.status !== "EXPIRED")
+            return null;
           return (
             <div className="flex items-center gap-1">
               {(row.status === "ACTIVE" || row.status === "LOW") && (
@@ -618,11 +599,7 @@ export default function LotesPage() {
   // =======================================================================
 
   if (authLoading) {
-    return (
-      <div className="flex items-center justify-center h-64 text-gray-500">
-        Cargando...
-      </div>
-    );
+    return <div className="flex items-center justify-center h-64 text-gray-500">Cargando...</div>;
   }
 
   return (
@@ -630,9 +607,7 @@ export default function LotesPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            Control de Lotes y Caducidad
-          </h1>
+          <h1 className="text-2xl font-bold text-gray-900">Control de Lotes y Caducidad</h1>
           <p className="text-sm text-gray-500 mt-1">
             Seguimiento de lotes, fechas de caducidad y sistema FEFO
           </p>
@@ -730,15 +705,20 @@ export default function LotesPage() {
           </div>
 
           {/* Table */}
-          <DataTable columns={lotColumns} data={lots} loading={listLoading} emptyMessage="No hay lotes registrados" />
+          <DataTable
+            columns={lotColumns}
+            data={lots}
+            loading={listLoading}
+            emptyMessage="No hay lotes registrados"
+          />
 
           {/* Pagination */}
           {pagination.totalPages > 1 && (
             <div className="flex items-center justify-between text-sm text-gray-600">
               <span>
                 Mostrando {(pagination.page - 1) * pagination.limit + 1}-
-                {Math.min(pagination.page * pagination.limit, pagination.total)}{" "}
-                de {pagination.total}
+                {Math.min(pagination.page * pagination.limit, pagination.total)} de{" "}
+                {pagination.total}
               </span>
               <div className="flex items-center gap-2">
                 <button
@@ -752,11 +732,7 @@ export default function LotesPage() {
                   {currentPage} / {pagination.totalPages}
                 </span>
                 <button
-                  onClick={() =>
-                    setCurrentPage((p) =>
-                      Math.min(pagination.totalPages, p + 1),
-                    )
-                  }
+                  onClick={() => setCurrentPage((p) => Math.min(pagination.totalPages, p + 1))}
                   disabled={currentPage === pagination.totalPages}
                   className="p-1 rounded hover:bg-gray-100 disabled:opacity-40"
                 >
@@ -787,12 +763,7 @@ export default function LotesPage() {
                 </option>
               ))}
             </Select>
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={handleAutoExpire}
-              disabled={saving}
-            >
+            <Button variant="destructive" size="sm" onClick={handleAutoExpire} disabled={saving}>
               <RefreshCw className={`h-4 w-4 ${saving ? "animate-spin" : ""}`} />
               Auto-expirar
             </Button>
@@ -831,11 +802,7 @@ export default function LotesPage() {
                 lots={alerts.critical.lots}
                 color="red"
                 expanded={expandedSection === "critical"}
-                onToggle={() =>
-                  setExpandedSection((s) =>
-                    s === "critical" ? null : "critical",
-                  )
-                }
+                onToggle={() => setExpandedSection((s) => (s === "critical" ? null : "critical"))}
                 onDispose={(lot) => {
                   setDisposeLot(lot);
                   setDisposeReason("");
@@ -848,11 +815,7 @@ export default function LotesPage() {
                 lots={alerts.warning.lots}
                 color="orange"
                 expanded={expandedSection === "warning"}
-                onToggle={() =>
-                  setExpandedSection((s) =>
-                    s === "warning" ? null : "warning",
-                  )
-                }
+                onToggle={() => setExpandedSection((s) => (s === "warning" ? null : "warning"))}
                 onDispose={(lot) => {
                   setDisposeLot(lot);
                   setDisposeReason("");
@@ -865,11 +828,7 @@ export default function LotesPage() {
                 lots={alerts.upcoming.lots}
                 color="yellow"
                 expanded={expandedSection === "upcoming"}
-                onToggle={() =>
-                  setExpandedSection((s) =>
-                    s === "upcoming" ? null : "upcoming",
-                  )
-                }
+                onToggle={() => setExpandedSection((s) => (s === "upcoming" ? null : "upcoming"))}
                 onDispose={(lot) => {
                   setDisposeLot(lot);
                   setDisposeReason("");
@@ -891,9 +850,7 @@ export default function LotesPage() {
       {activeTab === "dashboard" && (
         <div className="space-y-6">
           {summaryLoading ? (
-            <div className="text-center py-12 text-gray-500">
-              Cargando dashboard...
-            </div>
+            <div className="text-center py-12 text-gray-500">Cargando dashboard...</div>
           ) : summary ? (
             <>
               {/* KPI cards */}
@@ -929,9 +886,7 @@ export default function LotesPage() {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Bar chart: expiring by branch */}
                 <div className="border rounded-xl bg-white p-5">
-                  <h3 className="text-sm font-semibold mb-4">
-                    Lotes por Vencer por Sucursal
-                  </h3>
+                  <h3 className="text-sm font-semibold mb-4">Lotes por Vencer por Sucursal</h3>
                   {summary.byBranch.length > 0 ? (
                     <ResponsiveContainer width="100%" height={280}>
                       <BarChart data={summary.byBranch}>
@@ -941,25 +896,17 @@ export default function LotesPage() {
                         <Tooltip />
                         <Legend />
                         <Bar dataKey="expired" name="Vencidos" fill="#ef4444" />
-                        <Bar
-                          dataKey="expiringSoon"
-                          name="Por vencer"
-                          fill="#f97316"
-                        />
+                        <Bar dataKey="expiringSoon" name="Por vencer" fill="#f97316" />
                       </BarChart>
                     </ResponsiveContainer>
                   ) : (
-                    <p className="text-sm text-gray-400 text-center py-12">
-                      Sin datos
-                    </p>
+                    <p className="text-sm text-gray-400 text-center py-12">Sin datos</p>
                   )}
                 </div>
 
                 {/* Pie chart: status distribution */}
                 <div className="border rounded-xl bg-white p-5">
-                  <h3 className="text-sm font-semibold mb-4">
-                    Distribucion por Estado
-                  </h3>
+                  <h3 className="text-sm font-semibold mb-4">Distribucion por Estado</h3>
                   {summary.statusDistribution.length > 0 ? (
                     <ResponsiveContainer width="100%" height={280}>
                       <PieChart>
@@ -988,9 +935,8 @@ export default function LotesPage() {
                               <Cell
                                 key={entry.status}
                                 fill={
-                                  PIE_COLORS[
-                                    STATUS_PIE_ORDER.indexOf(entry.status)
-                                  ] || PIE_COLORS[i % PIE_COLORS.length]
+                                  PIE_COLORS[STATUS_PIE_ORDER.indexOf(entry.status)] ||
+                                  PIE_COLORS[i % PIE_COLORS.length]
                                 }
                               />
                             ))}
@@ -1004,9 +950,7 @@ export default function LotesPage() {
                       </PieChart>
                     </ResponsiveContainer>
                   ) : (
-                    <p className="text-sm text-gray-400 text-center py-12">
-                      Sin datos
-                    </p>
+                    <p className="text-sm text-gray-400 text-center py-12">Sin datos</p>
                   )}
                 </div>
               </div>
@@ -1030,17 +974,13 @@ export default function LotesPage() {
                         <tr key={p.productId} className="border-b last:border-0">
                           <td className="py-2 font-medium">{p.productName}</td>
                           <td className="py-2 text-right">{p.lotCount}</td>
-                          <td className="py-2 text-right">
-                            {safeNum(p.totalQuantity).toFixed(2)}
-                          </td>
+                          <td className="py-2 text-right">{safeNum(p.totalQuantity).toFixed(2)}</td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 ) : (
-                  <p className="text-sm text-gray-400 text-center py-8">
-                    Sin datos
-                  </p>
+                  <p className="text-sm text-gray-400 text-center py-8">Sin datos</p>
                 )}
               </div>
 
@@ -1048,9 +988,7 @@ export default function LotesPage() {
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Line chart: 30-day trend */}
                 <div className="lg:col-span-2 border rounded-xl bg-white p-5">
-                  <h3 className="text-sm font-semibold mb-4">
-                    Tendencia ultimos 30 dias
-                  </h3>
+                  <h3 className="text-sm font-semibold mb-4">Tendencia ultimos 30 dias</h3>
                   {summary.trend.length > 0 ? (
                     <ResponsiveContainer width="100%" height={260}>
                       <LineChart data={summary.trend}>
@@ -1099,12 +1037,8 @@ export default function LotesPage() {
                 {/* FIFO compliance */}
                 <div className="border rounded-xl bg-white p-5 flex flex-col items-center justify-center text-center">
                   <BarChart3 className="h-8 w-8 text-gray-400 mb-3" />
-                  <p className="text-sm text-gray-500 mb-1">
-                    Cumplimiento FEFO
-                  </p>
-                  <p className="text-4xl font-bold text-gray-900">
-                    {summary.fifoCompliance}%
-                  </p>
+                  <p className="text-sm text-gray-500 mb-1">Cumplimiento FEFO</p>
+                  <p className="text-4xl font-bold text-gray-900">{summary.fifoCompliance}%</p>
                   <p className="text-xs text-gray-400 mt-2">
                     Lotes consumidos en orden de caducidad
                   </p>
@@ -1112,9 +1046,7 @@ export default function LotesPage() {
               </div>
             </>
           ) : (
-            <div className="text-center py-12 text-gray-500">
-              No se pudo cargar el dashboard.
-            </div>
+            <div className="text-center py-12 text-gray-500">No se pudo cargar el dashboard.</div>
           )}
         </div>
       )}
@@ -1122,12 +1054,7 @@ export default function LotesPage() {
       {/* ================================================================= */}
       {/* MODAL: Nuevo Lote                                                 */}
       {/* ================================================================= */}
-      <Modal
-        open={createOpen}
-        onClose={() => setCreateOpen(false)}
-        title="Nuevo Lote"
-        wide
-      >
+      <Modal open={createOpen} onClose={() => setCreateOpen(false)} title="Nuevo Lote" wide>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <FormField label="Producto" required>
             <Select
@@ -1173,9 +1100,7 @@ export default function LotesPage() {
             <Input
               type="date"
               value={form.expirationDate}
-              onChange={(e) =>
-                setForm({ ...form, expirationDate: e.target.value })
-              }
+              onChange={(e) => setForm({ ...form, expirationDate: e.target.value })}
             />
           </FormField>
           <FormField label="Cantidad" required>
@@ -1228,11 +1153,7 @@ export default function LotesPage() {
           <Button
             onClick={handleCreateLot}
             disabled={
-              saving ||
-              !form.productId ||
-              !form.branchId ||
-              !form.expirationDate ||
-              !form.quantity
+              saving || !form.productId || !form.branchId || !form.expirationDate || !form.quantity
             }
           >
             {saving ? "Guardando..." : "Registrar Lote"}
@@ -1243,11 +1164,7 @@ export default function LotesPage() {
       {/* ================================================================= */}
       {/* MODAL: Consumir de Lote                                           */}
       {/* ================================================================= */}
-      <Modal
-        open={consumeOpen}
-        onClose={() => setConsumeOpen(false)}
-        title="Consumir de Lote"
-      >
+      <Modal open={consumeOpen} onClose={() => setConsumeOpen(false)} title="Consumir de Lote">
         {consumeLot && (
           <div className="space-y-4">
             <div className="bg-gray-50 rounded-lg p-3 text-sm space-y-1">
@@ -1256,17 +1173,14 @@ export default function LotesPage() {
                 <span className="font-mono">{consumeLot.lotNumber}</span>
               </p>
               <p>
-                <span className="text-gray-500">Producto:</span>{" "}
-                {consumeLot.product.name}
+                <span className="text-gray-500">Producto:</span> {consumeLot.product.name}
               </p>
               <p>
                 <span className="text-gray-500">Disponible:</span>{" "}
-                {safeNum(consumeLot.quantity).toFixed(2)}{" "}
-                {consumeLot.product.unitOfMeasure}
+                {safeNum(consumeLot.quantity).toFixed(2)} {consumeLot.product.unitOfMeasure}
               </p>
               <p>
-                <span className="text-gray-500">Caduca:</span>{" "}
-                {fmtDate(consumeLot.expirationDate)}
+                <span className="text-gray-500">Caduca:</span> {fmtDate(consumeLot.expirationDate)}
               </p>
             </div>
             <FormField label="Cantidad a consumir" required>
@@ -1303,11 +1217,7 @@ export default function LotesPage() {
       {/* ================================================================= */}
       {/* MODAL: Descartar Lote                                             */}
       {/* ================================================================= */}
-      <Modal
-        open={disposeOpen}
-        onClose={() => setDisposeOpen(false)}
-        title="Descartar Lote"
-      >
+      <Modal open={disposeOpen} onClose={() => setDisposeOpen(false)} title="Descartar Lote">
         {disposeLot && (
           <div className="space-y-4">
             <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm">
@@ -1333,11 +1243,7 @@ export default function LotesPage() {
               <Button variant="outline" onClick={() => setDisposeOpen(false)}>
                 Cancelar
               </Button>
-              <Button
-                variant="destructive"
-                onClick={handleDispose}
-                disabled={saving}
-              >
+              <Button variant="destructive" onClick={handleDispose} disabled={saving}>
                 {saving ? "Procesando..." : "Descartar Lote"}
               </Button>
             </div>
@@ -1460,12 +1366,8 @@ function AlertSection({
         className={`w-full flex items-center justify-between px-4 py-3 transition-colors ${headerStyles[color]}`}
       >
         <div className="flex items-center gap-3">
-          <span className={`font-semibold ${textStyles[color]}`}>
-            {title}
-          </span>
-          <span className={`text-sm opacity-70 ${textStyles[color]}`}>
-            {subtitle}
-          </span>
+          <span className={`font-semibold ${textStyles[color]}`}>{title}</span>
+          <span className={`text-sm opacity-70 ${textStyles[color]}`}>{subtitle}</span>
           <span
             className={`px-2 py-0.5 rounded-full text-xs font-bold ${textStyles[color]} bg-white/60`}
           >
@@ -1490,18 +1392,13 @@ function AlertSection({
               >
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="font-medium text-sm truncate">
-                      {lot.product.name}
-                    </span>
-                    <span className="text-xs text-gray-500 font-mono">
-                      {lot.lotNumber}
-                    </span>
+                    <span className="font-medium text-sm truncate">{lot.product.name}</span>
+                    <span className="text-xs text-gray-500 font-mono">{lot.lotNumber}</span>
                   </div>
                   <div className="flex items-center gap-3 text-xs text-gray-500 mt-0.5">
                     <span>{lot.branch.name}</span>
                     <span>
-                      {safeNum(lot.quantity).toFixed(2)}{" "}
-                      {lot.product.unitOfMeasure}
+                      {safeNum(lot.quantity).toFixed(2)} {lot.product.unitOfMeasure}
                     </span>
                     <span>Caduca: {fmtDate(lot.expirationDate)}</span>
                     {days <= 0 ? (

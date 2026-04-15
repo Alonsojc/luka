@@ -1,22 +1,9 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Put,
-  Delete,
-  Param,
-  Body,
-  Query,
-  UseGuards,
-} from "@nestjs/common";
+import { Controller, Get, Post, Put, Delete, Param, Body, Query, UseGuards } from "@nestjs/common";
 import { ApiTags, ApiBearerAuth } from "@nestjs/swagger";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
 import { Permissions } from "../../common/decorators/roles.decorator";
-import {
-  CurrentUser,
-  JwtPayload,
-} from "../../common/decorators/current-user.decorator";
+import { CurrentUser, JwtPayload } from "../../common/decorators/current-user.decorator";
 import { ShiftsService } from "./shifts.service";
 
 @ApiTags("Nomina - Turnos")
@@ -69,10 +56,7 @@ export class ShiftsController {
 
   @Delete("templates/:id")
   @Permissions("nomina:edit")
-  deleteTemplate(
-    @CurrentUser() user: JwtPayload,
-    @Param("id") id: string,
-  ) {
+  deleteTemplate(@CurrentUser() user: JwtPayload, @Param("id") id: string) {
     return this.shiftsService.deleteTemplate(user.organizationId, id);
   }
 
@@ -85,11 +69,7 @@ export class ShiftsController {
     @Query("branchId") branchId: string,
     @Query("weekStart") weekStart: string,
   ) {
-    return this.shiftsService.getWeekSchedule(
-      user.organizationId,
-      branchId,
-      new Date(weekStart),
-    );
+    return this.shiftsService.getWeekSchedule(user.organizationId, branchId, new Date(weekStart));
   }
 
   @Post("assign")
@@ -124,10 +104,7 @@ export class ShiftsController {
 
   @Delete("assign/:id")
   @Permissions("nomina:edit")
-  removeAssignment(
-    @CurrentUser() user: JwtPayload,
-    @Param("id") id: string,
-  ) {
+  removeAssignment(@CurrentUser() user: JwtPayload, @Param("id") id: string) {
     return this.shiftsService.removeAssignment(user.organizationId, id);
   }
 
@@ -158,10 +135,6 @@ export class ShiftsController {
     @Query("branchId") branchId: string,
     @Query("weekStart") weekStart: string,
   ) {
-    return this.shiftsService.getWeekSummary(
-      user.organizationId,
-      branchId,
-      new Date(weekStart),
-    );
+    return this.shiftsService.getWeekSummary(user.organizationId, branchId, new Date(weekStart));
   }
 }

@@ -24,7 +24,7 @@ export const createRecipeSchema = z.object({
       quantity: z.number().positive(),
       unitOfMeasure: z.string(),
       wastePercentage: z.number().min(0).max(100).default(0),
-    })
+    }),
   ),
 });
 

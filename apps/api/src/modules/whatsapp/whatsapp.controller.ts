@@ -14,10 +14,7 @@ import { ApiTags, ApiBearerAuth } from "@nestjs/swagger";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
 import { Permissions } from "../../common/decorators/roles.decorator";
-import {
-  CurrentUser,
-  JwtPayload,
-} from "../../common/decorators/current-user.decorator";
+import { CurrentUser, JwtPayload } from "../../common/decorators/current-user.decorator";
 import { WhatsAppService } from "./whatsapp.service";
 import { AlertEngineService } from "./alert-engine.service";
 import { UpdateWhatsAppConfigDto } from "./dto/update-config.dto";
@@ -46,10 +43,7 @@ export class WhatsAppController {
 
   @Put("config")
   @Permissions("sucursales:view")
-  updateConfig(
-    @CurrentUser() user: JwtPayload,
-    @Body() dto: UpdateWhatsAppConfigDto,
-  ) {
+  updateConfig(@CurrentUser() user: JwtPayload, @Body() dto: UpdateWhatsAppConfigDto) {
     return this.whatsAppService.updateConfig(user.organizationId, dto);
   }
 
@@ -59,10 +53,7 @@ export class WhatsAppController {
 
   @Get("rules")
   @Permissions("sucursales:view")
-  async findAllRules(
-    @CurrentUser() user: JwtPayload,
-    @Query("eventType") eventType?: string,
-  ) {
+  async findAllRules(@CurrentUser() user: JwtPayload, @Query("eventType") eventType?: string) {
     const where: any = { organizationId: user.organizationId };
     if (eventType) where.eventType = eventType;
 
@@ -79,10 +70,7 @@ export class WhatsAppController {
 
   @Post("rules")
   @Permissions("sucursales:view")
-  async createRule(
-    @CurrentUser() user: JwtPayload,
-    @Body() dto: CreateAlertRuleDto,
-  ) {
+  async createRule(@CurrentUser() user: JwtPayload, @Body() dto: CreateAlertRuleDto) {
     const rule = await this.whatsAppService["prisma"].alertRule.create({
       data: {
         organizationId: user.organizationId,
@@ -131,10 +119,7 @@ export class WhatsAppController {
 
   @Delete("rules/:id")
   @Permissions("sucursales:view")
-  async deleteRule(
-    @CurrentUser() user: JwtPayload,
-    @Param("id") id: string,
-  ) {
+  async deleteRule(@CurrentUser() user: JwtPayload, @Param("id") id: string) {
     const existing = await this.whatsAppService["prisma"].alertRule.findFirst({
       where: { id, organizationId: user.organizationId },
     });
@@ -153,10 +138,7 @@ export class WhatsAppController {
 
   @Post("rules/:id/test")
   @Permissions("sucursales:view")
-  async testRule(
-    @CurrentUser() user: JwtPayload,
-    @Param("id") id: string,
-  ) {
+  async testRule(@CurrentUser() user: JwtPayload, @Param("id") id: string) {
     const rule = await this.whatsAppService["prisma"].alertRule.findFirst({
       where: { id, organizationId: user.organizationId },
     });
@@ -166,10 +148,7 @@ export class WhatsAppController {
 
     // Generate sample data based on event type
     const sampleData = this.getSampleData(rule.eventType);
-    const rendered = this.whatsAppService.renderTemplate(
-      rule.messageTemplate,
-      sampleData,
-    );
+    const rendered = this.whatsAppService.renderTemplate(rule.messageTemplate, sampleData);
 
     const recipients = (rule.recipients as any[]) || [];
     const results = [];
@@ -247,15 +226,9 @@ export class WhatsAppController {
   @Permissions("sucursales:view")
   async checkAlerts(@CurrentUser() user: JwtPayload) {
     const results = {
-      stockAlerts: await this.alertEngine.checkStockAlerts(
-        user.organizationId,
-      ),
-      expirationAlerts: await this.alertEngine.checkExpirationAlerts(
-        user.organizationId,
-      ),
-      dailySummary: await this.alertEngine.sendDailySummary(
-        user.organizationId,
-      ),
+      stockAlerts: await this.alertEngine.checkStockAlerts(user.organizationId),
+      expirationAlerts: await this.alertEngine.checkExpirationAlerts(user.organizationId),
+      dailySummary: await this.alertEngine.sendDailySummary(user.organizationId),
     };
 
     return results;

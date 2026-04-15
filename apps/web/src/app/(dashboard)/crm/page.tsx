@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Plus,
   Pencil,
@@ -16,23 +16,20 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { exportToCSV } from "@/lib/export-csv";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
+import { useApiQuery } from "@/hooks/use-api-query";
 import { useToast } from "@/components/ui/toast";
 import { DataTable } from "@/components/ui/data-table";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { FormField, Input, Select } from "@/components/ui/form-field";
+import type { Branch } from "@luka/shared";
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
-
-interface Branch {
-  id: string;
-  name: string;
-  code: string;
-}
 
 interface Customer {
   id: string;
@@ -134,11 +131,16 @@ function fmtDate(d: string): string {
 // Page Component
 // ---------------------------------------------------------------------------
 
-const normalize = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+const normalize = (s: string) =>
+  s
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
 
 export default function CRMPage() {
   const { authFetch, loading: authLoading } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const [activeTab, setActiveTab] = useState<TabKey>("clientes");
 
@@ -148,126 +150,53 @@ export default function CRMPage() {
   const PAGE_SIZE = 10;
 
   // Reset page when search changes
-  useEffect(() => { setCurrentPage(1); }, [searchTerm]);
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
   // Reset search when tab changes
-  useEffect(() => { setSearchTerm(""); setCurrentPage(1); }, [activeTab]);
+  useEffect(() => {
+    setSearchTerm("");
+    setCurrentPage(1);
+  }, [activeTab]);
 
-  // ---- Shared ----
-  const [branches, setBranches] = useState<Branch[]>([]);
+  // ---- Shared (React Query) ----
+  const { data: branches = [] } = useApiQuery<Branch[]>("/branches", ["branches"]);
 
-  // ---- Customers state ----
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [customersLoading, setCustomersLoading] = useState(false);
+  // ---- Customers (React Query) ----
+  const { data: customers = [], isLoading: customersLoading } = useApiQuery<Customer[]>(
+    "/crm/customers",
+    ["crm-customers"],
+    { enabled: activeTab === "clientes" || activeTab === "lealtad" },
+  );
   const [customerModalOpen, setCustomerModalOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
   const [customerForm, setCustomerForm] = useState({ ...EMPTY_CUSTOMER_FORM });
   const [customerSaving, setCustomerSaving] = useState(false);
   const [deleteCustomerConfirm, setDeleteCustomerConfirm] = useState<Customer | null>(null);
 
-  // ---- Loyalty state ----
+  // ---- Loyalty (React Query) ----
   const [selectedCustomerId, setSelectedCustomerId] = useState("");
-  const [loyaltyTxns, setLoyaltyTxns] = useState<LoyaltyTransaction[]>([]);
-  const [loyaltyLoading, setLoyaltyLoading] = useState(false);
+  const { data: loyaltyTxns = [], isLoading: loyaltyLoading } = useApiQuery<LoyaltyTransaction[]>(
+    `/crm/loyalty/customer/${selectedCustomerId}`,
+    ["crm-loyalty", selectedCustomerId],
+    { enabled: activeTab === "lealtad" && !!selectedCustomerId },
+  );
   const [pointsModalOpen, setPointsModalOpen] = useState(false);
   const [pointsModalMode, setPointsModalMode] = useState<"earn" | "redeem">("earn");
   const [pointsForm, setPointsForm] = useState({ ...EMPTY_POINTS_FORM });
   const [pointsSaving, setPointsSaving] = useState(false);
 
-  // ---- Promotions state ----
-  const [promotions, setPromotions] = useState<Promotion[]>([]);
-  const [promotionsLoading, setPromotionsLoading] = useState(false);
+  // ---- Promotions (React Query) ----
+  const { data: promotions = [], isLoading: promotionsLoading } = useApiQuery<Promotion[]>(
+    "/crm/promotions",
+    ["crm-promotions"],
+    { enabled: activeTab === "promociones" },
+  );
   const [promoModalOpen, setPromoModalOpen] = useState(false);
   const [editingPromo, setEditingPromo] = useState<Promotion | null>(null);
   const [promoForm, setPromoForm] = useState({ ...EMPTY_PROMO_FORM });
   const [promoSaving, setPromoSaving] = useState(false);
   const [deletePromoConfirm, setDeletePromoConfirm] = useState<Promotion | null>(null);
-
-  // =======================================================================
-  // Data-fetching helpers
-  // =======================================================================
-
-  const fetchBranches = useCallback(async () => {
-    try {
-      const data = await authFetch<Branch[]>("get", "/branches");
-      setBranches(data);
-    } catch {
-      /* handled by authFetch */
-    }
-  }, [authFetch]);
-
-  const fetchCustomers = useCallback(async () => {
-    setCustomersLoading(true);
-    try {
-      const data = await authFetch<Customer[]>("get", "/crm/customers");
-      setCustomers(data);
-    } catch {
-      /* handled by authFetch */
-    } finally {
-      setCustomersLoading(false);
-    }
-  }, [authFetch]);
-
-  const fetchLoyalty = useCallback(
-    async (customerId: string) => {
-      if (!customerId) {
-        setLoyaltyTxns([]);
-        return;
-      }
-      setLoyaltyLoading(true);
-      try {
-        const data = await authFetch<LoyaltyTransaction[]>(
-          "get",
-          `/crm/loyalty/customer/${customerId}`,
-        );
-        setLoyaltyTxns(data);
-      } catch {
-        /* handled by authFetch */
-      } finally {
-        setLoyaltyLoading(false);
-      }
-    },
-    [authFetch],
-  );
-
-  const fetchPromotions = useCallback(async () => {
-    setPromotionsLoading(true);
-    try {
-      const data = await authFetch<Promotion[]>("get", "/crm/promotions");
-      setPromotions(data);
-    } catch {
-      /* handled by authFetch */
-    } finally {
-      setPromotionsLoading(false);
-    }
-  }, [authFetch]);
-
-  // =======================================================================
-  // Load data when tab changes
-  // =======================================================================
-
-  useEffect(() => {
-    if (authLoading) return;
-    fetchBranches();
-  }, [authLoading, fetchBranches]);
-
-  useEffect(() => {
-    if (authLoading) return;
-    if (activeTab === "clientes") {
-      fetchCustomers();
-    } else if (activeTab === "lealtad") {
-      if (customers.length === 0) fetchCustomers();
-    } else if (activeTab === "promociones") {
-      fetchPromotions();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab, authLoading]);
-
-  // Fetch loyalty when customer selection changes
-  useEffect(() => {
-    if (activeTab === "lealtad" && selectedCustomerId) {
-      fetchLoyalty(selectedCustomerId);
-    }
-  }, [activeTab, selectedCustomerId, fetchLoyalty]);
 
   // =======================================================================
   // Customer CRUD handlers
@@ -303,18 +232,14 @@ export default function CRMPage() {
       };
 
       if (editingCustomer) {
-        await authFetch<Customer>(
-          "patch",
-          `/crm/customers/${editingCustomer.id}`,
-          payload,
-        );
+        await authFetch<Customer>("patch", `/crm/customers/${editingCustomer.id}`, payload);
         toast("Cliente actualizado");
       } else {
         await authFetch<Customer>("post", "/crm/customers", payload);
         toast("Cliente creado");
       }
       setCustomerModalOpen(false);
-      fetchCustomers();
+      queryClient.invalidateQueries({ queryKey: ["crm-customers"] });
     } catch (err: any) {
       toast(err?.message ?? "Error al guardar cliente", "error");
     } finally {
@@ -328,7 +253,7 @@ export default function CRMPage() {
       await authFetch("delete", `/crm/customers/${deleteCustomerConfirm.id}`);
       toast("Cliente eliminado");
       setDeleteCustomerConfirm(null);
-      fetchCustomers();
+      queryClient.invalidateQueries({ queryKey: ["crm-customers"] });
     } catch (err: any) {
       toast(err?.message ?? "Error al eliminar cliente", "error");
       setDeleteCustomerConfirm(null);
@@ -351,22 +276,17 @@ export default function CRMPage() {
 
   async function handlePointsSubmit() {
     setPointsSaving(true);
-    const endpoint =
-      pointsModalMode === "earn" ? "/crm/loyalty/earn" : "/crm/loyalty/redeem";
+    const endpoint = pointsModalMode === "earn" ? "/crm/loyalty/earn" : "/crm/loyalty/redeem";
     try {
       await authFetch("post", endpoint, {
         customerId: pointsForm.customerId,
         branchId: pointsForm.branchId,
         points: Number(pointsForm.points),
       });
-      toast(
-        pointsModalMode === "earn"
-          ? "Puntos acreditados"
-          : "Puntos canjeados",
-      );
+      toast(pointsModalMode === "earn" ? "Puntos acreditados" : "Puntos canjeados");
       setPointsModalOpen(false);
-      fetchLoyalty(selectedCustomerId);
-      fetchCustomers(); // refresh totals
+      queryClient.invalidateQueries({ queryKey: ["crm-loyalty"] });
+      queryClient.invalidateQueries({ queryKey: ["crm-customers"] });
     } catch (err: any) {
       toast(err?.message ?? "Error al procesar puntos", "error");
     } finally {
@@ -408,18 +328,14 @@ export default function CRMPage() {
       };
 
       if (editingPromo) {
-        await authFetch<Promotion>(
-          "patch",
-          `/crm/promotions/${editingPromo.id}`,
-          payload,
-        );
+        await authFetch<Promotion>("patch", `/crm/promotions/${editingPromo.id}`, payload);
         toast("Promocion actualizada");
       } else {
         await authFetch<Promotion>("post", "/crm/promotions", payload);
         toast("Promocion creada");
       }
       setPromoModalOpen(false);
-      fetchPromotions();
+      queryClient.invalidateQueries({ queryKey: ["crm-promotions"] });
     } catch (err: any) {
       toast(err?.message ?? "Error al guardar promocion", "error");
     } finally {
@@ -433,7 +349,7 @@ export default function CRMPage() {
       await authFetch("delete", `/crm/promotions/${deletePromoConfirm.id}`);
       toast("Promocion eliminada");
       setDeletePromoConfirm(null);
-      fetchPromotions();
+      queryClient.invalidateQueries({ queryKey: ["crm-promotions"] });
     } catch (err: any) {
       toast(err?.message ?? "Error al eliminar promocion", "error");
       setDeletePromoConfirm(null);
@@ -449,7 +365,7 @@ export default function CRMPage() {
     const q = normalize(searchTerm);
     return customers.filter(
       (c) =>
-        normalize(c.name || '').includes(q) ||
+        normalize(c.name || "").includes(q) ||
         (c.email && normalize(c.email).includes(q)) ||
         (c.phone && normalize(c.phone).includes(q)) ||
         (c.rfc && normalize(c.rfc).includes(q)),
@@ -457,7 +373,10 @@ export default function CRMPage() {
   }, [customers, searchTerm]);
 
   const totalPagesCRM = Math.ceil(filteredCustomers.length / PAGE_SIZE);
-  const paginatedCustomers = filteredCustomers.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  const paginatedCustomers = filteredCustomers.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE,
+  );
 
   const paginationStartCRM = filteredCustomers.length === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1;
   const paginationEndCRM = Math.min(currentPage * PAGE_SIZE, filteredCustomers.length);
@@ -469,10 +388,7 @@ export default function CRMPage() {
   const totalCustomers = customers.length;
   const goldCustomers = customers.filter((c) => c.tier === "GOLD").length;
   const activePromotions = promotions.filter((p) => p.isActive).length;
-  const totalPointsCirculating = customers.reduce(
-    (sum, c) => sum + (c.loyaltyPoints ?? 0),
-    0,
-  );
+  const totalPointsCirculating = customers.reduce((sum, c) => sum + (c.loyaltyPoints ?? 0), 0);
 
   // =======================================================================
   // Column definitions
@@ -557,14 +473,8 @@ export default function CRMPage() {
       key: "type",
       header: "Tipo",
       render: (r: LoyaltyTransaction) => {
-        const variant =
-          r.type === "EARN" ? "green" : r.type === "REDEEM" ? "red" : "blue";
-        const label =
-          r.type === "EARN"
-            ? "Acumulado"
-            : r.type === "REDEEM"
-              ? "Canjeado"
-              : "Ajuste";
+        const variant = r.type === "EARN" ? "green" : r.type === "REDEEM" ? "red" : "blue";
+        const label = r.type === "EARN" ? "Acumulado" : r.type === "REDEEM" ? "Canjeado" : "Ajuste";
         return <StatusBadge label={label} variant={variant as any} />;
       },
     },
@@ -574,8 +484,7 @@ export default function CRMPage() {
       className: "text-right",
       render: (r: LoyaltyTransaction) => {
         const sign = r.type === "REDEEM" ? "-" : "+";
-        const color =
-          r.type === "REDEEM" ? "text-red-600" : "text-green-600";
+        const color = r.type === "REDEEM" ? "text-red-600" : "text-green-600";
         return (
           <span className={`font-medium ${color}`}>
             {sign}
@@ -687,25 +596,27 @@ export default function CRMPage() {
           {activeTab === "clientes" && (
             <>
               <button
-                onClick={() => exportToCSV(
-                  customers.map(c => ({
-                    name: c.name,
-                    email: c.email || "",
-                    phone: c.phone || "",
-                    tier: c.tier,
-                    loyaltyPoints: c.loyaltyPoints ?? 0,
-                    registeredAt: new Date(c.registeredAt).toLocaleDateString("es-MX"),
-                  })),
-                  "clientes",
-                  [
-                    { key: "name", label: "Nombre" },
-                    { key: "email", label: "Email" },
-                    { key: "phone", label: "Telefono" },
-                    { key: "tier", label: "Tier" },
-                    { key: "loyaltyPoints", label: "Puntos" },
-                    { key: "registeredAt", label: "Registro" },
-                  ]
-                )}
+                onClick={() =>
+                  exportToCSV(
+                    customers.map((c) => ({
+                      name: c.name,
+                      email: c.email || "",
+                      phone: c.phone || "",
+                      tier: c.tier,
+                      loyaltyPoints: c.loyaltyPoints ?? 0,
+                      registeredAt: new Date(c.registeredAt).toLocaleDateString("es-MX"),
+                    })),
+                    "clientes",
+                    [
+                      { key: "name", label: "Nombre" },
+                      { key: "email", label: "Email" },
+                      { key: "phone", label: "Telefono" },
+                      { key: "tier", label: "Tier" },
+                      { key: "loyaltyPoints", label: "Puntos" },
+                      { key: "registeredAt", label: "Registro" },
+                    ],
+                  )
+                }
                 className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
               >
                 <Download className="h-4 w-4" />
@@ -730,21 +641,15 @@ export default function CRMPage() {
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-lg border bg-white p-4">
           <p className="text-sm text-muted-foreground">Total Clientes</p>
-          <p className="mt-1 text-2xl font-bold">
-            {totalCustomers.toLocaleString("es-MX")}
-          </p>
+          <p className="mt-1 text-2xl font-bold">{totalCustomers.toLocaleString("es-MX")}</p>
         </div>
         <div className="rounded-lg border bg-white p-4">
           <p className="text-sm text-muted-foreground">Clientes Gold</p>
-          <p className="mt-1 text-2xl font-bold">
-            {goldCustomers.toLocaleString("es-MX")}
-          </p>
+          <p className="mt-1 text-2xl font-bold">{goldCustomers.toLocaleString("es-MX")}</p>
         </div>
         <div className="rounded-lg border bg-white p-4">
           <p className="text-sm text-muted-foreground">Promociones Activas</p>
-          <p className="mt-1 text-2xl font-bold">
-            {activePromotions.toLocaleString("es-MX")}
-          </p>
+          <p className="mt-1 text-2xl font-bold">{activePromotions.toLocaleString("es-MX")}</p>
         </div>
         <div className="rounded-lg border bg-white p-4">
           <p className="text-sm text-muted-foreground">Puntos en Circulacion</p>
@@ -862,11 +767,7 @@ export default function CRMPage() {
                     <ArrowUpCircle className="h-4 w-4" />
                     Acumular Puntos
                   </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => openPointsModal("redeem")}
-                  >
+                  <Button size="sm" variant="outline" onClick={() => openPointsModal("redeem")}>
                     <ArrowDownCircle className="h-4 w-4" />
                     Canjear Puntos
                   </Button>
@@ -936,9 +837,7 @@ export default function CRMPage() {
           <FormField label="Nombre" required>
             <Input
               value={customerForm.name}
-              onChange={(e) =>
-                setCustomerForm((f) => ({ ...f, name: e.target.value }))
-              }
+              onChange={(e) => setCustomerForm((f) => ({ ...f, name: e.target.value }))}
               placeholder="Nombre completo"
             />
           </FormField>
@@ -948,18 +847,14 @@ export default function CRMPage() {
               <Input
                 type="email"
                 value={customerForm.email}
-                onChange={(e) =>
-                  setCustomerForm((f) => ({ ...f, email: e.target.value }))
-                }
+                onChange={(e) => setCustomerForm((f) => ({ ...f, email: e.target.value }))}
                 placeholder="correo@email.com"
               />
             </FormField>
             <FormField label="Telefono">
               <Input
                 value={customerForm.phone}
-                onChange={(e) =>
-                  setCustomerForm((f) => ({ ...f, phone: e.target.value }))
-                }
+                onChange={(e) => setCustomerForm((f) => ({ ...f, phone: e.target.value }))}
                 placeholder="33 1234 5678"
               />
             </FormField>
@@ -969,9 +864,7 @@ export default function CRMPage() {
             <FormField label="RFC">
               <Input
                 value={customerForm.rfc}
-                onChange={(e) =>
-                  setCustomerForm((f) => ({ ...f, rfc: e.target.value }))
-                }
+                onChange={(e) => setCustomerForm((f) => ({ ...f, rfc: e.target.value }))}
                 placeholder="XAXX010101000"
               />
             </FormField>
@@ -996,21 +889,14 @@ export default function CRMPage() {
           </div>
 
           <div className="flex justify-end gap-3 pt-2">
-            <Button
-              variant="outline"
-              onClick={() => setCustomerModalOpen(false)}
-            >
+            <Button variant="outline" onClick={() => setCustomerModalOpen(false)}>
               Cancelar
             </Button>
             <Button
               onClick={handleSaveCustomer}
               disabled={customerSaving || !customerForm.name.trim()}
             >
-              {customerSaving
-                ? "Guardando..."
-                : editingCustomer
-                  ? "Actualizar"
-                  : "Crear"}
+              {customerSaving ? "Guardando..." : editingCustomer ? "Actualizar" : "Crear"}
             </Button>
           </div>
         </div>
@@ -1026,16 +912,11 @@ export default function CRMPage() {
       >
         <p className="text-sm text-muted-foreground mb-6">
           Estas seguro de que deseas eliminar al cliente{" "}
-          <strong className="text-foreground">
-            {deleteCustomerConfirm?.name}
-          </strong>
-          ? Esta accion no se puede deshacer.
+          <strong className="text-foreground">{deleteCustomerConfirm?.name}</strong>? Esta accion no
+          se puede deshacer.
         </p>
         <div className="flex justify-end gap-3">
-          <Button
-            variant="outline"
-            onClick={() => setDeleteCustomerConfirm(null)}
-          >
+          <Button variant="outline" onClick={() => setDeleteCustomerConfirm(null)}>
             Cancelar
           </Button>
           <Button variant="destructive" onClick={handleDeleteCustomer}>
@@ -1050,17 +931,13 @@ export default function CRMPage() {
       <Modal
         open={pointsModalOpen}
         onClose={() => setPointsModalOpen(false)}
-        title={
-          pointsModalMode === "earn" ? "Acumular Puntos" : "Canjear Puntos"
-        }
+        title={pointsModalMode === "earn" ? "Acumular Puntos" : "Canjear Puntos"}
       >
         <div className="space-y-4">
           <FormField label="Sucursal" required>
             <Select
               value={pointsForm.branchId}
-              onChange={(e) =>
-                setPointsForm((f) => ({ ...f, branchId: e.target.value }))
-              }
+              onChange={(e) => setPointsForm((f) => ({ ...f, branchId: e.target.value }))}
             >
               <option value="">Seleccionar sucursal...</option>
               {branches.map((b) => (
@@ -1076,18 +953,13 @@ export default function CRMPage() {
               type="number"
               min="1"
               value={pointsForm.points}
-              onChange={(e) =>
-                setPointsForm((f) => ({ ...f, points: e.target.value }))
-              }
+              onChange={(e) => setPointsForm((f) => ({ ...f, points: e.target.value }))}
               placeholder="Cantidad de puntos"
             />
           </FormField>
 
           <div className="flex justify-end gap-3 pt-2">
-            <Button
-              variant="outline"
-              onClick={() => setPointsModalOpen(false)}
-            >
+            <Button variant="outline" onClick={() => setPointsModalOpen(false)}>
               Cancelar
             </Button>
             <Button
@@ -1099,11 +971,7 @@ export default function CRMPage() {
                 Number(pointsForm.points) <= 0
               }
             >
-              {pointsSaving
-                ? "Procesando..."
-                : pointsModalMode === "earn"
-                  ? "Acumular"
-                  : "Canjear"}
+              {pointsSaving ? "Procesando..." : pointsModalMode === "earn" ? "Acumular" : "Canjear"}
             </Button>
           </div>
         </div>
@@ -1121,9 +989,7 @@ export default function CRMPage() {
           <FormField label="Nombre" required>
             <Input
               value={promoForm.name}
-              onChange={(e) =>
-                setPromoForm((f) => ({ ...f, name: e.target.value }))
-              }
+              onChange={(e) => setPromoForm((f) => ({ ...f, name: e.target.value }))}
               placeholder="Nombre de la promocion"
             />
           </FormField>
@@ -1138,9 +1004,7 @@ export default function CRMPage() {
                 }))
               }
             >
-              <option value="POINTS_MULTIPLIER">
-                Multiplicador de Puntos
-              </option>
+              <option value="POINTS_MULTIPLIER">Multiplicador de Puntos</option>
               <option value="DISCOUNT">Descuento</option>
               <option value="BONUS_POINTS">Puntos Bonus</option>
             </Select>
@@ -1151,18 +1015,14 @@ export default function CRMPage() {
               <Input
                 type="date"
                 value={promoForm.startDate}
-                onChange={(e) =>
-                  setPromoForm((f) => ({ ...f, startDate: e.target.value }))
-                }
+                onChange={(e) => setPromoForm((f) => ({ ...f, startDate: e.target.value }))}
               />
             </FormField>
             <FormField label="Fecha Fin" required>
               <Input
                 type="date"
                 value={promoForm.endDate}
-                onChange={(e) =>
-                  setPromoForm((f) => ({ ...f, endDate: e.target.value }))
-                }
+                onChange={(e) => setPromoForm((f) => ({ ...f, endDate: e.target.value }))}
               />
             </FormField>
           </div>
@@ -1185,26 +1045,16 @@ export default function CRMPage() {
           )}
 
           <div className="flex justify-end gap-3 pt-2">
-            <Button
-              variant="outline"
-              onClick={() => setPromoModalOpen(false)}
-            >
+            <Button variant="outline" onClick={() => setPromoModalOpen(false)}>
               Cancelar
             </Button>
             <Button
               onClick={handleSavePromo}
               disabled={
-                promoSaving ||
-                !promoForm.name.trim() ||
-                !promoForm.startDate ||
-                !promoForm.endDate
+                promoSaving || !promoForm.name.trim() || !promoForm.startDate || !promoForm.endDate
               }
             >
-              {promoSaving
-                ? "Guardando..."
-                : editingPromo
-                  ? "Actualizar"
-                  : "Crear"}
+              {promoSaving ? "Guardando..." : editingPromo ? "Actualizar" : "Crear"}
             </Button>
           </div>
         </div>
@@ -1220,16 +1070,11 @@ export default function CRMPage() {
       >
         <p className="text-sm text-muted-foreground mb-6">
           Estas seguro de que deseas eliminar la promocion{" "}
-          <strong className="text-foreground">
-            {deletePromoConfirm?.name}
-          </strong>
-          ? Esta accion no se puede deshacer.
+          <strong className="text-foreground">{deletePromoConfirm?.name}</strong>? Esta accion no se
+          puede deshacer.
         </p>
         <div className="flex justify-end gap-3">
-          <Button
-            variant="outline"
-            onClick={() => setDeletePromoConfirm(null)}
-          >
+          <Button variant="outline" onClick={() => setDeletePromoConfirm(null)}>
             Cancelar
           </Button>
           <Button variant="destructive" onClick={handleDeletePromo}>

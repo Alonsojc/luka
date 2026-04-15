@@ -1,21 +1,9 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Patch,
-  Delete,
-  Param,
-  Body,
-  UseGuards,
-} from "@nestjs/common";
+import { Controller, Get, Post, Patch, Delete, Param, Body, UseGuards } from "@nestjs/common";
 import { ApiTags, ApiBearerAuth } from "@nestjs/swagger";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
 import { Permissions } from "../../common/decorators/roles.decorator";
-import {
-  CurrentUser,
-  JwtPayload,
-} from "../../common/decorators/current-user.decorator";
+import { CurrentUser, JwtPayload } from "../../common/decorators/current-user.decorator";
 import { PresentationsService } from "./presentations.service";
 import { CreatePresentationDto } from "./dto/create-presentation.dto";
 import { UpdatePresentationDto } from "./dto/update-presentation.dto";
@@ -43,14 +31,8 @@ export class PresentationsController {
    */
   @Get("products/:productId/presentations")
   @Permissions("inventarios:view")
-  findByProduct(
-    @CurrentUser() user: JwtPayload,
-    @Param("productId") productId: string,
-  ) {
-    return this.presentationsService.findByProduct(
-      user.organizationId,
-      productId,
-    );
+  findByProduct(@CurrentUser() user: JwtPayload, @Param("productId") productId: string) {
+    return this.presentationsService.findByProduct(user.organizationId, productId);
   }
 
   /**
@@ -64,12 +46,7 @@ export class PresentationsController {
     @Param("productId") productId: string,
     @Body() dto: CreatePresentationDto,
   ) {
-    return this.presentationsService.create(
-      user.organizationId,
-      productId,
-      dto,
-      user,
-    );
+    return this.presentationsService.create(user.organizationId, productId, dto, user);
   }
 
   /**
@@ -83,12 +60,7 @@ export class PresentationsController {
     @Param("id") id: string,
     @Body() dto: UpdatePresentationDto,
   ) {
-    return this.presentationsService.update(
-      user.organizationId,
-      id,
-      dto,
-      user,
-    );
+    return this.presentationsService.update(user.organizationId, id, dto, user);
   }
 
   /**

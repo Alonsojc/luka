@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useMemo } from "react";
 import {
   FileText,
   FileCode,
@@ -22,561 +22,221 @@ import {
 } from "lucide-react";
 import { exportToCSV } from "@/lib/export-csv";
 import { generateInvoicePDF } from "@/lib/pdf-generator";
-import { useAuth } from "@/hooks/use-auth";
 import { DataTable } from "@/components/ui/data-table";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { FormField, Input, Select } from "@/components/ui/form-field";
 import { formatMXN } from "@luka/shared";
-
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
-interface Concepto {
-  satClaveProdServ: string;
-  quantity: number;
-  satClaveUnidad: string;
-  unitOfMeasure: string;
-  description: string;
-  unitPrice: number;
-  importe: number;
-  withIva: boolean;
-}
-
-type CfdiStatus = "DRAFT" | "STAMPED" | "CANCELLED" | "CANCELLATION_PENDING" | "SENT";
-
-interface Cfdi {
-  id: string;
-  series: string;
-  folio: string;
-  uuid: string | null;
-  receiverRfc: string;
-  receiverName: string;
-  receiverRegimen: string | null;
-  receiverUsoCfdi: string;
-  receiverDomicilioFiscal: string | null;
-  issuerRfc: string;
-  issuerName: string;
-  issuerRegimen: string;
-  subtotal: number | string;
-  total: number | string;
-  currency: string;
-  exchangeRate: number | string | null;
-  paymentMethod: string | null;
-  paymentForm: string | null;
-  exportacion: string | null;
-  lugarExpedicion: string | null;
-  status: CfdiStatus;
-  createdAt: string;
-  stampedAt: string | null;
-  cancelledAt: string | null;
-  cancellationReason: string | null;
-  xmlContent: string | null;
-  branchId: string;
-  concepts: ConceptoApi[];
-  attachments?: CfdiAttachment[] | null;
-}
-
-interface CfdiAttachment {
-  filename: string;
-  url: string;
-  size?: number;
-  uploadedAt: string;
-}
-
-interface ConceptoApi {
-  id: string;
-  satClaveProdServ: string;
-  quantity: number | string;
-  satClaveUnidad: string;
-  unitOfMeasure: string;
-  description: string;
-  unitPrice: number | string;
-  amount: number | string;
-  taxDetails: Record<string, unknown>;
-}
-
-interface PendingPayment {
-  id: string;
-  series: string | null;
-  folio: string | null;
-  uuid: string | null;
-  receiverRfc: string;
-  receiverName: string;
-  total: number;
-  totalPaid: number;
-  saldoPendiente: number;
-  currency: string;
-  createdAt: string;
-  branchName: string | null;
-}
-
-interface PaymentComplementRelatedDoc {
-  cfdiId: string;
-  uuid: string;
-  serie: string;
-  folio: string;
-  amountPaid: number;
-  saldoAnterior: number;
-  saldoInsoluto: number;
-  numParcialidad: number;
-}
-
-interface PaymentComplement {
-  id: string;
-  series: string | null;
-  folio: string | null;
-  uuid: string | null;
-  status: CfdiStatus;
-  createdAt: string;
-  stampedAt: string | null;
-  xmlContent: string | null;
-  receiverRfc: string;
-  receiverName: string;
-  complement: {
-    id: string;
-    paymentDate: string;
-    paymentForm: string;
-    currency: string;
-    amount: number | string;
-    relatedDocuments: PaymentComplementRelatedDoc[];
-  } | null;
-}
-
-interface Branch {
-  id: string;
-  name: string;
-  code: string;
-}
-
-interface CatalogItem {
-  clave: string;
-  descripcion: string;
-}
-
-// ---------------------------------------------------------------------------
-// SAT Catalog Constants (hardcoded fallback)
-// ---------------------------------------------------------------------------
-
-const REGIMEN_FISCAL: CatalogItem[] = [
-  { clave: "601", descripcion: "General de Ley Personas Morales" },
-  { clave: "603", descripcion: "Personas Morales con Fines no Lucrativos" },
-  { clave: "605", descripcion: "Sueldos y Salarios e Ingresos Asimilados a Salarios" },
-  { clave: "606", descripcion: "Arrendamiento" },
-  { clave: "607", descripcion: "Regimen de Enajenacion o Adquisicion de Bienes" },
-  { clave: "608", descripcion: "Demas ingresos" },
-  { clave: "610", descripcion: "Residentes en el Extranjero sin Establecimiento Permanente en Mexico" },
-  { clave: "611", descripcion: "Ingresos por Dividendos (socios y accionistas)" },
-  { clave: "612", descripcion: "Personas Fisicas con Actividades Empresariales y Profesionales" },
-  { clave: "614", descripcion: "Ingresos por intereses" },
-  { clave: "615", descripcion: "Regimen de los ingresos por obtencion de premios" },
-  { clave: "616", descripcion: "Sin obligaciones fiscales" },
-  { clave: "620", descripcion: "Sociedades Cooperativas de Produccion que optan por diferir sus ingresos" },
-  { clave: "621", descripcion: "Incorporacion Fiscal" },
-  { clave: "622", descripcion: "Actividades Agricolas, Ganaderas, Silvicolas y Pesqueras" },
-  { clave: "623", descripcion: "Opcional para Grupos de Sociedades" },
-  { clave: "624", descripcion: "Coordinados" },
-  { clave: "625", descripcion: "Regimen de las Actividades Empresariales con ingresos a traves de Plataformas Tecnologicas" },
-  { clave: "626", descripcion: "Regimen Simplificado de Confianza" },
-];
-
-const USO_CFDI: CatalogItem[] = [
-  { clave: "G01", descripcion: "Adquisicion de mercancias" },
-  { clave: "G02", descripcion: "Devoluciones, descuentos o bonificaciones" },
-  { clave: "G03", descripcion: "Gastos en general" },
-  { clave: "I01", descripcion: "Construcciones" },
-  { clave: "I02", descripcion: "Mobiliario y equipo de oficina por inversiones" },
-  { clave: "I03", descripcion: "Equipo de transporte" },
-  { clave: "I04", descripcion: "Equipo de computo y accesorios" },
-  { clave: "I05", descripcion: "Dados, troqueles, moldes, matrices y herramental" },
-  { clave: "I06", descripcion: "Comunicaciones telefonicas" },
-  { clave: "I07", descripcion: "Comunicaciones satelitales" },
-  { clave: "I08", descripcion: "Otra maquinaria y equipo" },
-  { clave: "D01", descripcion: "Honorarios medicos, dentales y gastos hospitalarios" },
-  { clave: "D02", descripcion: "Gastos medicos por incapacidad o discapacidad" },
-  { clave: "D03", descripcion: "Gastos funerales" },
-  { clave: "D04", descripcion: "Donativos" },
-  { clave: "D05", descripcion: "Intereses reales efectivamente pagados por creditos hipotecarios (casa habitacion)" },
-  { clave: "D06", descripcion: "Aportaciones voluntarias al SAR" },
-  { clave: "D07", descripcion: "Primas por seguros de gastos medicos" },
-  { clave: "D08", descripcion: "Gastos de transportacion escolar obligatoria" },
-  { clave: "D09", descripcion: "Depositos en cuentas para el ahorro, primas que tengan como base planes de pensiones" },
-  { clave: "D10", descripcion: "Pagos por servicios educativos (colegiaturas)" },
-  { clave: "S01", descripcion: "Sin efectos fiscales" },
-  { clave: "CP01", descripcion: "Pagos" },
-  { clave: "CN01", descripcion: "Nomina" },
-];
-
-const FORMA_PAGO: CatalogItem[] = [
-  { clave: "01", descripcion: "Efectivo" },
-  { clave: "02", descripcion: "Cheque nominativo" },
-  { clave: "03", descripcion: "Transferencia electronica de fondos" },
-  { clave: "04", descripcion: "Tarjeta de credito" },
-  { clave: "05", descripcion: "Monedero electronico" },
-  { clave: "06", descripcion: "Dinero electronico" },
-  { clave: "08", descripcion: "Vales de despensa" },
-  { clave: "12", descripcion: "Dacion en pago" },
-  { clave: "13", descripcion: "Pago por subrogacion" },
-  { clave: "14", descripcion: "Pago por consignacion" },
-  { clave: "15", descripcion: "Condonacion" },
-  { clave: "17", descripcion: "Compensacion" },
-  { clave: "23", descripcion: "Novacion" },
-  { clave: "24", descripcion: "Confusion" },
-  { clave: "25", descripcion: "Remision de deuda" },
-  { clave: "26", descripcion: "Prescripcion o caducidad" },
-  { clave: "27", descripcion: "A satisfaccion del acreedor" },
-  { clave: "28", descripcion: "Tarjeta de debito" },
-  { clave: "29", descripcion: "Tarjeta de servicios" },
-  { clave: "30", descripcion: "Aplicacion de anticipos" },
-  { clave: "31", descripcion: "Intermediario pagos" },
-  { clave: "99", descripcion: "Por definir" },
-];
-
-const METODO_PAGO: CatalogItem[] = [
-  { clave: "PUE", descripcion: "Pago en una sola exhibicion" },
-  { clave: "PPD", descripcion: "Pago en parcialidades o diferido" },
-];
-
-const TIPO_COMPROBANTE: CatalogItem[] = [
-  { clave: "I", descripcion: "Ingreso" },
-  { clave: "E", descripcion: "Egreso" },
-  { clave: "T", descripcion: "Traslado" },
-  { clave: "N", descripcion: "Nomina" },
-  { clave: "P", descripcion: "Pago" },
-];
-
-const MONEDA: CatalogItem[] = [
-  { clave: "MXN", descripcion: "Peso Mexicano" },
-  { clave: "USD", descripcion: "Dolar Americano" },
-  { clave: "EUR", descripcion: "Euro" },
-  { clave: "GBP", descripcion: "Libra Esterlina" },
-  { clave: "CAD", descripcion: "Dolar Canadiense" },
-  { clave: "JPY", descripcion: "Yen Japones" },
-];
-
-const EXPORTACION: CatalogItem[] = [
-  { clave: "01", descripcion: "No aplica" },
-  { clave: "02", descripcion: "Definitiva" },
-  { clave: "03", descripcion: "Temporal" },
-];
-
-const CLAVE_UNIDAD: CatalogItem[] = [
-  { clave: "E48", descripcion: "Unidad de servicio" },
-  { clave: "H87", descripcion: "Pieza" },
-  { clave: "KGM", descripcion: "Kilogramo" },
-  { clave: "LTR", descripcion: "Litro" },
-  { clave: "XBX", descripcion: "Caja" },
-  { clave: "EA", descripcion: "Elemento" },
-  { clave: "ACT", descripcion: "Actividad" },
-  { clave: "E51", descripcion: "Trabajo" },
-  { clave: "MTR", descripcion: "Metro" },
-  { clave: "KWH", descripcion: "Kilowatt hora" },
-];
-
-const MOTIVOS_CANCELACION: CatalogItem[] = [
-  { clave: "01", descripcion: "Comprobante emitido con errores con relacion" },
-  { clave: "02", descripcion: "Comprobante emitido con errores sin relacion" },
-  { clave: "03", descripcion: "No se llevo a cabo la operacion" },
-  { clave: "04", descripcion: "Operacion nominativa relacionada en una factura global" },
-];
-
-const ALL_CATALOGS: { name: string; data: CatalogItem[] }[] = [
-  { name: "Regimen Fiscal", data: REGIMEN_FISCAL },
-  { name: "Uso CFDI", data: USO_CFDI },
-  { name: "Forma de Pago", data: FORMA_PAGO },
-  { name: "Metodo de Pago", data: METODO_PAGO },
-  { name: "Tipo de Comprobante", data: TIPO_COMPROBANTE },
-  { name: "Moneda", data: MONEDA },
-  { name: "Clave Unidad", data: CLAVE_UNIDAD },
-  { name: "Exportacion", data: EXPORTACION },
-];
-
-// ---------------------------------------------------------------------------
-// Constants
-// ---------------------------------------------------------------------------
-
-const TABS = ["Facturas", "Nueva Factura", "Complementos de Pago", "Catalogos SAT"] as const;
-
-const STATUS_VARIANT: Record<string, string> = {
-  DRAFT: "gray",
-  STAMPED: "green",
-  CANCELLED: "red",
-  CANCELLATION_PENDING: "yellow",
-  SENT: "blue",
-};
-
-const STATUS_LABEL: Record<string, string> = {
-  DRAFT: "Borrador",
-  STAMPED: "Timbrada",
-  CANCELLED: "Cancelada",
-  CANCELLATION_PENDING: "Cancelacion Pendiente",
-  SENT: "Enviada",
-};
-
-const PAGE_SIZE = 10;
-
-const normalize = (s: string) =>
-  s
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase();
-
-function num(v: string | number | null | undefined): number {
-  if (v == null) return 0;
-  return typeof v === "string" ? parseFloat(v) || 0 : v;
-}
-
-function formatDate(iso: string) {
-  const d = new Date(iso);
-  const dd = String(d.getDate()).padStart(2, "0");
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const yyyy = d.getFullYear();
-  return `${dd}/${mm}/${yyyy}`;
-}
-
-function todayISO(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-
-const EMPTY_CONCEPTO: Concepto = {
-  satClaveProdServ: "",
-  quantity: 1,
-  satClaveUnidad: "E48",
-  unitOfMeasure: "Unidad de servicio",
-  description: "",
-  unitPrice: 0,
-  importe: 0,
-  withIva: true,
-};
+import type {
+  Cfdi,
+  Concepto,
+  CfdiAttachment,
+  PendingPayment,
+  PaymentComplement,
+  PaymentComplementRelatedDoc,
+} from "./_components/types";
+import {
+  REGIMEN_FISCAL,
+  USO_CFDI,
+  FORMA_PAGO,
+  METODO_PAGO,
+  MONEDA,
+  EXPORTACION,
+  CLAVE_UNIDAD,
+  MOTIVOS_CANCELACION,
+  ALL_CATALOGS,
+  TABS,
+  STATUS_VARIANT,
+  STATUS_LABEL,
+  normalize,
+  num,
+  formatDate,
+  todayISO,
+  EMPTY_CONCEPTO,
+} from "./_components/types";
+import { useFacturacion } from "./_components/use-facturacion";
 
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
 
 export default function FacturacionPage() {
-  const { authFetch, user, loading: authLoading } = useAuth();
+  const {
+    // Auth
+    authFetch,
+    user: _user,
+    authLoading,
+    toast,
 
-  // Data state
-  const [cfdis, setCfdis] = useState<Cfdi[]>([]);
-  const [branches, setBranches] = useState<Branch[]>([]);
-  const [loadingData, setLoadingData] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+    // Data state
+    cfdis,
+    setCfdis,
+    branches,
+    loadingData,
+    error,
+    setError,
 
-  // UI state
-  const [activeTab, setActiveTab] = useState<(typeof TABS)[number]>("Facturas");
-  const [saving, setSaving] = useState(false);
+    // UI state
+    activeTab,
+    setActiveTab,
+    saving,
+    setSaving,
 
-  // Search & Pagination
-  const [searchTerm, setSearchTerm] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
+    // Search & Pagination
+    searchTerm,
+    setSearchTerm,
+    currentPage,
+    setCurrentPage,
+    filteredCfdis,
+    totalPages,
+    paginatedCfdis,
+    paginationStart,
+    paginationEnd,
 
-  // View/Edit modal
-  const [viewModalOpen, setViewModalOpen] = useState(false);
-  const [viewingCfdi, setViewingCfdi] = useState<Cfdi | null>(null);
-  const [editModalOpen, setEditModalOpen] = useState(false);
-  const [editingCfdi, setEditingCfdi] = useState<Cfdi | null>(null);
+    // View/Edit modal
+    viewModalOpen,
+    setViewModalOpen,
+    viewingCfdi,
+    setViewingCfdi,
+    editModalOpen,
+    setEditModalOpen,
+    editingCfdi,
+    setEditingCfdi,
 
-  // Cancel modal
-  const [cancelModalOpen, setCancelModalOpen] = useState(false);
-  const [cancellingCfdi, setCancellingCfdi] = useState<Cfdi | null>(null);
-  const [cancelMotivo, setCancelMotivo] = useState("02");
+    // Cancel modal
+    cancelModalOpen,
+    setCancelModalOpen,
+    cancellingCfdi,
+    setCancellingCfdi,
+    cancelMotivo,
+    setCancelMotivo,
 
-  // Catalog search
-  const [catalogSearch, setCatalogSearch] = useState("");
-  const [activeCatalog, setActiveCatalog] = useState(ALL_CATALOGS[0].name);
+    // Catalog search
+    catalogSearch,
+    setCatalogSearch,
+    activeCatalog,
+    setActiveCatalog,
 
-  // Create form state
-  const [formSerie, setFormSerie] = useState("A");
-  const [formFolio, setFormFolio] = useState("");
-  const [formFecha, setFormFecha] = useState(todayISO());
-  const [formFormaPago, setFormFormaPago] = useState("01");
-  const [formMetodoPago, setFormMetodoPago] = useState("PUE");
-  const [formMoneda, setFormMoneda] = useState("MXN");
-  const [formLugarExpedicion, setFormLugarExpedicion] = useState("");
-  const [formExportacion, setFormExportacion] = useState("01");
-  const [formBranchId, setFormBranchId] = useState("");
+    // Create form state
+    formSerie,
+    setFormSerie,
+    formFolio,
+    formFecha,
+    setFormFecha,
+    formFormaPago,
+    setFormFormaPago,
+    formMetodoPago,
+    setFormMetodoPago,
+    formMoneda,
+    setFormMoneda,
+    formLugarExpedicion,
+    setFormLugarExpedicion,
+    formExportacion,
+    setFormExportacion,
+    formBranchId,
+    setFormBranchId,
 
-  // Emisor
-  const [formEmisorRfc, setFormEmisorRfc] = useState("");
-  const [formEmisorNombre, setFormEmisorNombre] = useState("");
-  const [formEmisorRegimen, setFormEmisorRegimen] = useState("601");
+    // Emisor
+    formEmisorRfc,
+    setFormEmisorRfc,
+    formEmisorNombre,
+    setFormEmisorNombre,
+    formEmisorRegimen,
+    setFormEmisorRegimen,
 
-  // Receptor
-  const [formReceptorRfc, setFormReceptorRfc] = useState("");
-  const [formReceptorNombre, setFormReceptorNombre] = useState("");
-  const [formReceptorRegimen, setFormReceptorRegimen] = useState("601");
-  const [formReceptorUsoCfdi, setFormReceptorUsoCfdi] = useState("G03");
-  const [formReceptorDomicilio, setFormReceptorDomicilio] = useState("");
+    // Receptor
+    formReceptorRfc,
+    setFormReceptorRfc,
+    formReceptorNombre,
+    setFormReceptorNombre,
+    formReceptorRegimen,
+    setFormReceptorRegimen,
+    formReceptorUsoCfdi,
+    setFormReceptorUsoCfdi,
+    formReceptorDomicilio,
+    setFormReceptorDomicilio,
 
-  // Conceptos
-  const [formConceptos, setFormConceptos] = useState<Concepto[]>([{ ...EMPTY_CONCEPTO }]);
+    // Conceptos
+    formConceptos,
+    setFormConceptos,
 
-  // Form errors
-  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+    // Form errors
+    formErrors,
+    setFormErrors,
 
-  // Edit form state (mirrors create)
-  const [editFormSerie, setEditFormSerie] = useState("");
-  const [editFormFecha, setEditFormFecha] = useState("");
-  const [editFormFormaPago, setEditFormFormaPago] = useState("01");
-  const [editFormMetodoPago, setEditFormMetodoPago] = useState("PUE");
-  const [editFormMoneda, setEditFormMoneda] = useState("MXN");
-  const [editFormLugarExpedicion, setEditFormLugarExpedicion] = useState("");
-  const [editFormExportacion, setEditFormExportacion] = useState("01");
-  const [editFormReceptorRfc, setEditFormReceptorRfc] = useState("");
-  const [editFormReceptorNombre, setEditFormReceptorNombre] = useState("");
-  const [editFormReceptorRegimen, setEditFormReceptorRegimen] = useState("601");
-  const [editFormReceptorUsoCfdi, setEditFormReceptorUsoCfdi] = useState("G03");
-  const [editFormReceptorDomicilio, setEditFormReceptorDomicilio] = useState("");
-  const [editFormConceptos, setEditFormConceptos] = useState<Concepto[]>([]);
-  const [editFormErrors, setEditFormErrors] = useState<Record<string, string>>({});
+    // Edit form state
+    editFormSerie,
+    setEditFormSerie,
+    editFormFecha,
+    setEditFormFecha,
+    editFormFormaPago,
+    setEditFormFormaPago,
+    editFormMetodoPago,
+    setEditFormMetodoPago,
+    editFormMoneda,
+    setEditFormMoneda,
+    editFormLugarExpedicion,
+    setEditFormLugarExpedicion,
+    editFormExportacion,
+    setEditFormExportacion,
+    editFormReceptorRfc,
+    setEditFormReceptorRfc,
+    editFormReceptorNombre,
+    setEditFormReceptorNombre,
+    editFormReceptorRegimen,
+    setEditFormReceptorRegimen,
+    editFormReceptorUsoCfdi,
+    setEditFormReceptorUsoCfdi,
+    editFormReceptorDomicilio,
+    setEditFormReceptorDomicilio,
+    editFormConceptos,
+    setEditFormConceptos,
+    editFormErrors,
+    setEditFormErrors,
 
-  // Payment Complement state
-  const [pendingPayments, setPendingPayments] = useState<PendingPayment[]>([]);
-  const [paymentComplements, setPaymentComplements] = useState<PaymentComplement[]>([]);
-  const [loadingComplements, setLoadingComplements] = useState(false);
-  const [complementModalOpen, setComplementModalOpen] = useState(false);
-  const [viewComplementModalOpen, setViewComplementModalOpen] = useState(false);
-  const [viewingComplement, setViewingComplement] = useState<PaymentComplement | null>(null);
-  const [complementSaving, setComplementSaving] = useState(false);
+    // Payment Complement state
+    pendingPayments,
+    paymentComplements,
+    loadingComplements,
+    complementModalOpen,
+    setComplementModalOpen,
+    viewComplementModalOpen,
+    setViewComplementModalOpen,
+    viewingComplement,
+    setViewingComplement,
+    complementSaving,
+    setComplementSaving,
 
-  // Complement form state
-  const [compPaymentDate, setCompPaymentDate] = useState(todayISO());
-  const [compPaymentForm, setCompPaymentForm] = useState("03");
-  const [compCurrency, setCompCurrency] = useState("MXN");
-  const [compSelectedDocs, setCompSelectedDocs] = useState<
-    Array<{ cfdiId: string; amountPaid: number; maxAmount: number; label: string }>
-  >([]);
-  const [compErrors, setCompErrors] = useState<Record<string, string>>({});
-  const [complementSearchTerm, setComplementSearchTerm] = useState("");
-  const [pendingSearchTerm, setPendingSearchTerm] = useState("");
+    // Complement form state
+    compPaymentDate,
+    setCompPaymentDate,
+    compPaymentForm,
+    setCompPaymentForm,
+    compCurrency,
+    setCompCurrency,
+    compSelectedDocs,
+    setCompSelectedDocs,
+    compErrors,
+    setCompErrors,
+    complementSearchTerm,
+    setComplementSearchTerm,
+    pendingSearchTerm,
+    setPendingSearchTerm,
 
-  // Attachment state for view modal
-  const [attachmentUploading, setAttachmentUploading] = useState(false);
+    // Attachment state
+    attachmentUploading,
+    setAttachmentUploading,
 
-  // Reset page when search changes
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm]);
-  // Reset search when tab changes
-  useEffect(() => {
-    setSearchTerm("");
-    setCurrentPage(1);
-  }, [activeTab]);
+    // Summary
+    summaryData,
 
-  // -------------------------------------------------------------------
-  // Fetch helpers
-  // -------------------------------------------------------------------
-
-  const fetchCfdis = useCallback(async () => {
-    try {
-      const data = await authFetch<Cfdi[]>("get", "/facturacion/invoices");
-      setCfdis(data);
-    } catch {
-      setCfdis([]);
-    }
-  }, [authFetch]);
-
-  const fetchBranches = useCallback(async () => {
-    try {
-      const data = await authFetch<Branch[]>("get", "/branches");
-      setBranches(data);
-    } catch {
-      // ignore
-    }
-  }, [authFetch]);
-
-  const fetchPendingPayments = useCallback(async () => {
-    try {
-      const data = await authFetch<PendingPayment[]>("get", "/facturacion/pending-payments");
-      setPendingPayments(data);
-    } catch {
-      setPendingPayments([]);
-    }
-  }, [authFetch]);
-
-  const fetchPaymentComplements = useCallback(async () => {
-    try {
-      const data = await authFetch<PaymentComplement[]>("get", "/facturacion/payment-complements");
-      setPaymentComplements(data);
-    } catch {
-      setPaymentComplements([]);
-    }
-  }, [authFetch]);
-
-  useEffect(() => {
-    if (authLoading) return;
-    setLoadingData(true);
-    Promise.all([fetchCfdis(), fetchBranches()]).finally(() =>
-      setLoadingData(false)
-    );
-  }, [authLoading, fetchCfdis, fetchBranches]);
-
-  // Fetch complement data when tab is active
-  useEffect(() => {
-    if (authLoading || activeTab !== "Complementos de Pago") return;
-    setLoadingComplements(true);
-    Promise.all([fetchPendingPayments(), fetchPaymentComplements()]).finally(
-      () => setLoadingComplements(false)
-    );
-  }, [authLoading, activeTab, fetchPendingPayments, fetchPaymentComplements]);
-
-  // Auto-calculate folio from existing invoices
-  useEffect(() => {
-    if (cfdis.length > 0) {
-      const maxFolio = cfdis.reduce((max, c) => {
-        const f = parseInt(c.folio) || 0;
-        return f > max ? f : max;
-      }, 0);
-      setFormFolio(String(maxFolio + 1));
-    } else {
-      setFormFolio("1");
-    }
-  }, [cfdis]);
-
-  // -------------------------------------------------------------------
-  // Computed: Summary cards
-  // -------------------------------------------------------------------
-
-  const summaryData = useMemo(() => {
-    const totalFacturas = cfdis.length;
-    const timbradas = cfdis.filter(
-      (c) => c.status === "STAMPED"
-    ).length;
-    const canceladas = cfdis.filter((c) => c.status === "CANCELLED").length;
-    const totalFacturado = cfdis.reduce((sum, c) => sum + num(c.total), 0);
-    return { totalFacturas, timbradas, canceladas, totalFacturado };
-  }, [cfdis]);
-
-  // -------------------------------------------------------------------
-  // Search & Pagination
-  // -------------------------------------------------------------------
-
-  const filteredCfdis = useMemo(() => {
-    if (!searchTerm) return cfdis;
-    const q = normalize(searchTerm);
-    return cfdis.filter(
-      (c) =>
-        (c.folio && normalize(c.folio).includes(q)) ||
-        (c.series && normalize(c.series).includes(q)) ||
-        normalize(c.receiverName || "").includes(q) ||
-        normalize(c.receiverRfc || "").includes(q) ||
-        (c.uuid && normalize(c.uuid).includes(q))
-    );
-  }, [cfdis, searchTerm]);
-
-  const totalPages = Math.ceil(filteredCfdis.length / PAGE_SIZE);
-  const paginatedCfdis = filteredCfdis.slice(
-    (currentPage - 1) * PAGE_SIZE,
-    currentPage * PAGE_SIZE
-  );
-  const paginationStart =
-    filteredCfdis.length === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1;
-  const paginationEnd = Math.min(
-    currentPage * PAGE_SIZE,
-    filteredCfdis.length
-  );
+    // Fetch helpers
+    fetchCfdis,
+    fetchBranches: _fetchBranches,
+    fetchPendingPayments,
+    fetchPaymentComplements,
+  } = useFacturacion();
 
   // -------------------------------------------------------------------
   // Create form helpers
@@ -605,15 +265,11 @@ export default function FacturacionPage() {
 
   const createSubtotal = useMemo(
     () => formConceptos.reduce((s, c) => s + c.quantity * c.unitPrice, 0),
-    [formConceptos]
+    [formConceptos],
   );
   const createIva = useMemo(
-    () =>
-      formConceptos.reduce(
-        (s, c) => s + (c.withIva ? c.quantity * c.unitPrice * 0.16 : 0),
-        0
-      ),
-    [formConceptos]
+    () => formConceptos.reduce((s, c) => s + (c.withIva ? c.quantity * c.unitPrice * 0.16 : 0), 0),
+    [formConceptos],
   );
   const createTotal = createSubtotal + createIva;
 
@@ -638,19 +294,20 @@ export default function FacturacionPage() {
   // Edit form concepto helpers
   const editSubtotal = useMemo(
     () => editFormConceptos.reduce((s, c) => s + c.quantity * c.unitPrice, 0),
-    [editFormConceptos]
+    [editFormConceptos],
   );
   const editIva = useMemo(
     () =>
-      editFormConceptos.reduce(
-        (s, c) => s + (c.withIva ? c.quantity * c.unitPrice * 0.16 : 0),
-        0
-      ),
-    [editFormConceptos]
+      editFormConceptos.reduce((s, c) => s + (c.withIva ? c.quantity * c.unitPrice * 0.16 : 0), 0),
+    [editFormConceptos],
   );
   const editTotal = editSubtotal + editIva;
 
-  function updateEditConcepto(index: number, field: keyof Concepto, value: string | number | boolean) {
+  function updateEditConcepto(
+    index: number,
+    field: keyof Concepto,
+    value: string | number | boolean,
+  ) {
     setEditFormConceptos((prev) => {
       const next = [...prev];
       const updated = { ...next[index], [field]: value };
@@ -730,7 +387,10 @@ export default function FacturacionPage() {
         satClaveProdServ: c.satClaveProdServ.trim(),
         quantity: c.quantity,
         satClaveUnidad: c.satClaveUnidad,
-        unitOfMeasure: c.unitOfMeasure || CLAVE_UNIDAD.find((u) => u.clave === c.satClaveUnidad)?.descripcion || "",
+        unitOfMeasure:
+          c.unitOfMeasure ||
+          CLAVE_UNIDAD.find((u) => u.clave === c.satClaveUnidad)?.descripcion ||
+          "",
         description: c.description.trim(),
         unitPrice: c.unitPrice,
         withIva: c.withIva,
@@ -756,7 +416,10 @@ export default function FacturacionPage() {
         satClaveProdServ: c.satClaveProdServ.trim(),
         quantity: c.quantity,
         satClaveUnidad: c.satClaveUnidad,
-        unitOfMeasure: c.unitOfMeasure || CLAVE_UNIDAD.find((u) => u.clave === c.satClaveUnidad)?.descripcion || "",
+        unitOfMeasure:
+          c.unitOfMeasure ||
+          CLAVE_UNIDAD.find((u) => u.clave === c.satClaveUnidad)?.descripcion ||
+          "",
         description: c.description.trim(),
         unitPrice: c.unitPrice,
         withIva: c.withIva,
@@ -777,8 +440,8 @@ export default function FacturacionPage() {
       if (generateXml && created.id) {
         try {
           await authFetch("post", `/facturacion/invoices/${created.id}/xml`);
-        } catch {
-          // XML generation may fail, but invoice is saved
+        } catch (err) {
+          toast(err instanceof Error ? err.message : "Error al generar XML", "error");
         }
       }
       await fetchCfdis();
@@ -877,7 +540,7 @@ export default function FacturacionPage() {
             importe: num(c.amount),
             withIva: true,
           }))
-        : [{ ...EMPTY_CONCEPTO }]
+        : [{ ...EMPTY_CONCEPTO }],
     );
     setEditFormErrors({});
     setEditModalOpen(true);
@@ -922,7 +585,7 @@ export default function FacturacionPage() {
         { key: "moneda", label: "Moneda" },
         { key: "estado", label: "Estado" },
         { key: "uuid", label: "UUID" },
-      ]
+      ],
     );
   }
 
@@ -957,13 +620,13 @@ export default function FacturacionPage() {
 
   function updateDocAmount(cfdiId: string, amount: number) {
     setCompSelectedDocs((prev) =>
-      prev.map((d) => (d.cfdiId === cfdiId ? { ...d, amountPaid: amount } : d))
+      prev.map((d) => (d.cfdiId === cfdiId ? { ...d, amountPaid: amount } : d)),
     );
   }
 
   const compTotalAmount = useMemo(
     () => compSelectedDocs.reduce((sum, d) => sum + d.amountPaid, 0),
-    [compSelectedDocs]
+    [compSelectedDocs],
   );
 
   function validateComplementForm(): boolean {
@@ -1032,7 +695,7 @@ export default function FacturacionPage() {
         (p.folio && normalize(p.folio).includes(q)) ||
         (p.series && normalize(p.series).includes(q)) ||
         normalize(p.receiverName || "").includes(q) ||
-        normalize(p.receiverRfc || "").includes(q)
+        normalize(p.receiverRfc || "").includes(q),
     );
   }, [pendingPayments, pendingSearchTerm]);
 
@@ -1043,7 +706,7 @@ export default function FacturacionPage() {
       (c) =>
         (c.folio && normalize(c.folio).includes(q)) ||
         normalize(c.receiverName || "").includes(q) ||
-        normalize(c.receiverRfc || "").includes(q)
+        normalize(c.receiverRfc || "").includes(q),
     );
   }, [paymentComplements, complementSearchTerm]);
 
@@ -1088,8 +751,8 @@ export default function FacturacionPage() {
       const refreshed = { ...cfdi, attachments: updated };
       setCfdis((prev) => prev.map((c) => (c.id === cfdi.id ? refreshed : c)));
       if (viewingCfdi?.id === cfdi.id) setViewingCfdi(refreshed);
-    } catch {
-      // silently fail — user can retry
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Error al guardar", "error");
     } finally {
       setAttachmentUploading(false);
     }
@@ -1108,8 +771,8 @@ export default function FacturacionPage() {
       const refreshed = { ...cfdi, attachments: updated.length > 0 ? updated : null };
       setCfdis((prev) => prev.map((c) => (c.id === cfdi.id ? refreshed : c)));
       if (viewingCfdi?.id === cfdi.id) setViewingCfdi(refreshed);
-    } catch {
-      // silently fail
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Error al eliminar", "error");
     }
   }
 
@@ -1152,17 +815,13 @@ export default function FacturacionPage() {
       {
         key: "receiverRfc",
         header: "RFC",
-        render: (row: Cfdi) => (
-          <span className="font-mono text-xs">{row.receiverRfc}</span>
-        ),
+        render: (row: Cfdi) => <span className="font-mono text-xs">{row.receiverRfc}</span>,
       },
       {
         key: "total",
         header: "Total",
         className: "text-right",
-        render: (row: Cfdi) => (
-          <span className="font-medium">{formatMXN(num(row.total))}</span>
-        ),
+        render: (row: Cfdi) => <span className="font-medium">{formatMXN(num(row.total))}</span>,
       },
       {
         key: "status",
@@ -1171,7 +830,7 @@ export default function FacturacionPage() {
         render: (row: Cfdi) => (
           <StatusBadge
             label={STATUS_LABEL[row.status] ?? row.status}
-            variant={STATUS_VARIANT[row.status] as any ?? "gray"}
+            variant={(STATUS_VARIANT[row.status] as any) ?? "gray"}
           />
         ),
       },
@@ -1262,7 +921,7 @@ export default function FacturacionPage() {
       },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [cfdis, branches]
+    [cfdis, branches],
   );
 
   // -------------------------------------------------------------------
@@ -1275,9 +934,7 @@ export default function FacturacionPage() {
     if (!catalogSearch) return catalog.data;
     const q = normalize(catalogSearch);
     return catalog.data.filter(
-      (item) =>
-        normalize(item.clave).includes(q) ||
-        normalize(item.descripcion).includes(q)
+      (item) => normalize(item.clave).includes(q) || normalize(item.descripcion).includes(q),
     );
   }, [activeCatalog, catalogSearch]);
 
@@ -1291,7 +948,7 @@ export default function FacturacionPage() {
     conceptos: Concepto[],
     updateFn: (i: number, f: keyof Concepto, v: string | number | boolean) => void,
     removeFn: (i: number) => void,
-    errors: Record<string, string>
+    errors: Record<string, string>,
   ) {
     return (
       <div
@@ -1460,21 +1117,15 @@ export default function FacturacionPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             <div className="rounded-lg border bg-white p-4">
               <p className="text-sm text-gray-500">Total Facturas</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {summaryData.totalFacturas}
-              </p>
+              <p className="text-2xl font-bold text-gray-900">{summaryData.totalFacturas}</p>
             </div>
             <div className="rounded-lg border bg-white p-4">
               <p className="text-sm text-gray-500">Facturas Timbradas</p>
-              <p className="text-2xl font-bold text-green-600">
-                {summaryData.timbradas}
-              </p>
+              <p className="text-2xl font-bold text-green-600">{summaryData.timbradas}</p>
             </div>
             <div className="rounded-lg border bg-white p-4">
               <p className="text-sm text-gray-500">Facturas Canceladas</p>
-              <p className="text-2xl font-bold text-red-600">
-                {summaryData.canceladas}
-              </p>
+              <p className="text-2xl font-bold text-red-600">{summaryData.canceladas}</p>
             </div>
             <div className="rounded-lg border bg-white p-4">
               <p className="text-sm text-gray-500">Total Facturado</p>
@@ -1517,8 +1168,7 @@ export default function FacturacionPage() {
           {filteredCfdis.length > 0 && (
             <div className="mt-4 flex items-center justify-between">
               <p className="text-sm text-gray-500">
-                Mostrando {paginationStart}-{paginationEnd} de{" "}
-                {filteredCfdis.length}
+                Mostrando {paginationStart}-{paginationEnd} de {filteredCfdis.length}
               </p>
               <div className="flex items-center gap-2">
                 <button
@@ -1532,9 +1182,7 @@ export default function FacturacionPage() {
                   {currentPage} / {totalPages || 1}
                 </span>
                 <button
-                  onClick={() =>
-                    setCurrentPage((p) => Math.min(totalPages, p + 1))
-                  }
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                   disabled={currentPage === totalPages || totalPages === 0}
                   className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm disabled:opacity-50"
                 >
@@ -1559,9 +1207,7 @@ export default function FacturacionPage() {
 
           {/* Section 1: Datos Generales */}
           <div className="rounded-lg border bg-white p-6">
-            <h2 className="text-sm font-semibold text-gray-900 mb-4">
-              Datos Generales
-            </h2>
+            <h2 className="text-sm font-semibold text-gray-900 mb-4">Datos Generales</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <FormField label="Serie">
                 <Input
@@ -1581,10 +1227,7 @@ export default function FacturacionPage() {
                 />
               </FormField>
               <FormField label="Forma de Pago" required>
-                <Select
-                  value={formFormaPago}
-                  onChange={(e) => setFormFormaPago(e.target.value)}
-                >
+                <Select value={formFormaPago} onChange={(e) => setFormFormaPago(e.target.value)}>
                   {FORMA_PAGO.map((fp) => (
                     <option key={fp.clave} value={fp.clave}>
                       {fp.clave} - {fp.descripcion}
@@ -1593,10 +1236,7 @@ export default function FacturacionPage() {
                 </Select>
               </FormField>
               <FormField label="Metodo de Pago" required>
-                <Select
-                  value={formMetodoPago}
-                  onChange={(e) => setFormMetodoPago(e.target.value)}
-                >
+                <Select value={formMetodoPago} onChange={(e) => setFormMetodoPago(e.target.value)}>
                   {METODO_PAGO.map((mp) => (
                     <option key={mp.clave} value={mp.clave}>
                       {mp.clave} - {mp.descripcion}
@@ -1605,10 +1245,7 @@ export default function FacturacionPage() {
                 </Select>
               </FormField>
               <FormField label="Moneda">
-                <Select
-                  value={formMoneda}
-                  onChange={(e) => setFormMoneda(e.target.value)}
-                >
+                <Select value={formMoneda} onChange={(e) => setFormMoneda(e.target.value)}>
                   {MONEDA.map((m) => (
                     <option key={m.clave} value={m.clave}>
                       {m.clave} - {m.descripcion}
@@ -1642,10 +1279,7 @@ export default function FacturacionPage() {
               </FormField>
               {branches.length > 0 && (
                 <FormField label="Sucursal">
-                  <Select
-                    value={formBranchId}
-                    onChange={(e) => setFormBranchId(e.target.value)}
-                  >
+                  <Select value={formBranchId} onChange={(e) => setFormBranchId(e.target.value)}>
                     <option value="">Seleccionar sucursal</option>
                     {branches.map((b) => (
                       <option key={b.id} value={b.id}>
@@ -1660,9 +1294,7 @@ export default function FacturacionPage() {
 
           {/* Section 2: Emisor */}
           <div className="rounded-lg border bg-white p-6">
-            <h2 className="text-sm font-semibold text-gray-900 mb-4">
-              Emisor
-            </h2>
+            <h2 className="text-sm font-semibold text-gray-900 mb-4">Emisor</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <FormField label="RFC Emisor">
                 <Input
@@ -1695,26 +1327,16 @@ export default function FacturacionPage() {
 
           {/* Section 3: Receptor */}
           <div className="rounded-lg border bg-white p-6">
-            <h2 className="text-sm font-semibold text-gray-900 mb-4">
-              Receptor
-            </h2>
+            <h2 className="text-sm font-semibold text-gray-900 mb-4">Receptor</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <FormField
-                label="RFC Receptor"
-                required
-                error={formErrors.receptorRfc}
-              >
+              <FormField label="RFC Receptor" required error={formErrors.receptorRfc}>
                 <Input
                   value={formReceptorRfc}
                   onChange={(e) => setFormReceptorRfc(e.target.value)}
                   placeholder="XAXX010101000"
                 />
               </FormField>
-              <FormField
-                label="Nombre Receptor"
-                required
-                error={formErrors.receptorNombre}
-              >
+              <FormField label="Nombre Receptor" required error={formErrors.receptorNombre}>
                 <Input
                   value={formReceptorNombre}
                   onChange={(e) => setFormReceptorNombre(e.target.value)}
@@ -1759,9 +1381,7 @@ export default function FacturacionPage() {
           {/* Section 4: Conceptos */}
           <div className="rounded-lg border bg-white p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm font-semibold text-gray-900">
-                Conceptos
-              </h2>
+              <h2 className="text-sm font-semibold text-gray-900">Conceptos</h2>
               {formErrors.conceptos && (
                 <p className="text-destructive text-xs">{formErrors.conceptos}</p>
               )}
@@ -1774,16 +1394,11 @@ export default function FacturacionPage() {
                   formConceptos,
                   updateConcepto,
                   removeConcepto,
-                  formErrors
-                )
+                  formErrors,
+                ),
               )}
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              className="mt-3"
-              onClick={addConcepto}
-            >
+            <Button variant="outline" size="sm" className="mt-3" onClick={addConcepto}>
               <Plus className="h-4 w-4" />
               Agregar Concepto
             </Button>
@@ -1791,45 +1406,29 @@ export default function FacturacionPage() {
 
           {/* Section 5: Totals */}
           <div className="rounded-lg border bg-white p-6">
-            <h2 className="text-sm font-semibold text-gray-900 mb-4">
-              Totales
-            </h2>
+            <h2 className="text-sm font-semibold text-gray-900 mb-4">Totales</h2>
             <div className="space-y-2 text-right">
               <div className="flex justify-end gap-8">
                 <span className="text-sm text-gray-500">Subtotal:</span>
-                <span className="text-sm font-medium w-32">
-                  {formatMXN(createSubtotal)}
-                </span>
+                <span className="text-sm font-medium w-32">{formatMXN(createSubtotal)}</span>
               </div>
               <div className="flex justify-end gap-8">
                 <span className="text-sm text-gray-500">IVA (16%):</span>
-                <span className="text-sm font-medium w-32">
-                  {formatMXN(createIva)}
-                </span>
+                <span className="text-sm font-medium w-32">{formatMXN(createIva)}</span>
               </div>
               <div className="flex justify-end gap-8 border-t pt-2">
                 <span className="text-base font-semibold">Total:</span>
-                <span className="text-base font-bold w-32">
-                  {formatMXN(createTotal)}
-                </span>
+                <span className="text-base font-bold w-32">{formatMXN(createTotal)}</span>
               </div>
             </div>
           </div>
 
           {/* Action Buttons */}
           <div className="flex justify-end gap-3">
-            <Button
-              variant="outline"
-              onClick={() => resetCreateForm()}
-              disabled={saving}
-            >
+            <Button variant="outline" onClick={() => resetCreateForm()} disabled={saving}>
               Limpiar
             </Button>
-            <Button
-              variant="outline"
-              onClick={() => handleCreate(false)}
-              disabled={saving}
-            >
+            <Button variant="outline" onClick={() => handleCreate(false)} disabled={saving}>
               <FileText className="h-4 w-4" />
               {saving ? "Guardando..." : "Guardar Borrador"}
             </Button>
@@ -1929,9 +1528,7 @@ export default function FacturacionPage() {
                         <td className="px-4 py-2.5 text-sm max-w-[200px] truncate">
                           {pp.receiverName}
                         </td>
-                        <td className="px-4 py-2.5 text-sm font-mono text-xs">
-                          {pp.receiverRfc}
-                        </td>
+                        <td className="px-4 py-2.5 text-sm font-mono text-xs">{pp.receiverRfc}</td>
                         <td className="px-4 py-2.5 text-sm text-right font-medium">
                           {formatMXN(pp.total)}
                         </td>
@@ -1941,9 +1538,7 @@ export default function FacturacionPage() {
                         <td className="px-4 py-2.5 text-sm text-right font-semibold text-yellow-600">
                           {formatMXN(pp.saldoPendiente)}
                         </td>
-                        <td className="px-4 py-2.5 text-sm">
-                          {formatDate(pp.createdAt)}
-                        </td>
+                        <td className="px-4 py-2.5 text-sm">{formatDate(pp.createdAt)}</td>
                         <td className="px-4 py-2.5 text-center">
                           <button
                             onClick={() => {
@@ -1969,9 +1564,7 @@ export default function FacturacionPage() {
           <div>
             <div className="flex items-center gap-2 mb-4">
               <CheckCircle className="h-5 w-5 text-green-600" />
-              <h2 className="text-lg font-semibold text-gray-900">
-                Complementos Emitidos
-              </h2>
+              <h2 className="text-lg font-semibold text-gray-900">Complementos Emitidos</h2>
             </div>
 
             {/* Search complements */}
@@ -2029,11 +1622,19 @@ export default function FacturacionPage() {
                       const relDocs: PaymentComplementRelatedDoc[] = Array.isArray(rawDocs)
                         ? rawDocs
                         : typeof rawDocs === "string"
-                          ? (() => { try { return JSON.parse(rawDocs); } catch { return []; } })()
+                          ? (() => {
+                              try {
+                                return JSON.parse(rawDocs);
+                              } catch {
+                                return [];
+                              }
+                            })()
                           : [];
                       const formaPagoLabel =
                         FORMA_PAGO.find((fp) => fp.clave === comp.complement?.paymentForm)
-                          ?.descripcion || comp.complement?.paymentForm || "---";
+                          ?.descripcion ||
+                        comp.complement?.paymentForm ||
+                        "---";
                       return (
                         <tr
                           key={comp.id}
@@ -2051,9 +1652,7 @@ export default function FacturacionPage() {
                           </td>
                           <td className="px-4 py-2.5 text-sm">{formaPagoLabel}</td>
                           <td className="px-4 py-2.5 text-sm text-right font-medium">
-                            {comp.complement
-                              ? formatMXN(num(comp.complement.amount))
-                              : "---"}
+                            {comp.complement ? formatMXN(num(comp.complement.amount)) : "---"}
                           </td>
                           <td className="px-4 py-2.5 text-sm max-w-[150px] truncate">
                             {comp.receiverName}
@@ -2062,10 +1661,7 @@ export default function FacturacionPage() {
                             {relDocs.length > 0 ? (
                               <span className="text-xs text-gray-500">
                                 {relDocs
-                                  .map(
-                                    (d: PaymentComplementRelatedDoc) =>
-                                      `${d.serie}-${d.folio}`
-                                  )
+                                  .map((d: PaymentComplementRelatedDoc) => `${d.serie}-${d.folio}`)
                                   .join(", ")}
                               </span>
                             ) : (
@@ -2075,7 +1671,7 @@ export default function FacturacionPage() {
                           <td className="px-4 py-2.5 text-center">
                             <StatusBadge
                               label={STATUS_LABEL[comp.status] ?? comp.status}
-                              variant={STATUS_VARIANT[comp.status] as any ?? "gray"}
+                              variant={(STATUS_VARIANT[comp.status] as any) ?? "gray"}
                             />
                           </td>
                           <td className="px-4 py-2.5 text-center">
@@ -2130,26 +1726,16 @@ export default function FacturacionPage() {
 
           {/* Payment info */}
           <div>
-            <h3 className="text-sm font-semibold text-gray-900 mb-3">
-              Datos del Pago
-            </h3>
+            <h3 className="text-sm font-semibold text-gray-900 mb-3">Datos del Pago</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <FormField
-                label="Fecha de Pago"
-                required
-                error={compErrors.paymentDate}
-              >
+              <FormField label="Fecha de Pago" required error={compErrors.paymentDate}>
                 <Input
                   type="date"
                   value={compPaymentDate}
                   onChange={(e) => setCompPaymentDate(e.target.value)}
                 />
               </FormField>
-              <FormField
-                label="Forma de Pago"
-                required
-                error={compErrors.paymentForm}
-              >
+              <FormField label="Forma de Pago" required error={compErrors.paymentForm}>
                 <Select
                   value={compPaymentForm}
                   onChange={(e) => setCompPaymentForm(e.target.value)}
@@ -2162,10 +1748,7 @@ export default function FacturacionPage() {
                 </Select>
               </FormField>
               <FormField label="Moneda">
-                <Select
-                  value={compCurrency}
-                  onChange={(e) => setCompCurrency(e.target.value)}
-                >
+                <Select value={compCurrency} onChange={(e) => setCompCurrency(e.target.value)}>
                   {MONEDA.map((m) => (
                     <option key={m.clave} value={m.clave}>
                       {m.clave} - {m.descripcion}
@@ -2178,24 +1761,16 @@ export default function FacturacionPage() {
 
           {/* Select related invoices */}
           <div>
-            <h3 className="text-sm font-semibold text-gray-900 mb-3">
-              Facturas Relacionadas
-            </h3>
-            {compErrors.docs && (
-              <p className="text-destructive text-xs mb-2">{compErrors.docs}</p>
-            )}
+            <h3 className="text-sm font-semibold text-gray-900 mb-3">Facturas Relacionadas</h3>
+            {compErrors.docs && <p className="text-destructive text-xs mb-2">{compErrors.docs}</p>}
 
             {/* Add from pending list */}
             {pendingPayments.length > 0 && (
               <div className="mb-4">
-                <p className="text-xs text-gray-500 mb-2">
-                  Seleccione facturas PPD pendientes:
-                </p>
+                <p className="text-xs text-gray-500 mb-2">Seleccione facturas PPD pendientes:</p>
                 <div className="max-h-40 overflow-y-auto border rounded-lg">
                   {pendingPayments
-                    .filter(
-                      (pp) => !compSelectedDocs.some((d) => d.cfdiId === pp.id)
-                    )
+                    .filter((pp) => !compSelectedDocs.some((d) => d.cfdiId === pp.id))
                     .map((pp, i) => (
                       <button
                         key={pp.id}
@@ -2215,9 +1790,8 @@ export default function FacturacionPage() {
                         </span>
                       </button>
                     ))}
-                  {pendingPayments.filter(
-                    (pp) => !compSelectedDocs.some((d) => d.cfdiId === pp.id)
-                  ).length === 0 && (
+                  {pendingPayments.filter((pp) => !compSelectedDocs.some((d) => d.cfdiId === pp.id))
+                    .length === 0 && (
                     <p className="text-xs text-gray-400 px-3 py-4 text-center">
                       Todas las facturas pendientes ya fueron seleccionadas
                     </p>
@@ -2241,19 +1815,14 @@ export default function FacturacionPage() {
                       </p>
                     </div>
                     <div className="w-40">
-                      <FormField
-                        label="Monto a Aplicar"
-                        error={compErrors[`doc_${idx}_amount`]}
-                      >
+                      <FormField label="Monto a Aplicar" error={compErrors[`doc_${idx}_amount`]}>
                         <Input
                           type="number"
                           min={0.01}
                           max={doc.maxAmount}
                           step="0.01"
                           value={doc.amountPaid}
-                          onChange={(e) =>
-                            updateDocAmount(doc.cfdiId, Number(e.target.value))
-                          }
+                          onChange={(e) => updateDocAmount(doc.cfdiId, Number(e.target.value))}
                         />
                       </FormField>
                     </div>
@@ -2261,7 +1830,7 @@ export default function FacturacionPage() {
                       <p className="text-xs text-gray-500">Saldo insoluto</p>
                       <p className="text-sm font-medium">
                         {formatMXN(
-                          Math.max(0, Math.round((doc.maxAmount - doc.amountPaid) * 100) / 100)
+                          Math.max(0, Math.round((doc.maxAmount - doc.amountPaid) * 100) / 100),
                         )}
                       </p>
                     </div>
@@ -2329,7 +1898,7 @@ export default function FacturacionPage() {
             <div className="flex items-center gap-3">
               <StatusBadge
                 label={STATUS_LABEL[viewingComplement.status] ?? viewingComplement.status}
-                variant={STATUS_VARIANT[viewingComplement.status] as any ?? "gray"}
+                variant={(STATUS_VARIANT[viewingComplement.status] as any) ?? "gray"}
               />
               {viewingComplement.uuid && (
                 <span className="text-xs font-mono text-gray-400">
@@ -2350,9 +1919,8 @@ export default function FacturacionPage() {
                 <div>
                   <p className="text-gray-500">Forma de Pago</p>
                   <p className="font-medium">
-                    {FORMA_PAGO.find(
-                      (fp) => fp.clave === viewingComplement.complement?.paymentForm
-                    )?.descripcion || viewingComplement.complement.paymentForm}
+                    {FORMA_PAGO.find((fp) => fp.clave === viewingComplement.complement?.paymentForm)
+                      ?.descripcion || viewingComplement.complement.paymentForm}
                   </p>
                 </div>
                 <div>
@@ -2436,7 +2004,7 @@ export default function FacturacionPage() {
                                 {formatMXN(doc.saldoInsoluto)}
                               </td>
                             </tr>
-                          )
+                          ),
                         )}
                       </tbody>
                     </table>
@@ -2522,10 +2090,7 @@ export default function FacturacionPage() {
               <tbody>
                 {filteredCatalogData.length === 0 ? (
                   <tr>
-                    <td
-                      colSpan={2}
-                      className="px-4 py-8 text-center text-muted-foreground"
-                    >
+                    <td colSpan={2} className="px-4 py-8 text-center text-muted-foreground">
                       No se encontraron resultados
                     </td>
                   </tr>
@@ -2537,12 +2102,8 @@ export default function FacturacionPage() {
                         i % 2 === 0 ? "bg-white" : "bg-gray-50"
                       }`}
                     >
-                      <td className="px-4 py-2.5 text-sm font-mono font-medium">
-                        {item.clave}
-                      </td>
-                      <td className="px-4 py-2.5 text-sm text-gray-700">
-                        {item.descripcion}
-                      </td>
+                      <td className="px-4 py-2.5 text-sm font-mono font-medium">{item.clave}</td>
+                      <td className="px-4 py-2.5 text-sm text-gray-700">{item.descripcion}</td>
                     </tr>
                   ))
                 )}
@@ -2570,12 +2131,10 @@ export default function FacturacionPage() {
             <div className="flex items-center gap-3">
               <StatusBadge
                 label={STATUS_LABEL[viewingCfdi.status] ?? viewingCfdi.status}
-                variant={STATUS_VARIANT[viewingCfdi.status] as any ?? "gray"}
+                variant={(STATUS_VARIANT[viewingCfdi.status] as any) ?? "gray"}
               />
               {viewingCfdi.uuid && (
-                <span className="text-xs font-mono text-gray-400">
-                  UUID: {viewingCfdi.uuid}
-                </span>
+                <span className="text-xs font-mono text-gray-400">UUID: {viewingCfdi.uuid}</span>
               )}
             </div>
 
@@ -2589,14 +2148,16 @@ export default function FacturacionPage() {
                 <p className="text-gray-500">Forma de Pago</p>
                 <p className="font-medium">
                   {FORMA_PAGO.find((fp) => fp.clave === viewingCfdi.paymentForm)?.descripcion ||
-                    viewingCfdi.paymentForm || "---"}
+                    viewingCfdi.paymentForm ||
+                    "---"}
                 </p>
               </div>
               <div>
                 <p className="text-gray-500">Metodo de Pago</p>
                 <p className="font-medium">
                   {METODO_PAGO.find((mp) => mp.clave === viewingCfdi.paymentMethod)?.descripcion ||
-                    viewingCfdi.paymentMethod || "---"}
+                    viewingCfdi.paymentMethod ||
+                    "---"}
                 </p>
               </div>
               <div>
@@ -2624,8 +2185,8 @@ export default function FacturacionPage() {
                 <div>
                   <p className="text-gray-500">Regimen Fiscal</p>
                   <p className="font-medium">
-                    {REGIMEN_FISCAL.find((rf) => rf.clave === viewingCfdi.issuerRegimen)?.descripcion ||
-                      viewingCfdi.issuerRegimen}
+                    {REGIMEN_FISCAL.find((rf) => rf.clave === viewingCfdi.issuerRegimen)
+                      ?.descripcion || viewingCfdi.issuerRegimen}
                   </p>
                 </div>
               </div>
@@ -2646,8 +2207,10 @@ export default function FacturacionPage() {
                 <div>
                   <p className="text-gray-500">Regimen Fiscal</p>
                   <p className="font-medium">
-                    {REGIMEN_FISCAL.find((rf) => rf.clave === viewingCfdi.receiverRegimen)?.descripcion ||
-                      viewingCfdi.receiverRegimen || "---"}
+                    {REGIMEN_FISCAL.find((rf) => rf.clave === viewingCfdi.receiverRegimen)
+                      ?.descripcion ||
+                      viewingCfdi.receiverRegimen ||
+                      "---"}
                   </p>
                 </div>
                 <div>
@@ -2687,13 +2250,9 @@ export default function FacturacionPage() {
                   <tbody>
                     {(viewingCfdi.concepts || []).map((c, i) => (
                       <tr key={i} className="border-b last:border-0">
-                        <td className="px-3 py-2 text-xs font-mono">
-                          {c.satClaveProdServ}
-                        </td>
+                        <td className="px-3 py-2 text-xs font-mono">{c.satClaveProdServ}</td>
                         <td className="px-3 py-2 text-xs">{c.description}</td>
-                        <td className="px-3 py-2 text-xs text-right">
-                          {num(c.quantity)}
-                        </td>
+                        <td className="px-3 py-2 text-xs text-right">{num(c.quantity)}</td>
                         <td className="px-3 py-2 text-xs text-right">
                           {formatMXN(num(c.unitPrice))}
                         </td>
@@ -2711,9 +2270,7 @@ export default function FacturacionPage() {
             <div className="border-t pt-4 space-y-1 text-sm text-right">
               <div>
                 Subtotal:{" "}
-                <span className="font-medium">
-                  {formatMXN(num(viewingCfdi.subtotal))}
-                </span>
+                <span className="font-medium">{formatMXN(num(viewingCfdi.subtotal))}</span>
               </div>
               <div className="text-base font-semibold">
                 Total: {formatMXN(num(viewingCfdi.total))}
@@ -2782,17 +2339,11 @@ export default function FacturacionPage() {
             <div className="flex justify-end gap-3 pt-2">
               {viewingCfdi.status === "STAMPED" && (
                 <>
-                  <Button
-                    variant="outline"
-                    onClick={() => handleDownloadXml(viewingCfdi)}
-                  >
+                  <Button variant="outline" onClick={() => handleDownloadXml(viewingCfdi)}>
                     <Download className="h-4 w-4" />
                     Descargar XML
                   </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => generateInvoicePDF(viewingCfdi)}
-                  >
+                  <Button variant="outline" onClick={() => generateInvoicePDF(viewingCfdi)}>
                     <FileText className="h-4 w-4" />
                     Descargar PDF
                   </Button>
@@ -2846,10 +2397,7 @@ export default function FacturacionPage() {
             <h3 className="text-sm font-semibold mb-3">Datos Generales</h3>
             <div className="grid grid-cols-2 gap-4">
               <FormField label="Serie">
-                <Input
-                  value={editFormSerie}
-                  onChange={(e) => setEditFormSerie(e.target.value)}
-                />
+                <Input value={editFormSerie} onChange={(e) => setEditFormSerie(e.target.value)} />
               </FormField>
               <FormField label="Fecha">
                 <Input
@@ -2883,10 +2431,7 @@ export default function FacturacionPage() {
                 </Select>
               </FormField>
               <FormField label="Moneda">
-                <Select
-                  value={editFormMoneda}
-                  onChange={(e) => setEditFormMoneda(e.target.value)}
-                >
+                <Select value={editFormMoneda} onChange={(e) => setEditFormMoneda(e.target.value)}>
                   {MONEDA.map((m) => (
                     <option key={m.clave} value={m.clave}>
                       {m.clave} - {m.descripcion}
@@ -2921,22 +2466,14 @@ export default function FacturacionPage() {
           <div>
             <h3 className="text-sm font-semibold mb-3">Receptor</h3>
             <div className="grid grid-cols-2 gap-4">
-              <FormField
-                label="RFC Receptor"
-                required
-                error={editFormErrors.receptorRfc}
-              >
+              <FormField label="RFC Receptor" required error={editFormErrors.receptorRfc}>
                 <Input
                   value={editFormReceptorRfc}
                   onChange={(e) => setEditFormReceptorRfc(e.target.value)}
                   placeholder="XAXX010101000"
                 />
               </FormField>
-              <FormField
-                label="Nombre Receptor"
-                required
-                error={editFormErrors.receptorNombre}
-              >
+              <FormField label="Nombre Receptor" required error={editFormErrors.receptorNombre}>
                 <Input
                   value={editFormReceptorNombre}
                   onChange={(e) => setEditFormReceptorNombre(e.target.value)}
@@ -2983,9 +2520,7 @@ export default function FacturacionPage() {
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-sm font-semibold">Conceptos</h3>
               {editFormErrors.conceptos && (
-                <p className="text-destructive text-xs">
-                  {editFormErrors.conceptos}
-                </p>
+                <p className="text-destructive text-xs">{editFormErrors.conceptos}</p>
               )}
             </div>
             <div className="space-y-3">
@@ -2996,16 +2531,11 @@ export default function FacturacionPage() {
                   editFormConceptos,
                   updateEditConcepto,
                   removeEditConcepto,
-                  editFormErrors
-                )
+                  editFormErrors,
+                ),
               )}
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              className="mt-3"
-              onClick={addEditConcepto}
-            >
+            <Button variant="outline" size="sm" className="mt-3" onClick={addEditConcepto}>
               <Plus className="h-4 w-4" />
               Agregar Concepto
             </Button>
@@ -3014,16 +2544,12 @@ export default function FacturacionPage() {
           {/* Totals */}
           <div className="border-t pt-4 space-y-1 text-sm text-right">
             <div>
-              Subtotal:{" "}
-              <span className="font-medium">{formatMXN(editSubtotal)}</span>
+              Subtotal: <span className="font-medium">{formatMXN(editSubtotal)}</span>
             </div>
             <div>
-              IVA 16%:{" "}
-              <span className="font-medium">{formatMXN(editIva)}</span>
+              IVA 16%: <span className="font-medium">{formatMXN(editIva)}</span>
             </div>
-            <div className="text-base font-semibold">
-              Total: {formatMXN(editTotal)}
-            </div>
+            <div className="text-base font-semibold">Total: {formatMXN(editTotal)}</div>
           </div>
 
           {/* Actions */}
@@ -3068,10 +2594,7 @@ export default function FacturacionPage() {
             </p>
 
             <FormField label="Motivo de Cancelacion" required>
-              <Select
-                value={cancelMotivo}
-                onChange={(e) => setCancelMotivo(e.target.value)}
-              >
+              <Select value={cancelMotivo} onChange={(e) => setCancelMotivo(e.target.value)}>
                 {MOTIVOS_CANCELACION.map((m) => (
                   <option key={m.clave} value={m.clave}>
                     {m.clave} - {m.descripcion}
@@ -3091,11 +2614,7 @@ export default function FacturacionPage() {
               >
                 No, regresar
               </Button>
-              <Button
-                variant="destructive"
-                onClick={handleCancel}
-                disabled={saving}
-              >
+              <Button variant="destructive" onClick={handleCancel} disabled={saving}>
                 <XCircle className="h-4 w-4" />
                 {saving ? "Cancelando..." : "Si, cancelar factura"}
               </Button>

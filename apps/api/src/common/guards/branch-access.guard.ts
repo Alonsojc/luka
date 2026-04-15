@@ -1,9 +1,4 @@
-import {
-  Injectable,
-  CanActivate,
-  ExecutionContext,
-  ForbiddenException,
-} from "@nestjs/common";
+import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from "@nestjs/common";
 import { JwtPayload } from "../decorators/current-user.decorator";
 
 @Injectable()
@@ -28,14 +23,10 @@ export class BranchAccessGuard implements CanActivate {
     }
 
     // org-wide roles (branchId is null) can access any branch
-    const hasAccess = user.roles.some(
-      (r) => r.branchId === null || r.branchId === branchId
-    );
+    const hasAccess = user.roles.some((r) => r.branchId === null || r.branchId === branchId);
 
     if (!hasAccess) {
-      throw new ForbiddenException(
-        "No tienes acceso a esta sucursal"
-      );
+      throw new ForbiddenException("No tienes acceso a esta sucursal");
     }
 
     // Store branchId in request for controllers

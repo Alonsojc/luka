@@ -1,11 +1,4 @@
-import {
-  IsString,
-  IsNumber,
-  IsOptional,
-  IsBoolean,
-  IsArray,
-  Min,
-} from "class-validator";
+import { IsString, IsNumber, IsOptional, IsBoolean, IsArray, Min } from "class-validator";
 
 export class UpdateProgramDto {
   @IsOptional()

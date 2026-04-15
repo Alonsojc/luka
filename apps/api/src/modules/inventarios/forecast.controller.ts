@@ -1,19 +1,10 @@
-import {
-  Controller,
-  Get,
-  Param,
-  Query,
-  UseGuards,
-} from "@nestjs/common";
+import { Controller, Get, Param, Query, UseGuards } from "@nestjs/common";
 import { ApiTags, ApiBearerAuth } from "@nestjs/swagger";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
 import { BranchAccessGuard } from "../../common/guards/branch-access.guard";
 import { Permissions } from "../../common/decorators/roles.decorator";
-import {
-  CurrentUser,
-  JwtPayload,
-} from "../../common/decorators/current-user.decorator";
+import { CurrentUser, JwtPayload } from "../../common/decorators/current-user.decorator";
 import { ForecastService } from "./forecast.service";
 
 @ApiTags("Inventarios - Forecast")
@@ -77,13 +68,7 @@ export class ForecastController {
 
   @Get("suggested-requisition/:branchId")
   @Permissions("inventarios:view")
-  suggestedRequisition(
-    @CurrentUser() user: JwtPayload,
-    @Param("branchId") branchId: string,
-  ) {
-    return this.forecastService.getSuggestedRequisition(
-      user.organizationId,
-      branchId,
-    );
+  suggestedRequisition(@CurrentUser() user: JwtPayload, @Param("branchId") branchId: string) {
+    return this.forecastService.getSuggestedRequisition(user.organizationId, branchId);
   }
 }

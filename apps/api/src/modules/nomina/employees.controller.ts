@@ -1,22 +1,10 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Patch,
-  Param,
-  Body,
-  Res,
-  UseGuards,
-} from "@nestjs/common";
+import { Controller, Get, Post, Patch, Param, Body, Res, UseGuards } from "@nestjs/common";
 import { ApiTags, ApiBearerAuth } from "@nestjs/swagger";
 import type { Response } from "express";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
 import { Permissions } from "../../common/decorators/roles.decorator";
-import {
-  CurrentUser,
-  JwtPayload,
-} from "../../common/decorators/current-user.decorator";
+import { CurrentUser, JwtPayload } from "../../common/decorators/current-user.decorator";
 import { EmployeesService } from "./employees.service";
 import { CreateEmployeeDto } from "./dto/create-employee.dto";
 import { UpdateEmployeeDto } from "./dto/update-employee.dto";
@@ -36,10 +24,7 @@ export class EmployeesController {
 
   @Get("export")
   @Permissions("nomina:view")
-  async exportEmployees(
-    @CurrentUser() user: JwtPayload,
-    @Res() res: Response,
-  ) {
+  async exportEmployees(@CurrentUser() user: JwtPayload, @Res() res: Response) {
     const employees = await this.employeesService.findAll(user.organizationId);
 
     const header = [
@@ -92,10 +77,7 @@ export class EmployeesController {
 
   @Post()
   @Permissions("nomina:create")
-  create(
-    @CurrentUser() user: JwtPayload,
-    @Body() body: CreateEmployeeDto,
-  ) {
+  create(@CurrentUser() user: JwtPayload, @Body() body: CreateEmployeeDto) {
     return this.employeesService.create(user.organizationId, body);
   }
 
@@ -116,10 +98,6 @@ export class EmployeesController {
     @Param("id") id: string,
     @Body() body: { terminationDate: string },
   ) {
-    return this.employeesService.terminate(
-      user.organizationId,
-      id,
-      body.terminationDate,
-    );
+    return this.employeesService.terminate(user.organizationId, id, body.terminationDate);
   }
 }

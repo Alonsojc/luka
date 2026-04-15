@@ -323,30 +323,33 @@ export default function ConfiguracionPage() {
   }, [authLoading, user, fetchBranches]);
 
   // ---- Fetch audit logs ----
-  const fetchAuditLogs = useCallback(async (page = 1) => {
-    setAuditLoading(true);
-    try {
-      const params = new URLSearchParams();
-      params.set("page", String(page));
-      params.set("limit", "20");
-      if (auditModule) params.set("module", auditModule);
-      if (auditStartDate) params.set("startDate", new Date(auditStartDate).toISOString());
-      if (auditEndDate) {
-        const end = new Date(auditEndDate);
-        end.setHours(23, 59, 59, 999);
-        params.set("endDate", end.toISOString());
+  const fetchAuditLogs = useCallback(
+    async (page = 1) => {
+      setAuditLoading(true);
+      try {
+        const params = new URLSearchParams();
+        params.set("page", String(page));
+        params.set("limit", "20");
+        if (auditModule) params.set("module", auditModule);
+        if (auditStartDate) params.set("startDate", new Date(auditStartDate).toISOString());
+        if (auditEndDate) {
+          const end = new Date(auditEndDate);
+          end.setHours(23, 59, 59, 999);
+          params.set("endDate", end.toISOString());
+        }
+        const data = await authFetch<AuditLogsResponse>("get", `/audit?${params.toString()}`);
+        setAuditLogs(data.logs);
+        setAuditTotal(data.total);
+        setAuditPage(data.page);
+        setAuditTotalPages(data.totalPages);
+      } catch {
+        toast("Error al cargar bitacora", "error");
+      } finally {
+        setAuditLoading(false);
       }
-      const data = await authFetch<AuditLogsResponse>("get", `/audit?${params.toString()}`);
-      setAuditLogs(data.logs);
-      setAuditTotal(data.total);
-      setAuditPage(data.page);
-      setAuditTotalPages(data.totalPages);
-    } catch {
-      toast("Error al cargar bitacora", "error");
-    } finally {
-      setAuditLoading(false);
-    }
-  }, [authFetch, toast, auditModule, auditStartDate, auditEndDate]);
+    },
+    [authFetch, toast, auditModule, auditStartDate, auditEndDate],
+  );
 
   useEffect(() => {
     if (authLoading || !user) return;
@@ -412,33 +415,45 @@ export default function ConfiguracionPage() {
     }
   }, [authFetch]);
 
-  const handleRetryFailed = useCallback(async (queueName: string) => {
-    setQueueActionLoading(`retry-${queueName}`);
-    try {
-      const result = await authFetch<{ retried: number }>("post", `/queues/${queueName}/retry-failed`);
-      toast(`${result.retried} jobs reintentados`);
-      fetchQueues();
-      fetchRecentJobs();
-    } catch {
-      toast("Error al reintentar jobs", "error");
-    } finally {
-      setQueueActionLoading(null);
-    }
-  }, [authFetch, toast, fetchQueues, fetchRecentJobs]);
+  const handleRetryFailed = useCallback(
+    async (queueName: string) => {
+      setQueueActionLoading(`retry-${queueName}`);
+      try {
+        const result = await authFetch<{ retried: number }>(
+          "post",
+          `/queues/${queueName}/retry-failed`,
+        );
+        toast(`${result.retried} jobs reintentados`);
+        fetchQueues();
+        fetchRecentJobs();
+      } catch {
+        toast("Error al reintentar jobs", "error");
+      } finally {
+        setQueueActionLoading(null);
+      }
+    },
+    [authFetch, toast, fetchQueues, fetchRecentJobs],
+  );
 
-  const handleCleanQueue = useCallback(async (queueName: string) => {
-    setQueueActionLoading(`clean-${queueName}`);
-    try {
-      const result = await authFetch<{ cleaned: { total: number } }>("post", `/queues/${queueName}/clean`);
-      toast(`${result.cleaned.total} jobs limpiados`);
-      fetchQueues();
-      fetchRecentJobs();
-    } catch {
-      toast("Error al limpiar cola", "error");
-    } finally {
-      setQueueActionLoading(null);
-    }
-  }, [authFetch, toast, fetchQueues, fetchRecentJobs]);
+  const handleCleanQueue = useCallback(
+    async (queueName: string) => {
+      setQueueActionLoading(`clean-${queueName}`);
+      try {
+        const result = await authFetch<{ cleaned: { total: number } }>(
+          "post",
+          `/queues/${queueName}/clean`,
+        );
+        toast(`${result.cleaned.total} jobs limpiados`);
+        fetchQueues();
+        fetchRecentJobs();
+      } catch {
+        toast("Error al limpiar cola", "error");
+      } finally {
+        setQueueActionLoading(null);
+      }
+    },
+    [authFetch, toast, fetchQueues, fetchRecentJobs],
+  );
 
   useEffect(() => {
     if (authLoading || !user) return;
@@ -474,12 +489,8 @@ export default function ConfiguracionPage() {
     (currentPage - 1) * PAGE_SIZE,
     currentPage * PAGE_SIZE,
   );
-  const paginationStart =
-    filteredUsers.length === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1;
-  const paginationEnd = Math.min(
-    currentPage * PAGE_SIZE,
-    filteredUsers.length,
-  );
+  const paginationStart = filteredUsers.length === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1;
+  const paginationEnd = Math.min(currentPage * PAGE_SIZE, filteredUsers.length);
 
   // ---- User modal handlers ----
   function openCreateUser() {
@@ -546,8 +557,7 @@ export default function ConfiguracionPage() {
       setUserModalOpen(false);
       fetchUsers();
     } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : "Error al guardar usuario";
+      const message = err instanceof Error ? err.message : "Error al guardar usuario";
       toast(message, "error");
     } finally {
       setUserSaving(false);
@@ -560,13 +570,10 @@ export default function ConfiguracionPage() {
       await authFetch("patch", `/users/${u.id}`, {
         isActive: !u.isActive,
       });
-      toast(
-        u.isActive ? "Usuario desactivado" : "Usuario activado",
-      );
+      toast(u.isActive ? "Usuario desactivado" : "Usuario activado");
       fetchUsers();
     } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : "Error al cambiar estado";
+      const message = err instanceof Error ? err.message : "Error al cambiar estado";
       toast(message, "error");
     }
   }
@@ -591,8 +598,7 @@ export default function ConfiguracionPage() {
       toast("Contrasena actualizada");
       setPasswordModalOpen(false);
     } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : "Error al cambiar contrasena";
+      const message = err instanceof Error ? err.message : "Error al cambiar contrasena";
       toast(message, "error");
     } finally {
       setPasswordSaving(false);
@@ -780,12 +786,8 @@ export default function ConfiguracionPage() {
                 <Building2 className="h-5 w-5 text-black" />
               </div>
               <div className="flex-1">
-                <h2 className="text-base font-semibold text-gray-900">
-                  Organizacion
-                </h2>
-                <p className="text-sm text-gray-500">
-                  Informacion general de la organizacion
-                </p>
+                <h2 className="text-base font-semibold text-gray-900">Organizacion</h2>
+                <p className="text-sm text-gray-500">Informacion general de la organizacion</p>
               </div>
             </div>
             <div className="px-6 py-4">
@@ -810,15 +812,13 @@ export default function ConfiguracionPage() {
                   <dt className="text-xs font-medium uppercase tracking-wider text-gray-400">
                     Correo del Administrador
                   </dt>
-                  <dd className="mt-1 text-sm font-medium text-gray-900">
-                    {user.email}
-                  </dd>
+                  <dd className="mt-1 text-sm font-medium text-gray-900">{user.email}</dd>
                 </div>
               </dl>
               <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
                 <p className="text-sm text-amber-800">
-                  La configuracion de certificados PAC y CSD para facturacion
-                  electronica estara disponible en esta seccion proximamente.
+                  La configuracion de certificados PAC y CSD para facturacion electronica estara
+                  disponible en esta seccion proximamente.
                 </p>
               </div>
             </div>
@@ -831,9 +831,7 @@ export default function ConfiguracionPage() {
                 <Users className="h-5 w-5 text-black" />
               </div>
               <div className="flex-1">
-                <h2 className="text-base font-semibold text-gray-900">
-                  Usuarios y Roles
-                </h2>
+                <h2 className="text-base font-semibold text-gray-900">Usuarios y Roles</h2>
                 <p className="text-sm text-gray-500">
                   Gestion de accesos, permisos y roles del sistema
                 </p>
@@ -853,17 +851,13 @@ export default function ConfiguracionPage() {
                   <dt className="text-xs font-medium uppercase tracking-wider text-gray-400">
                     Roles Asignados
                   </dt>
-                  <dd className="mt-1 text-sm font-medium text-gray-900">
-                    {uniqueRoles.length}
-                  </dd>
+                  <dd className="mt-1 text-sm font-medium text-gray-900">{uniqueRoles.length}</dd>
                 </div>
                 <div>
                   <dt className="text-xs font-medium uppercase tracking-wider text-gray-400">
                     Total de Asignaciones
                   </dt>
-                  <dd className="mt-1 text-sm font-medium text-gray-900">
-                    {user.roles.length}
-                  </dd>
+                  <dd className="mt-1 text-sm font-medium text-gray-900">{user.roles.length}</dd>
                 </div>
               </dl>
               {uniqueRoles.length > 0 && (
@@ -888,12 +882,8 @@ export default function ConfiguracionPage() {
                 <GitBranch className="h-5 w-5 text-black" />
               </div>
               <div className="flex-1">
-                <h2 className="text-base font-semibold text-gray-900">
-                  Sucursales
-                </h2>
-                <p className="text-sm text-gray-500">
-                  Sucursales registradas en la organizacion
-                </p>
+                <h2 className="text-base font-semibold text-gray-900">Sucursales</h2>
+                <p className="text-sm text-gray-500">Sucursales registradas en la organizacion</p>
               </div>
             </div>
             <div className="px-6 py-4">
@@ -926,9 +916,7 @@ export default function ConfiguracionPage() {
                 <Wifi className="h-5 w-5 text-black" />
               </div>
               <div className="flex-1">
-                <h2 className="text-base font-semibold text-gray-900">
-                  Integracion Corntech
-                </h2>
+                <h2 className="text-base font-semibold text-gray-900">Integracion Corntech</h2>
                 <p className="text-sm text-gray-500">
                   Sincronizacion con el POS Corntech de cada sucursal
                 </p>
@@ -947,9 +935,9 @@ export default function ConfiguracionPage() {
               </dl>
               <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
                 <p className="text-sm text-gray-600">
-                  La integracion con Corntech POS sera habilitada en la Fase 4
-                  del proyecto. Aqui podras configurar la sincronizacion de
-                  ventas, inventarios y cortes de caja por sucursal.
+                  La integracion con Corntech POS sera habilitada en la Fase 4 del proyecto. Aqui
+                  podras configurar la sincronizacion de ventas, inventarios y cortes de caja por
+                  sucursal.
                 </p>
               </div>
             </div>
@@ -988,23 +976,18 @@ export default function ConfiguracionPage() {
           {filteredUsers.length > 0 && (
             <div className="mt-4 flex items-center justify-between">
               <p className="text-sm text-gray-500">
-                Mostrando {paginationStart}-{paginationEnd} de{" "}
-                {filteredUsers.length}
+                Mostrando {paginationStart}-{paginationEnd} de {filteredUsers.length}
               </p>
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() =>
-                    setCurrentPage((p) => Math.max(1, p - 1))
-                  }
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                   disabled={currentPage === 1}
                   className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm disabled:opacity-50"
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </button>
                 <button
-                  onClick={() =>
-                    setCurrentPage((p) => Math.min(totalPages, p + 1))
-                  }
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                   disabled={currentPage === totalPages}
                   className="rounded-lg border border-gray-200 px-3 py-1.5 text-sm disabled:opacity-50"
                 >
@@ -1027,11 +1010,16 @@ export default function ConfiguracionPage() {
               <label className="mb-1 block text-xs font-medium text-gray-500">Modulo</label>
               <select
                 value={auditModule}
-                onChange={(e) => { setAuditModule(e.target.value); setAuditPage(1); }}
+                onChange={(e) => {
+                  setAuditModule(e.target.value);
+                  setAuditPage(1);
+                }}
                 className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-gray-400 focus:outline-none"
               >
                 {MODULE_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
                 ))}
               </select>
             </div>
@@ -1040,7 +1028,10 @@ export default function ConfiguracionPage() {
               <input
                 type="date"
                 value={auditStartDate}
-                onChange={(e) => { setAuditStartDate(e.target.value); setAuditPage(1); }}
+                onChange={(e) => {
+                  setAuditStartDate(e.target.value);
+                  setAuditPage(1);
+                }}
                 className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-gray-400 focus:outline-none"
               />
             </div>
@@ -1049,7 +1040,10 @@ export default function ConfiguracionPage() {
               <input
                 type="date"
                 value={auditEndDate}
-                onChange={(e) => { setAuditEndDate(e.target.value); setAuditPage(1); }}
+                onChange={(e) => {
+                  setAuditEndDate(e.target.value);
+                  setAuditPage(1);
+                }}
                 className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-gray-400 focus:outline-none"
               />
             </div>
@@ -1073,12 +1067,24 @@ export default function ConfiguracionPage() {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Fecha/Hora</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Usuario</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Modulo</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Accion</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Descripcion</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Detalles</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                    Fecha/Hora
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                    Usuario
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                    Modulo
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                    Accion
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                    Descripcion
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                    Detalles
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 bg-white">
@@ -1099,8 +1105,15 @@ export default function ConfiguracionPage() {
                     <>
                       <tr key={log.id} className="hover:bg-gray-50">
                         <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-600">
-                          {new Date(log.createdAt).toLocaleDateString("es-MX", { day: "2-digit", month: "2-digit", year: "numeric" })}{" "}
-                          {new Date(log.createdAt).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" })}
+                          {new Date(log.createdAt).toLocaleDateString("es-MX", {
+                            day: "2-digit",
+                            month: "2-digit",
+                            year: "numeric",
+                          })}{" "}
+                          {new Date(log.createdAt).toLocaleTimeString("es-MX", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
                         </td>
                         <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-900">
                           {log.userName || log.userId || "-"}
@@ -1111,20 +1124,31 @@ export default function ConfiguracionPage() {
                           </span>
                         </td>
                         <td className="whitespace-nowrap px-4 py-3">
-                          <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${ACTION_BADGE_STYLES[log.action] || "bg-gray-100 text-gray-800"}`}>
+                          <span
+                            className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${ACTION_BADGE_STYLES[log.action] || "bg-gray-100 text-gray-800"}`}
+                          >
                             {log.action}
                           </span>
                         </td>
-                        <td className="max-w-xs truncate px-4 py-3 text-sm text-gray-600" title={log.description}>
+                        <td
+                          className="max-w-xs truncate px-4 py-3 text-sm text-gray-600"
+                          title={log.description}
+                        >
                           {log.description}
                         </td>
                         <td className="px-4 py-3">
                           {log.changes ? (
                             <button
-                              onClick={() => setExpandedLogId(expandedLogId === log.id ? null : log.id)}
+                              onClick={() =>
+                                setExpandedLogId(expandedLogId === log.id ? null : log.id)
+                              }
                               className="flex items-center gap-1 rounded px-2 py-1 text-xs text-gray-500 hover:bg-gray-100 hover:text-gray-700"
                             >
-                              {expandedLogId === log.id ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                              {expandedLogId === log.id ? (
+                                <ChevronUp className="h-3 w-3" />
+                              ) : (
+                                <ChevronDown className="h-3 w-3" />
+                              )}
                               Ver
                             </button>
                           ) : (
@@ -1136,14 +1160,25 @@ export default function ConfiguracionPage() {
                         <tr key={`${log.id}-details`}>
                           <td colSpan={6} className="bg-gray-50 px-6 py-4">
                             <div className="space-y-2">
-                              <p className="text-xs font-medium uppercase tracking-wider text-gray-500">Cambios realizados</p>
+                              <p className="text-xs font-medium uppercase tracking-wider text-gray-500">
+                                Cambios realizados
+                              </p>
                               <div className="grid gap-2">
                                 {Object.entries(log.changes).map(([field, change]) => (
-                                  <div key={field} className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm">
-                                    <span className="font-medium text-gray-700 min-w-[120px]">{field}</span>
-                                    <span className="rounded bg-red-50 px-2 py-0.5 text-red-700 line-through">{String(change.old ?? "-")}</span>
+                                  <div
+                                    key={field}
+                                    className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm"
+                                  >
+                                    <span className="font-medium text-gray-700 min-w-[120px]">
+                                      {field}
+                                    </span>
+                                    <span className="rounded bg-red-50 px-2 py-0.5 text-red-700 line-through">
+                                      {String(change.old ?? "-")}
+                                    </span>
                                     <span className="text-gray-400">&rarr;</span>
-                                    <span className="rounded bg-green-50 px-2 py-0.5 text-green-700">{String(change.new ?? "-")}</span>
+                                    <span className="rounded bg-green-50 px-2 py-0.5 text-green-700">
+                                      {String(change.new ?? "-")}
+                                    </span>
                                   </div>
                                 ))}
                               </div>
@@ -1162,7 +1197,8 @@ export default function ConfiguracionPage() {
           {auditTotal > 0 && (
             <div className="mt-4 flex items-center justify-between">
               <p className="text-sm text-gray-500">
-                Mostrando {(auditPage - 1) * 20 + 1}-{Math.min(auditPage * 20, auditTotal)} de {auditTotal}
+                Mostrando {(auditPage - 1) * 20 + 1}-{Math.min(auditPage * 20, auditTotal)} de{" "}
+                {auditTotal}
               </p>
               <div className="flex items-center gap-2">
                 <button
@@ -1205,20 +1241,18 @@ export default function ConfiguracionPage() {
           <div className="flex items-center gap-2 text-sm">
             <span
               className={`inline-block h-2.5 w-2.5 rounded-full ${
-                queueHealth?.redis === "connected"
-                  ? "bg-green-500"
-                  : "bg-red-500"
+                queueHealth?.redis === "connected" ? "bg-green-500" : "bg-red-500"
               }`}
             />
             <span className="text-gray-600">
-              Redis:{" "}
-              {queueHealth?.redis === "connected" ? "Conectado" : "Desconectado"}
+              Redis: {queueHealth?.redis === "connected" ? "Conectado" : "Desconectado"}
             </span>
-            {queuesLoading && (
-              <Loader2 className="h-3.5 w-3.5 animate-spin text-gray-400" />
-            )}
+            {queuesLoading && <Loader2 className="h-3.5 w-3.5 animate-spin text-gray-400" />}
             <button
-              onClick={() => { fetchQueues(); fetchRecentJobs(); }}
+              onClick={() => {
+                fetchQueues();
+                fetchRecentJobs();
+              }}
               className="ml-auto flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors"
             >
               <RefreshCw className="h-3.5 w-3.5" />
@@ -1229,17 +1263,12 @@ export default function ConfiguracionPage() {
           {/* Queue cards */}
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
             {queues.map((q) => (
-              <div
-                key={q.name}
-                className="rounded-xl border border-gray-200 bg-white shadow-sm"
-              >
+              <div key={q.name} className="rounded-xl border border-gray-200 bg-white shadow-sm">
                 <div className="border-b border-gray-200 px-5 py-4">
                   <h3 className="text-sm font-semibold text-gray-900">
                     {QUEUE_DISPLAY_NAMES[q.name] || q.name}
                   </h3>
-                  <p className="mt-0.5 text-xs text-gray-500">
-                    {QUEUE_DESCRIPTIONS[q.name] || ""}
-                  </p>
+                  <p className="mt-0.5 text-xs text-gray-500">{QUEUE_DESCRIPTIONS[q.name] || ""}</p>
                 </div>
                 <div className="px-5 py-4">
                   <div className="grid grid-cols-2 gap-3">
@@ -1314,23 +1343,31 @@ export default function ConfiguracionPage() {
           {/* Recent jobs table */}
           <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
             <div className="border-b border-gray-200 px-6 py-4">
-              <h3 className="text-base font-semibold text-gray-900">
-                Jobs Recientes
-              </h3>
-              <p className="text-sm text-gray-500">
-                Ultimos 20 jobs procesados en todas las colas
-              </p>
+              <h3 className="text-base font-semibold text-gray-900">Jobs Recientes</h3>
+              <p className="text-sm text-gray-500">Ultimos 20 jobs procesados en todas las colas</p>
             </div>
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Cola</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Job</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Estado</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Duracion</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Intentos</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Fecha</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                      Cola
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                      Job
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                      Estado
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                      Duracion
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                      Intentos
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
+                      Fecha
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200 bg-white">
@@ -1358,8 +1395,18 @@ export default function ConfiguracionPage() {
                           {job.name}
                         </td>
                         <td className="whitespace-nowrap px-4 py-3">
-                          <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${JOB_STATUS_STYLES[job.status] || "bg-gray-100 text-gray-800"}`}>
-                            {job.status === "completed" ? "Completado" : job.status === "failed" ? "Fallido" : job.status === "active" ? "Activo" : job.status === "waiting" ? "En espera" : job.status}
+                          <span
+                            className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${JOB_STATUS_STYLES[job.status] || "bg-gray-100 text-gray-800"}`}
+                          >
+                            {job.status === "completed"
+                              ? "Completado"
+                              : job.status === "failed"
+                                ? "Fallido"
+                                : job.status === "active"
+                                  ? "Activo"
+                                  : job.status === "waiting"
+                                    ? "En espera"
+                                    : job.status}
                           </span>
                         </td>
                         <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-600">
@@ -1370,9 +1417,16 @@ export default function ConfiguracionPage() {
                         </td>
                         <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-600">
                           {job.timestamp
-                            ? new Date(job.timestamp).toLocaleDateString("es-MX", { day: "2-digit", month: "2-digit", year: "numeric" }) +
+                            ? new Date(job.timestamp).toLocaleDateString("es-MX", {
+                                day: "2-digit",
+                                month: "2-digit",
+                                year: "numeric",
+                              }) +
                               " " +
-                              new Date(job.timestamp).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" })
+                              new Date(job.timestamp).toLocaleTimeString("es-MX", {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })
                             : "-"}
                         </td>
                       </tr>
@@ -1398,18 +1452,14 @@ export default function ConfiguracionPage() {
             <FormField label="Nombre" required>
               <Input
                 value={userForm.firstName}
-                onChange={(e) =>
-                  setUserForm((f) => ({ ...f, firstName: e.target.value }))
-                }
+                onChange={(e) => setUserForm((f) => ({ ...f, firstName: e.target.value }))}
                 placeholder="Nombre"
               />
             </FormField>
             <FormField label="Apellido" required>
               <Input
                 value={userForm.lastName}
-                onChange={(e) =>
-                  setUserForm((f) => ({ ...f, lastName: e.target.value }))
-                }
+                onChange={(e) => setUserForm((f) => ({ ...f, lastName: e.target.value }))}
                 placeholder="Apellido"
               />
             </FormField>
@@ -1419,9 +1469,7 @@ export default function ConfiguracionPage() {
             <Input
               type="email"
               value={userForm.email}
-              onChange={(e) =>
-                setUserForm((f) => ({ ...f, email: e.target.value }))
-              }
+              onChange={(e) => setUserForm((f) => ({ ...f, email: e.target.value }))}
               placeholder="correo@ejemplo.com"
             />
           </FormField>
@@ -1430,9 +1478,7 @@ export default function ConfiguracionPage() {
             <Input
               type="tel"
               value={userForm.phone}
-              onChange={(e) =>
-                setUserForm((f) => ({ ...f, phone: e.target.value }))
-              }
+              onChange={(e) => setUserForm((f) => ({ ...f, phone: e.target.value }))}
               placeholder="(opcional)"
             />
           </FormField>
@@ -1441,9 +1487,7 @@ export default function ConfiguracionPage() {
             <FormField label="Rol" required>
               <Select
                 value={userForm.role}
-                onChange={(e) =>
-                  setUserForm((f) => ({ ...f, role: e.target.value }))
-                }
+                onChange={(e) => setUserForm((f) => ({ ...f, role: e.target.value }))}
               >
                 {ROLE_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>
@@ -1455,9 +1499,7 @@ export default function ConfiguracionPage() {
             <FormField label="Sucursal">
               <Select
                 value={userForm.branchId}
-                onChange={(e) =>
-                  setUserForm((f) => ({ ...f, branchId: e.target.value }))
-                }
+                onChange={(e) => setUserForm((f) => ({ ...f, branchId: e.target.value }))}
               >
                 <option value="">Todas (org-wide)</option>
                 {branches.map((b) => (
@@ -1470,32 +1512,19 @@ export default function ConfiguracionPage() {
           </div>
 
           <FormField
-            label={
-              editingUser
-                ? "Contrasena (dejar vacio para no cambiar)"
-                : "Contrasena"
-            }
+            label={editingUser ? "Contrasena (dejar vacio para no cambiar)" : "Contrasena"}
             required={!editingUser}
           >
             <Input
               type="password"
               value={userForm.password}
-              onChange={(e) =>
-                setUserForm((f) => ({ ...f, password: e.target.value }))
-              }
-              placeholder={
-                editingUser
-                  ? "Dejar vacio para no cambiar"
-                  : "Contrasena del usuario"
-              }
+              onChange={(e) => setUserForm((f) => ({ ...f, password: e.target.value }))}
+              placeholder={editingUser ? "Dejar vacio para no cambiar" : "Contrasena del usuario"}
             />
           </FormField>
 
           <div className="flex justify-end gap-3 pt-2">
-            <Button
-              variant="outline"
-              onClick={() => setUserModalOpen(false)}
-            >
+            <Button variant="outline" onClick={() => setUserModalOpen(false)}>
               Cancelar
             </Button>
             <Button onClick={handleSaveUser} disabled={userSaving}>
@@ -1533,10 +1562,7 @@ export default function ConfiguracionPage() {
           </FormField>
 
           <div className="flex justify-end gap-3 pt-2">
-            <Button
-              variant="outline"
-              onClick={() => setPasswordModalOpen(false)}
-            >
+            <Button variant="outline" onClick={() => setPasswordModalOpen(false)}>
               Cancelar
             </Button>
             <Button onClick={handleChangePassword} disabled={passwordSaving}>

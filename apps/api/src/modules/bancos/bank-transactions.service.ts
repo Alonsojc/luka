@@ -73,8 +73,7 @@ export class BankTransactionsService {
       });
 
       // Update bank account balance
-      const balanceChange =
-        data.type === "credit" ? data.amount : -data.amount;
+      const balanceChange = data.type === "credit" ? data.amount : -data.amount;
       await tx.bankAccount.update({
         where: { id: data.bankAccountId },
         data: { currentBalance: { increment: balanceChange } },
@@ -86,10 +85,7 @@ export class BankTransactionsService {
     return transaction;
   }
 
-  async reconcile(
-    id: string,
-    data: { reconciledWithType: string; reconciledWithId: string },
-  ) {
+  async reconcile(id: string, data: { reconciledWithType: string; reconciledWithId: string }) {
     return this.prisma.bankTransaction.update({
       where: { id },
       data: {

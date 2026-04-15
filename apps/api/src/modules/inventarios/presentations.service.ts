@@ -1,7 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-} from "@nestjs/common";
+import { Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../../common/prisma/prisma.service";
 import { JwtPayload } from "../../common/decorators/current-user.decorator";
 import { AuditService } from "../audit/audit.service";

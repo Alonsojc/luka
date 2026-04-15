@@ -1,14 +1,12 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Bell,
   Plus,
-  Play,
   Pencil,
   Power,
   RefreshCw,
-  Search,
   ChevronLeft,
   ChevronRight,
   Settings,
@@ -17,10 +15,11 @@ import {
   Send,
   Trash2,
   X,
-  Eye,
   MessageSquare,
 } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
+import { useApiQuery } from "@/hooks/use-api-query";
 import { useToast } from "@/components/ui/toast";
 import { DataTable } from "@/components/ui/data-table";
 import { Modal } from "@/components/ui/modal";
@@ -103,14 +102,7 @@ EVENT_TYPES.forEach((e) => {
 });
 
 const EVENT_VARIABLES: Record<string, string[]> = {
-  STOCK_LOW: [
-    "branchName",
-    "productName",
-    "sku",
-    "currentStock",
-    "minimumStock",
-    "unit",
-  ],
+  STOCK_LOW: ["branchName", "productName", "sku", "currentStock", "minimumStock", "unit"],
   LOT_EXPIRING: [
     "branchName",
     "productName",
@@ -120,13 +112,7 @@ const EVENT_VARIABLES: Record<string, string[]> = {
     "quantity",
     "unit",
   ],
-  REQUISITION_NEW: [
-    "branchName",
-    "requestedBy",
-    "itemCount",
-    "priority",
-    "deliveryDate",
-  ],
+  REQUISITION_NEW: ["branchName", "requestedBy", "itemCount", "priority", "deliveryDate"],
   REQUISITION_APPROVED: ["branchName", "folio", "approvedBy", "itemCount"],
   DELIVERY_NEW: ["branchName", "platform", "customerName", "total"],
   DAILY_SUMMARY: [
@@ -153,12 +139,17 @@ const STATUS_VARIANT: Record<string, "green" | "red" | "yellow" | "gray" | "blue
 export default function AlertasPage() {
   const { authFetch, loading: authLoading } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const [tab, setTab] = useState<Tab>("Reglas de Alerta");
 
-  // Rules state
-  const [rules, setRules] = useState<AlertRule[]>([]);
-  const [rulesLoading, setRulesLoading] = useState(true);
+  // Rules (React Query) - endpoint returns { data: AlertRule[] }
+  const { data: rulesResponse, isLoading: rulesLoading } = useApiQuery<{ data: AlertRule[] }>(
+    "/whatsapp/rules",
+    ["alert-rules"],
+  );
+  const rules = rulesResponse?.data ?? [];
+
   const [ruleModal, setRuleModal] = useState(false);
   const [editingRule, setEditingRule] = useState<AlertRule | null>(null);
   const [ruleForm, setRuleForm] = useState({
@@ -174,18 +165,38 @@ export default function AlertasPage() {
   const [previewModal, setPreviewModal] = useState(false);
   const [previewMessage, setPreviewMessage] = useState("");
 
-  // Logs state
-  const [logs, setLogs] = useState<AlertLog[]>([]);
-  const [logsLoading, setLogsLoading] = useState(false);
+  // Logs (React Query)
   const [logsPage, setLogsPage] = useState(1);
-  const [logsTotalPages, setLogsTotalPages] = useState(1);
-  const [logsTotal, setLogsTotal] = useState(0);
   const [logFilterRule, setLogFilterRule] = useState("");
   const [logFilterStatus, setLogFilterStatus] = useState("");
 
-  // Config state
-  const [config, setConfig] = useState<WhatsAppConfig | null>(null);
-  const [configLoading, setConfigLoading] = useState(false);
+  const logsQueryString = useMemo(() => {
+    const params = new URLSearchParams();
+    params.set("page", String(logsPage));
+    params.set("limit", "25");
+    if (logFilterRule) params.set("ruleId", logFilterRule);
+    if (logFilterStatus) params.set("status", logFilterStatus);
+    return params.toString();
+  }, [logsPage, logFilterRule, logFilterStatus]);
+
+  const { data: logsResponse, isLoading: logsLoading } = useApiQuery<{
+    data: AlertLog[];
+    total: number;
+    page: number;
+    totalPages: number;
+  }>(`/whatsapp/logs?${logsQueryString}`, ["alert-logs", logsQueryString], {
+    enabled: tab === "Historial",
+  });
+  const logs = logsResponse?.data ?? [];
+  const logsTotalPages = logsResponse?.totalPages ?? 1;
+  const logsTotal = logsResponse?.total ?? 0;
+
+  // Config (React Query)
+  const { data: config, isLoading: configLoading } = useApiQuery<WhatsAppConfig>(
+    "/whatsapp/config",
+    ["whatsapp-config"],
+    { enabled: tab === "Configuracion" },
+  );
   const [configForm, setConfigForm] = useState({
     provider: "mock",
     apiKey: "",
@@ -195,100 +206,26 @@ export default function AlertasPage() {
   });
   const [configSaving, setConfigSaving] = useState(false);
 
-  // Templates
-  const [templates, setTemplates] = useState<Record<string, string>>({});
+  // Sync configForm when config data arrives
+  useEffect(() => {
+    if (config) {
+      setConfigForm({
+        provider: config.provider || "mock",
+        apiKey: config.apiKey || "",
+        apiSecret: config.apiSecret || "",
+        phoneNumberId: config.phoneNumberId || "",
+        isActive: config.isActive ?? false,
+      });
+    }
+  }, [config]);
+
+  // Templates (React Query)
+  const { data: templates = {} } = useApiQuery<Record<string, string>>("/whatsapp/templates", [
+    "whatsapp-templates",
+  ]);
 
   // Checking alerts
   const [checking, setChecking] = useState(false);
-
-  // -------------------------------------------------------------------------
-  // Data fetching
-  // -------------------------------------------------------------------------
-
-  const fetchRules = useCallback(async () => {
-    setRulesLoading(true);
-    try {
-      const res = await authFetch<{ data: AlertRule[] }>("get", "/whatsapp/rules");
-      setRules(res.data || []);
-    } catch {
-      toast("Error al cargar reglas", "error");
-    } finally {
-      setRulesLoading(false);
-    }
-  }, [authFetch, toast]);
-
-  const fetchLogs = useCallback(async () => {
-    setLogsLoading(true);
-    try {
-      const params = new URLSearchParams();
-      params.set("page", String(logsPage));
-      params.set("limit", "25");
-      if (logFilterRule) params.set("ruleId", logFilterRule);
-      if (logFilterStatus) params.set("status", logFilterStatus);
-
-      const res = await authFetch<{
-        data: AlertLog[];
-        total: number;
-        page: number;
-        totalPages: number;
-      }>("get", `/whatsapp/logs?${params.toString()}`);
-
-      setLogs(res.data || []);
-      setLogsTotalPages(res.totalPages || 1);
-      setLogsTotal(res.total || 0);
-    } catch {
-      toast("Error al cargar historial", "error");
-    } finally {
-      setLogsLoading(false);
-    }
-  }, [authFetch, toast, logsPage, logFilterRule, logFilterStatus]);
-
-  const fetchConfig = useCallback(async () => {
-    setConfigLoading(true);
-    try {
-      const res = await authFetch<WhatsAppConfig>("get", "/whatsapp/config");
-      setConfig(res);
-      setConfigForm({
-        provider: res.provider || "mock",
-        apiKey: res.apiKey || "",
-        apiSecret: res.apiSecret || "",
-        phoneNumberId: res.phoneNumberId || "",
-        isActive: res.isActive ?? false,
-      });
-    } catch {
-      toast("Error al cargar configuracion", "error");
-    } finally {
-      setConfigLoading(false);
-    }
-  }, [authFetch, toast]);
-
-  const fetchTemplates = useCallback(async () => {
-    try {
-      const res = await authFetch<Record<string, string>>(
-        "get",
-        "/whatsapp/templates",
-      );
-      setTemplates(res);
-    } catch {
-      // silent
-    }
-  }, [authFetch]);
-
-  useEffect(() => {
-    if (authLoading) return;
-    fetchRules();
-    fetchTemplates();
-  }, [authLoading, fetchRules, fetchTemplates]);
-
-  useEffect(() => {
-    if (authLoading) return;
-    if (tab === "Historial") fetchLogs();
-  }, [authLoading, tab, fetchLogs]);
-
-  useEffect(() => {
-    if (authLoading) return;
-    if (tab === "Configuracion") fetchConfig();
-  }, [authLoading, tab, fetchConfig]);
 
   // -------------------------------------------------------------------------
   // Rule CRUD
@@ -333,9 +270,7 @@ export default function AlertasPage() {
       toast("La plantilla de mensaje es requerida", "error");
       return;
     }
-    const validRecipients = ruleForm.recipients.filter(
-      (r) => r.phone.trim() && r.name.trim(),
-    );
+    const validRecipients = ruleForm.recipients.filter((r) => r.phone.trim() && r.name.trim());
     if (validRecipients.length === 0) {
       toast("Agrega al menos un destinatario", "error");
       return;
@@ -361,7 +296,7 @@ export default function AlertasPage() {
       }
 
       setRuleModal(false);
-      fetchRules();
+      queryClient.invalidateQueries({ queryKey: ["alert-rules"] });
     } catch {
       toast("Error al guardar regla", "error");
     } finally {
@@ -375,7 +310,7 @@ export default function AlertasPage() {
         isActive: !rule.isActive,
       });
       toast(rule.isActive ? "Regla desactivada" : "Regla activada");
-      fetchRules();
+      queryClient.invalidateQueries({ queryKey: ["alert-rules"] });
     } catch {
       toast("Error al cambiar estado", "error");
     }
@@ -386,7 +321,7 @@ export default function AlertasPage() {
     try {
       await authFetch("delete", `/whatsapp/rules/${rule.id}`);
       toast("Regla desactivada");
-      fetchRules();
+      queryClient.invalidateQueries({ queryKey: ["alert-rules"] });
     } catch {
       toast("Error al desactivar regla", "error");
     }
@@ -401,10 +336,7 @@ export default function AlertasPage() {
       );
       setPreviewMessage(res.message || "");
       setPreviewModal(true);
-      toast(
-        `Test enviado a ${res.results?.length || 0} destinatario(s)`,
-        "success",
-      );
+      toast(`Test enviado a ${res.results?.length || 0} destinatario(s)`, "success");
     } catch {
       toast("Error al enviar test", "error");
     } finally {
@@ -431,13 +363,11 @@ export default function AlertasPage() {
         (res.dailySummary?.triggered || 0);
 
       toast(
-        total > 0
-          ? `${total} alerta(s) disparada(s)`
-          : "Sin alertas pendientes",
+        total > 0 ? `${total} alerta(s) disparada(s)` : "Sin alertas pendientes",
         total > 0 ? "success" : "info",
       );
-      fetchRules();
-      if (tab === "Historial") fetchLogs();
+      queryClient.invalidateQueries({ queryKey: ["alert-rules"] });
+      if (tab === "Historial") queryClient.invalidateQueries({ queryKey: ["alert-logs"] });
     } catch {
       toast("Error al verificar alertas", "error");
     } finally {
@@ -454,7 +384,7 @@ export default function AlertasPage() {
     try {
       await authFetch("put", "/whatsapp/config", configForm);
       toast("Configuracion guardada");
-      fetchConfig();
+      queryClient.invalidateQueries({ queryKey: ["whatsapp-config"] });
     } catch {
       toast("Error al guardar configuracion", "error");
     } finally {
@@ -480,16 +410,10 @@ export default function AlertasPage() {
     }));
   }
 
-  function updateRecipient(
-    idx: number,
-    field: keyof Recipient,
-    value: string,
-  ) {
+  function updateRecipient(idx: number, field: keyof Recipient, value: string) {
     setRuleForm((f) => ({
       ...f,
-      recipients: f.recipients.map((r, i) =>
-        i === idx ? { ...r, [field]: value } : r,
-      ),
+      recipients: f.recipients.map((r, i) => (i === idx ? { ...r, [field]: value } : r)),
     }));
   }
 
@@ -532,11 +456,7 @@ export default function AlertasPage() {
   // -------------------------------------------------------------------------
 
   if (authLoading) {
-    return (
-      <div className="flex items-center justify-center h-64 text-gray-400">
-        Cargando...
-      </div>
-    );
+    return <div className="flex items-center justify-center h-64 text-gray-400">Cargando...</div>;
   }
 
   return (
@@ -550,11 +470,7 @@ export default function AlertasPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            onClick={checkAlerts}
-            disabled={checking}
-          >
+          <Button variant="outline" onClick={checkAlerts} disabled={checking}>
             <RefreshCw className={`h-4 w-4 ${checking ? "animate-spin" : ""}`} />
             {checking ? "Verificando..." : "Verificar Alertas"}
           </Button>
@@ -595,18 +511,13 @@ export default function AlertasPage() {
             {
               key: "name",
               header: "Nombre",
-              render: (r: AlertRule) => (
-                <span className="font-medium">{r.name}</span>
-              ),
+              render: (r: AlertRule) => <span className="font-medium">{r.name}</span>,
             },
             {
               key: "eventType",
               header: "Evento",
               render: (r: AlertRule) => (
-                <StatusBadge
-                  label={EVENT_LABEL[r.eventType] || r.eventType}
-                  variant="blue"
-                />
+                <StatusBadge label={EVENT_LABEL[r.eventType] || r.eventType} variant="blue" />
               ),
             },
             {
@@ -615,7 +526,9 @@ export default function AlertasPage() {
               render: (r: AlertRule) => {
                 const count = (r.recipients as Recipient[])?.length || 0;
                 return (
-                  <span className="text-gray-600">{count} destinatario{count !== 1 ? "s" : ""}</span>
+                  <span className="text-gray-600">
+                    {count} destinatario{count !== 1 ? "s" : ""}
+                  </span>
                 );
               },
             },
@@ -623,9 +536,7 @@ export default function AlertasPage() {
               key: "lastTriggeredAt",
               header: "Ultima ejecucion",
               render: (r: AlertRule) => (
-                <span className="text-gray-500 text-xs">
-                  {formatDate(r.lastTriggeredAt)}
-                </span>
+                <span className="text-gray-500 text-xs">{formatDate(r.lastTriggeredAt)}</span>
               ),
             },
             {
@@ -744,9 +655,7 @@ export default function AlertasPage() {
                 key: "createdAt",
                 header: "Fecha",
                 render: (l: AlertLog) => (
-                  <span className="text-xs text-gray-600">
-                    {formatDate(l.createdAt)}
-                  </span>
+                  <span className="text-xs text-gray-600">{formatDate(l.createdAt)}</span>
                 ),
               },
               {
@@ -754,9 +663,7 @@ export default function AlertasPage() {
                 header: "Regla",
                 render: (l: AlertLog) => (
                   <div>
-                    <span className="font-medium text-sm">
-                      {l.alertRule?.name || "-"}
-                    </span>
+                    <span className="font-medium text-sm">{l.alertRule?.name || "-"}</span>
                     {l.alertRule?.eventType && (
                       <span className="ml-2">
                         <StatusBadge
@@ -771,18 +678,13 @@ export default function AlertasPage() {
               {
                 key: "recipient",
                 header: "Destinatario",
-                render: (l: AlertLog) => (
-                  <span className="text-sm">{l.recipient}</span>
-                ),
+                render: (l: AlertLog) => <span className="text-sm">{l.recipient}</span>,
               },
               {
                 key: "status",
                 header: "Estado",
                 render: (l: AlertLog) => (
-                  <StatusBadge
-                    label={l.status}
-                    variant={STATUS_VARIANT[l.status] || "gray"}
-                  />
+                  <StatusBadge label={l.status} variant={STATUS_VARIANT[l.status] || "gray"} />
                 ),
               },
               {
@@ -820,9 +722,7 @@ export default function AlertasPage() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() =>
-                  setLogsPage((p) => Math.min(logsTotalPages, p + 1))
-                }
+                onClick={() => setLogsPage((p) => Math.min(logsTotalPages, p + 1))}
                 disabled={logsPage >= logsTotalPages}
               >
                 <ChevronRight className="h-4 w-4" />
@@ -845,9 +745,7 @@ export default function AlertasPage() {
                 <FormField label="Proveedor">
                   <Select
                     value={configForm.provider}
-                    onChange={(e) =>
-                      setConfigForm((f) => ({ ...f, provider: e.target.value }))
-                    }
+                    onChange={(e) => setConfigForm((f) => ({ ...f, provider: e.target.value }))}
                   >
                     <option value="mock">Mock (desarrollo)</option>
                     <option value="twilio">Twilio</option>
@@ -913,9 +811,7 @@ export default function AlertasPage() {
                       }
                       className="rounded"
                     />
-                    <span className="text-sm font-medium">
-                      WhatsApp activo
-                    </span>
+                    <span className="text-sm font-medium">WhatsApp activo</span>
                   </label>
                   <StatusBadge
                     label={configForm.isActive ? "Activo" : "Inactivo"}
@@ -925,8 +821,8 @@ export default function AlertasPage() {
 
                 {configForm.provider === "mock" && (
                   <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-sm text-yellow-800">
-                    En modo mock los mensajes se registran en el historial pero
-                    no se envian realmente. Ideal para desarrollo y pruebas.
+                    En modo mock los mensajes se registran en el historial pero no se envian
+                    realmente. Ideal para desarrollo y pruebas.
                   </div>
                 )}
               </div>
@@ -957,9 +853,7 @@ export default function AlertasPage() {
           <FormField label="Nombre" required>
             <Input
               value={ruleForm.name}
-              onChange={(e) =>
-                setRuleForm((f) => ({ ...f, name: e.target.value }))
-              }
+              onChange={(e) => setRuleForm((f) => ({ ...f, name: e.target.value }))}
               placeholder="Ej: Alerta stock bajo CEDIS"
             />
           </FormField>
@@ -978,7 +872,7 @@ export default function AlertasPage() {
           </FormField>
 
           {/* Dynamic conditions */}
-          {(ruleForm.eventType === "LOT_EXPIRING") && (
+          {ruleForm.eventType === "LOT_EXPIRING" && (
             <FormField label="Dias de anticipacion">
               <Input
                 type="number"
@@ -1014,25 +908,19 @@ export default function AlertasPage() {
                 <div key={idx} className="flex items-center gap-2">
                   <Input
                     value={r.name}
-                    onChange={(e) =>
-                      updateRecipient(idx, "name", e.target.value)
-                    }
+                    onChange={(e) => updateRecipient(idx, "name", e.target.value)}
                     placeholder="Nombre"
                     className="flex-1"
                   />
                   <Input
                     value={r.phone}
-                    onChange={(e) =>
-                      updateRecipient(idx, "phone", e.target.value)
-                    }
+                    onChange={(e) => updateRecipient(idx, "phone", e.target.value)}
                     placeholder="+52 55 1234 5678"
                     className="flex-1"
                   />
                   <Input
                     value={r.role || ""}
-                    onChange={(e) =>
-                      updateRecipient(idx, "role", e.target.value)
-                    }
+                    onChange={(e) => updateRecipient(idx, "role", e.target.value)}
                     placeholder="Rol (opcional)"
                     className="w-32"
                   />
@@ -1067,9 +955,7 @@ export default function AlertasPage() {
           {/* Variable hints */}
           {EVENT_VARIABLES[ruleForm.eventType] && (
             <div className="bg-gray-50 rounded-lg p-3">
-              <p className="text-xs font-medium text-gray-600 mb-1">
-                Variables disponibles:
-              </p>
+              <p className="text-xs font-medium text-gray-600 mb-1">Variables disponibles:</p>
               <div className="flex flex-wrap gap-1.5">
                 {EVENT_VARIABLES[ruleForm.eventType].map((v) => (
                   <button
@@ -1098,9 +984,7 @@ export default function AlertasPage() {
             <input
               type="checkbox"
               checked={ruleForm.isActive}
-              onChange={(e) =>
-                setRuleForm((f) => ({ ...f, isActive: e.target.checked }))
-              }
+              onChange={(e) => setRuleForm((f) => ({ ...f, isActive: e.target.checked }))}
               className="rounded"
             />
             <span className="text-sm">Regla activa</span>
@@ -1112,11 +996,7 @@ export default function AlertasPage() {
               Cancelar
             </Button>
             <Button onClick={saveRule} disabled={saving}>
-              {saving
-                ? "Guardando..."
-                : editingRule
-                  ? "Actualizar Regla"
-                  : "Crear Regla"}
+              {saving ? "Guardando..." : editingRule ? "Actualizar Regla" : "Crear Regla"}
             </Button>
           </div>
         </div>

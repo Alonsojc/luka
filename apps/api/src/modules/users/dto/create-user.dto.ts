@@ -1,10 +1,4 @@
-import {
-  IsEmail,
-  IsString,
-  MinLength,
-  IsOptional,
-  IsIn,
-} from "class-validator";
+import { IsEmail, IsString, MinLength, IsOptional, IsIn } from "class-validator";
 import { IsStrongPassword } from "../../../common/validators/strong-password.validator";
 
 export class CreateUserDto {

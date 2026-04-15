@@ -16,9 +16,7 @@ export class AuditLogProcessor extends WorkerHost {
     try {
       await this.prisma.auditLog.create({ data: job.data });
     } catch (error: any) {
-      this.logger.error(
-        `Failed to persist audit log (job ${job.id}): ${error.message}`,
-      );
+      this.logger.error(`Failed to persist audit log (job ${job.id}): ${error.message}`);
       throw error; // BullMQ will retry based on defaultJobOptions
     }
   }

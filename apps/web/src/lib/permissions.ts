@@ -40,10 +40,7 @@ export const ROUTE_PERMISSIONS: Record<string, string> = {
  * Check whether the user holds a specific permission string.
  * Returns true when no permission is required (empty string).
  */
-export function hasPermission(
-  userPermissions: string[],
-  required: string,
-): boolean {
+export function hasPermission(userPermissions: string[], required: string): boolean {
   if (!required) return true;
   return userPermissions.includes(required);
 }

@@ -1,13 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import {
-  LayoutDashboard,
-  Package,
-  BarChart3,
-  Bell,
-  Menu,
-} from "lucide-react";
+import { LayoutDashboard, Package, BarChart3, Bell, Menu } from "lucide-react";
 
 const NAV_ITEMS = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -16,11 +10,7 @@ const NAV_ITEMS = [
   { name: "Alertas", href: "/alertas", icon: Bell },
 ];
 
-export function BottomNav({
-  onMenuClick,
-}: {
-  onMenuClick: () => void;
-}) {
+export function BottomNav({ onMenuClick }: { onMenuClick: () => void }) {
   const pathname = usePathname();
 
   return (
@@ -33,9 +23,7 @@ export function BottomNav({
             key={item.href}
             href={item.href}
             className={`flex flex-col items-center gap-0.5 px-3 py-2 min-w-[64px] rounded-lg transition-colors ${
-              isActive
-                ? "text-foreground"
-                : "text-muted-foreground"
+              isActive ? "text-foreground" : "text-muted-foreground"
             }`}
           >
             <Icon className={`h-5 w-5 ${isActive ? "text-foreground" : ""}`} />

@@ -3,15 +3,13 @@ export const REGIMEN_FISCAL = [
   { clave: "603", descripcion: "Personas Morales con Fines no Lucrativos" },
   {
     clave: "605",
-    descripcion:
-      "Sueldos y Salarios e Ingresos Asimilados a Salarios",
+    descripcion: "Sueldos y Salarios e Ingresos Asimilados a Salarios",
   },
   { clave: "606", descripcion: "Arrendamiento" },
   { clave: "608", descripcion: "Dem\u00e1s ingresos" },
   {
     clave: "610",
-    descripcion:
-      "Residentes en el Extranjero sin Establecimiento Permanente en M\u00e9xico",
+    descripcion: "Residentes en el Extranjero sin Establecimiento Permanente en M\u00e9xico",
   },
   {
     clave: "611",
@@ -19,21 +17,18 @@ export const REGIMEN_FISCAL = [
   },
   {
     clave: "612",
-    descripcion:
-      "Personas F\u00edsicas con Actividades Empresariales y Profesionales",
+    descripcion: "Personas F\u00edsicas con Actividades Empresariales y Profesionales",
   },
   { clave: "614", descripcion: "Ingresos por intereses" },
   { clave: "616", descripcion: "Sin obligaciones fiscales" },
   {
     clave: "620",
-    descripcion:
-      "Sociedades Cooperativas de Producci\u00f3n que optan por diferir sus ingresos",
+    descripcion: "Sociedades Cooperativas de Producci\u00f3n que optan por diferir sus ingresos",
   },
   { clave: "621", descripcion: "Incorporaci\u00f3n Fiscal" },
   {
     clave: "622",
-    descripcion:
-      "Actividades Agr\u00edcolas, Ganaderas, Silv\u00edcolas y Pesqueras",
+    descripcion: "Actividades Agr\u00edcolas, Ganaderas, Silv\u00edcolas y Pesqueras",
   },
   { clave: "623", descripcion: "Opcional para Grupos de Sociedades" },
   { clave: "624", descripcion: "Coordinados" },
@@ -68,13 +63,11 @@ export const USO_CFDI = [
   { clave: "I08", descripcion: "Otra maquinaria y equipo" },
   {
     clave: "D01",
-    descripcion:
-      "Honorarios m\u00e9dicos, dentales y gastos hospitalarios",
+    descripcion: "Honorarios m\u00e9dicos, dentales y gastos hospitalarios",
   },
   {
     clave: "D02",
-    descripcion:
-      "Gastos m\u00e9dicos por incapacidad o discapacidad",
+    descripcion: "Gastos m\u00e9dicos por incapacidad o discapacidad",
   },
   { clave: "D03", descripcion: "Gastos funerales" },
   { clave: "D04", descripcion: "Donativos" },
@@ -153,7 +146,6 @@ export const MOTIVO_CANCELACION = [
   },
   {
     clave: "04",
-    descripcion:
-      "Operaci\u00f3n nominativa relacionada en una factura global",
+    descripcion: "Operaci\u00f3n nominativa relacionada en una factura global",
   },
 ];

@@ -19,8 +19,20 @@ describe("JournalEntriesService", () => {
     description: "Compra de insumos",
     status: "DRAFT",
     lines: [
-      { id: "l-1", accountId: "acc-1", debit: 1000, credit: 0, account: { code: "1100", name: "Bancos" } },
-      { id: "l-2", accountId: "acc-2", debit: 0, credit: 1000, account: { code: "2100", name: "Proveedores" } },
+      {
+        id: "l-1",
+        accountId: "acc-1",
+        debit: 1000,
+        credit: 0,
+        account: { code: "1100", name: "Bancos" },
+      },
+      {
+        id: "l-2",
+        accountId: "acc-2",
+        debit: 0,
+        credit: 1000,
+        account: { code: "2100", name: "Proveedores" },
+      },
     ],
     branch: null,
   };
@@ -41,10 +53,7 @@ describe("JournalEntriesService", () => {
     };
 
     const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        JournalEntriesService,
-        { provide: PrismaService, useValue: mockPrisma },
-      ],
+      providers: [JournalEntriesService, { provide: PrismaService, useValue: mockPrisma }],
     }).compile();
 
     service = module.get<JournalEntriesService>(JournalEntriesService);
@@ -143,9 +152,7 @@ describe("JournalEntriesService", () => {
         status: "POSTED",
       });
 
-      await expect(service.post(ORG_ID, "je-1", USER_ID)).rejects.toThrow(
-        BadRequestException,
-      );
+      await expect(service.post(ORG_ID, "je-1", USER_ID)).rejects.toThrow(BadRequestException);
     });
   });
 
@@ -167,9 +174,7 @@ describe("JournalEntriesService", () => {
     it("should reject reversing a draft entry", async () => {
       mockPrisma.journalEntry.findFirst.mockResolvedValue(mockEntry);
 
-      await expect(service.reverse(ORG_ID, "je-1")).rejects.toThrow(
-        BadRequestException,
-      );
+      await expect(service.reverse(ORG_ID, "je-1")).rejects.toThrow(BadRequestException);
     });
   });
 
@@ -180,9 +185,9 @@ describe("JournalEntriesService", () => {
         status: "POSTED",
       });
 
-      await expect(
-        service.update(ORG_ID, "je-1", { description: "New desc" }),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.update(ORG_ID, "je-1", { description: "New desc" })).rejects.toThrow(
+        BadRequestException,
+      );
     });
 
     it("should validate double-entry on line updates", async () => {

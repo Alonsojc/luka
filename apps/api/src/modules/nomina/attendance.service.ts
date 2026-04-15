@@ -1,11 +1,7 @@
-import {
-  Injectable,
-  NotFoundException,
-  ConflictException,
-} from "@nestjs/common";
+import { Injectable, NotFoundException, ConflictException } from "@nestjs/common";
 import { PrismaService } from "../../common/prisma/prisma.service";
 import { Prisma } from "@prisma/client";
-type Decimal = Prisma.Decimal;
+const Decimal = Prisma.Decimal;
 
 @Injectable()
 export class AttendanceService {
@@ -16,9 +12,7 @@ export class AttendanceService {
    */
   private getTodayDate(): Date {
     const now = new Date();
-    const mx = new Date(
-      now.toLocaleString("en-US", { timeZone: "America/Mexico_City" }),
-    );
+    const mx = new Date(now.toLocaleString("en-US", { timeZone: "America/Mexico_City" }));
     mx.setHours(0, 0, 0, 0);
     return mx;
   }
@@ -125,14 +119,10 @@ export class AttendanceService {
       where: { employeeId_date: { employeeId, date: today } },
     });
     if (!record) {
-      throw new NotFoundException(
-        "No se encontró registro de entrada para hoy",
-      );
+      throw new NotFoundException("No se encontró registro de entrada para hoy");
     }
     if (!record.clockIn) {
-      throw new ConflictException(
-        "El empleado no ha registrado entrada hoy",
-      );
+      throw new ConflictException("El empleado no ha registrado entrada hoy");
     }
     if (record.clockOut) {
       throw new ConflictException("El empleado ya registró salida hoy");
@@ -207,17 +197,11 @@ export class AttendanceService {
     });
 
     // Summary counts
-    const present = result.filter(
-      (r) => r.record?.status === "PRESENT",
-    ).length;
+    const present = result.filter((r) => r.record?.status === "PRESENT").length;
     const late = result.filter((r) => r.record?.status === "LATE").length;
-    const absent = result.filter(
-      (r) => r.record?.status === "ABSENT",
-    ).length;
+    const absent = result.filter((r) => r.record?.status === "ABSENT").length;
     const notYet = result.filter((r) => !r.record).length;
-    const holiday = result.filter(
-      (r) => r.record?.status === "HOLIDAY",
-    ).length;
+    const holiday = result.filter((r) => r.record?.status === "HOLIDAY").length;
 
     return {
       date: today,
@@ -229,12 +213,7 @@ export class AttendanceService {
   /**
    * Get attendance records for a date range.
    */
-  async getByDateRange(
-    orgId: string,
-    branchId: string,
-    startDate: string,
-    endDate: string,
-  ) {
+  async getByDateRange(orgId: string, branchId: string, startDate: string, endDate: string) {
     return this.prisma.attendanceRecord.findMany({
       where: {
         organizationId: orgId,
@@ -245,7 +224,15 @@ export class AttendanceService {
         },
       },
       include: {
-        employee: { select: { id: true, firstName: true, lastName: true, jobPosition: true, employeeNumber: true } },
+        employee: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            jobPosition: true,
+            employeeNumber: true,
+          },
+        },
       },
       orderBy: [{ date: "desc" }, { employee: { lastName: "asc" } }],
     });
@@ -337,16 +324,12 @@ export class AttendanceService {
 
     const updateData: any = {};
     if (data.clockIn !== undefined) updateData.clockIn = new Date(data.clockIn);
-    if (data.clockOut !== undefined)
-      updateData.clockOut = new Date(data.clockOut);
+    if (data.clockOut !== undefined) updateData.clockOut = new Date(data.clockOut);
     if (data.status !== undefined) updateData.status = data.status;
     if (data.notes !== undefined) updateData.notes = data.notes;
-    if (data.lateMinutes !== undefined)
-      updateData.lateMinutes = data.lateMinutes;
-    if (data.earlyLeaveMin !== undefined)
-      updateData.earlyLeaveMin = data.earlyLeaveMin;
-    if (data.overtimeMin !== undefined)
-      updateData.overtimeMin = data.overtimeMin;
+    if (data.lateMinutes !== undefined) updateData.lateMinutes = data.lateMinutes;
+    if (data.earlyLeaveMin !== undefined) updateData.earlyLeaveMin = data.earlyLeaveMin;
+    if (data.overtimeMin !== undefined) updateData.overtimeMin = data.overtimeMin;
     if (data.workedHours !== undefined)
       updateData.workedHours = new Decimal(data.workedHours.toFixed(2));
 
@@ -368,12 +351,7 @@ export class AttendanceService {
   /**
    * Monthly attendance for a single employee.
    */
-  async getEmployeeAttendance(
-    orgId: string,
-    employeeId: string,
-    month: number,
-    year: number,
-  ) {
+  async getEmployeeAttendance(orgId: string, employeeId: string, month: number, year: number) {
     const startDate = new Date(year, month - 1, 1);
     const endDate = new Date(year, month, 0); // Last day of month
 
@@ -393,20 +371,12 @@ export class AttendanceService {
       orderBy: { date: "asc" },
     });
 
-    const present = records.filter(
-      (r) => r.status === "PRESENT" || r.status === "LATE",
-    ).length;
+    const present = records.filter((r) => r.status === "PRESENT" || r.status === "LATE").length;
     const late = records.filter((r) => r.status === "LATE").length;
     const absent = records.filter((r) => r.status === "ABSENT").length;
     const holidays = records.filter((r) => r.status === "HOLIDAY").length;
-    const totalWorkedHours = records.reduce(
-      (sum, r) => sum + Number(r.workedHours || 0),
-      0,
-    );
-    const totalOvertimeMin = records.reduce(
-      (sum, r) => sum + r.overtimeMin,
-      0,
-    );
+    const totalWorkedHours = records.reduce((sum, r) => sum + Number(r.workedHours || 0), 0);
+    const totalOvertimeMin = records.reduce((sum, r) => sum + r.overtimeMin, 0);
 
     return {
       employee,
@@ -428,12 +398,7 @@ export class AttendanceService {
   /**
    * Branch monthly summary: per-employee stats.
    */
-  async getBranchSummary(
-    orgId: string,
-    branchId: string,
-    month: number,
-    year: number,
-  ) {
+  async getBranchSummary(orgId: string, branchId: string, month: number, year: number) {
     const startDate = new Date(year, month - 1, 1);
     const endDate = new Date(year, month, 0);
 
@@ -465,14 +430,8 @@ export class AttendanceService {
       ).length;
       const late = empRecords.filter((r) => r.status === "LATE").length;
       const absent = empRecords.filter((r) => r.status === "ABSENT").length;
-      const totalHours = empRecords.reduce(
-        (sum, r) => sum + Number(r.workedHours || 0),
-        0,
-      );
-      const totalOvertimeMin = empRecords.reduce(
-        (sum, r) => sum + r.overtimeMin,
-        0,
-      );
+      const totalHours = empRecords.reduce((sum, r) => sum + Number(r.workedHours || 0), 0);
+      const totalOvertimeMin = empRecords.reduce((sum, r) => sum + r.overtimeMin, 0);
       const avgHours = present > 0 ? totalHours / present : 0;
 
       return {
@@ -491,10 +450,7 @@ export class AttendanceService {
     const totalPresent = employeeSummaries.reduce((s, e) => s + e.present, 0);
     const totalLate = employeeSummaries.reduce((s, e) => s + e.late, 0);
     const totalAbsent = employeeSummaries.reduce((s, e) => s + e.absent, 0);
-    const totalHours = employeeSummaries.reduce(
-      (s, e) => s + e.totalHours,
-      0,
-    );
+    const totalHours = employeeSummaries.reduce((s, e) => s + e.totalHours, 0);
 
     return {
       month,
@@ -507,21 +463,11 @@ export class AttendanceService {
         totalHours: Number(totalHours.toFixed(2)),
         avgPunctuality:
           totalPresent + totalLate > 0
-            ? Number(
-                (
-                  ((totalPresent - totalLate) / (totalPresent + totalLate)) *
-                  100
-                ).toFixed(1),
-              )
+            ? Number((((totalPresent - totalLate) / (totalPresent + totalLate)) * 100).toFixed(1))
             : 0,
         absenteeismRate:
           totalPresent + totalLate + totalAbsent > 0
-            ? Number(
-                (
-                  (totalAbsent / (totalPresent + totalLate + totalAbsent)) *
-                  100
-                ).toFixed(1),
-              )
+            ? Number(((totalAbsent / (totalPresent + totalLate + totalAbsent)) * 100).toFixed(1))
             : 0,
       },
       employees: employeeSummaries,
@@ -531,12 +477,7 @@ export class AttendanceService {
   /**
    * Detailed attendance report for a date range.
    */
-  async getAttendanceReport(
-    orgId: string,
-    branchId: string,
-    startDate: string,
-    endDate: string,
-  ) {
+  async getAttendanceReport(orgId: string, branchId: string, startDate: string, endDate: string) {
     const start = new Date(startDate);
     const end = new Date(endDate);
 
@@ -568,14 +509,8 @@ export class AttendanceService {
       ).length;
       const late = empRecords.filter((r) => r.status === "LATE").length;
       const absent = empRecords.filter((r) => r.status === "ABSENT").length;
-      const totalOvertimeMin = empRecords.reduce(
-        (sum, r) => sum + r.overtimeMin,
-        0,
-      );
-      const totalHours = empRecords.reduce(
-        (sum, r) => sum + Number(r.workedHours || 0),
-        0,
-      );
+      const totalOvertimeMin = empRecords.reduce((sum, r) => sum + r.overtimeMin, 0);
+      const totalHours = empRecords.reduce((sum, r) => sum + Number(r.workedHours || 0), 0);
 
       // Calculate average arrival time
       const clockIns = empRecords
@@ -585,9 +520,7 @@ export class AttendanceService {
           return d.getHours() * 60 + d.getMinutes();
         });
       const avgArrivalMin =
-        clockIns.length > 0
-          ? clockIns.reduce((s, m) => s + m, 0) / clockIns.length
-          : 0;
+        clockIns.length > 0 ? clockIns.reduce((s, m) => s + m, 0) / clockIns.length : 0;
       const avgArrivalHour = Math.floor(avgArrivalMin / 60);
       const avgArrivalMinute = Math.round(avgArrivalMin % 60);
       const avgArrival =
@@ -596,9 +529,7 @@ export class AttendanceService {
           : "—";
 
       const punctuality =
-        present + late > 0
-          ? Number((((present - late) / (present + late)) * 100).toFixed(1))
-          : 0;
+        present + late > 0 ? Number((((present - late) / (present + late)) * 100).toFixed(1)) : 0;
 
       return {
         employee: emp,

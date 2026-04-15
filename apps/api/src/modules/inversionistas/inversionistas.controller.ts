@@ -3,10 +3,7 @@ import { ApiTags, ApiBearerAuth } from "@nestjs/swagger";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
 import { Roles } from "../../common/decorators/roles.decorator";
-import {
-  CurrentUser,
-  JwtPayload,
-} from "../../common/decorators/current-user.decorator";
+import { CurrentUser, JwtPayload } from "../../common/decorators/current-user.decorator";
 import { InversionistasService } from "./inversionistas.service";
 
 @ApiTags("Inversionistas")
@@ -37,11 +34,7 @@ export class InversionistasController {
     @Query("startDate") startDate: string,
     @Query("endDate") endDate: string,
   ) {
-    return this.inversionistasService.consolidatedPnL(
-      user.organizationId,
-      startDate,
-      endDate,
-    );
+    return this.inversionistasService.consolidatedPnL(user.organizationId, startDate, endDate);
   }
 
   @Get("roi")
@@ -51,10 +44,6 @@ export class InversionistasController {
     @Query("startDate") startDate: string,
     @Query("endDate") endDate: string,
   ) {
-    return this.inversionistasService.roiSummary(
-      user.organizationId,
-      startDate,
-      endDate,
-    );
+    return this.inversionistasService.roiSummary(user.organizationId, startDate, endDate);
   }
 }

@@ -1,11 +1,4 @@
-import {
-  Injectable,
-  OnModuleInit,
-  OnModuleDestroy,
-  Scope,
-} from "@nestjs/common";
-import { REQUEST } from "@nestjs/core";
-import { Inject } from "@nestjs/common";
+import { Injectable, OnModuleInit, OnModuleDestroy } from "@nestjs/common";
 import { PrismaClient } from "@luka/database";
 
 /**
@@ -81,16 +74,10 @@ const FILTERED_OPERATIONS = new Set([
 ]);
 
 @Injectable()
-export class PrismaService
-  extends PrismaClient
-  implements OnModuleInit, OnModuleDestroy
-{
+export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
   constructor() {
     super({
-      log:
-        process.env.NODE_ENV === "development"
-          ? ["error", "warn"]
-          : ["error"],
+      log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
     });
 
     // Prisma middleware that automatically injects organizationId on read queries.
@@ -100,12 +87,7 @@ export class PrismaService
       const model = params.model;
       const action = params.action;
 
-      if (
-        model &&
-        ORG_SCOPED_MODELS.has(model) &&
-        action &&
-        FILTERED_OPERATIONS.has(action)
-      ) {
+      if (model && ORG_SCOPED_MODELS.has(model) && action && FILTERED_OPERATIONS.has(action)) {
         // The organizationId is injected via request context by the
         // TenantInterceptor. If present, merge it into the where clause.
         const tenantId = (this as any).__tenantOrgId;

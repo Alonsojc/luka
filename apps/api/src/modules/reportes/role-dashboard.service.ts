@@ -15,8 +15,10 @@ export class RoleDashboardService {
     dateRange?: { start: Date; end: Date },
   ) {
     const now = new Date();
-    const todayStart = dateRange?.start ?? new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const todayEnd = dateRange?.end ?? new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+    const todayStart =
+      dateRange?.start ?? new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const todayEnd =
+      dateRange?.end ?? new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
     const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     const twoWeeksAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
     const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
@@ -29,7 +31,8 @@ export class RoleDashboardService {
 
     const totalProducts = inventory.length;
     const lowStockItems = inventory.filter(
-      (inv) => Number(inv.currentQuantity) <= Number(inv.minimumStock) && Number(inv.minimumStock) > 0,
+      (inv) =>
+        Number(inv.currentQuantity) <= Number(inv.minimumStock) && Number(inv.minimumStock) > 0,
     );
     const lowStockCount = lowStockItems.length;
     const inventoryValue = inventory.reduce(
@@ -105,7 +108,9 @@ export class RoleDashboardService {
     // --- Sales chart (by day or by week depending on range) ---
     const salesByDay: { date: string; total: number; count: number }[] = [];
     if (dateRange) {
-      const rangeDays = Math.ceil((dateRange.end.getTime() - dateRange.start.getTime()) / (1000 * 60 * 60 * 24));
+      const rangeDays = Math.ceil(
+        (dateRange.end.getTime() - dateRange.start.getTime()) / (1000 * 60 * 60 * 24),
+      );
       const groupByWeek = rangeDays > 30;
 
       if (groupByWeek) {
@@ -113,7 +118,9 @@ export class RoleDashboardService {
         const cursor = new Date(dateRange.start);
         while (cursor < dateRange.end) {
           const bucketStart = new Date(cursor);
-          const bucketEnd = new Date(Math.min(cursor.getTime() + 7 * 24 * 60 * 60 * 1000 - 1, dateRange.end.getTime()));
+          const bucketEnd = new Date(
+            Math.min(cursor.getTime() + 7 * 24 * 60 * 60 * 1000 - 1, dateRange.end.getTime()),
+          );
           const [cAgg, pAgg] = await Promise.all([
             this.prisma.corntechSale.aggregate({
               where: { branchId, saleDate: { gte: bucketStart, lte: bucketEnd } },
@@ -129,7 +136,8 @@ export class RoleDashboardService {
           const label = `${bucketStart.getDate()}/${bucketStart.getMonth() + 1}`;
           salesByDay.push({
             date: label,
-            total: Math.round((Number(cAgg._sum.total || 0) + Number(pAgg._sum.total || 0)) * 100) / 100,
+            total:
+              Math.round((Number(cAgg._sum.total || 0) + Number(pAgg._sum.total || 0)) * 100) / 100,
             count: (cAgg._count.id || 0) + (pAgg._count.id || 0),
           });
           cursor.setDate(cursor.getDate() + 7);
@@ -140,7 +148,15 @@ export class RoleDashboardService {
         const dayNames = ["Dom", "Lun", "Mar", "Mie", "Jue", "Vie", "Sab"];
         while (cursor <= dateRange.end) {
           const dayStart = new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate());
-          const dayEnd = new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate(), 23, 59, 59, 999);
+          const dayEnd = new Date(
+            cursor.getFullYear(),
+            cursor.getMonth(),
+            cursor.getDate(),
+            23,
+            59,
+            59,
+            999,
+          );
           const [cAgg, pAgg] = await Promise.all([
             this.prisma.corntechSale.aggregate({
               where: { branchId, saleDate: { gte: dayStart, lte: dayEnd } },
@@ -155,7 +171,8 @@ export class RoleDashboardService {
           ]);
           salesByDay.push({
             date: dayNames[dayStart.getDay()],
-            total: Math.round((Number(cAgg._sum.total || 0) + Number(pAgg._sum.total || 0)) * 100) / 100,
+            total:
+              Math.round((Number(cAgg._sum.total || 0) + Number(pAgg._sum.total || 0)) * 100) / 100,
             count: (cAgg._count.id || 0) + (pAgg._count.id || 0),
           });
           cursor.setDate(cursor.getDate() + 1);
@@ -165,7 +182,15 @@ export class RoleDashboardService {
       // Default: last 7 days
       for (let i = 6; i >= 0; i--) {
         const dayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i);
-        const dayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() - i, 23, 59, 59, 999);
+        const dayEnd = new Date(
+          now.getFullYear(),
+          now.getMonth(),
+          now.getDate() - i,
+          23,
+          59,
+          59,
+          999,
+        );
         const [cAgg, pAgg] = await Promise.all([
           this.prisma.corntechSale.aggregate({
             where: { branchId, saleDate: { gte: dayStart, lte: dayEnd } },
@@ -181,7 +206,8 @@ export class RoleDashboardService {
         const dayNames = ["Dom", "Lun", "Mar", "Mie", "Jue", "Vie", "Sab"];
         salesByDay.push({
           date: dayNames[dayStart.getDay()],
-          total: Math.round((Number(cAgg._sum.total || 0) + Number(pAgg._sum.total || 0)) * 100) / 100,
+          total:
+            Math.round((Number(cAgg._sum.total || 0) + Number(pAgg._sum.total || 0)) * 100) / 100,
           count: (cAgg._count.id || 0) + (pAgg._count.id || 0),
         });
       }
@@ -238,8 +264,10 @@ export class RoleDashboardService {
   // =========================================================================
   async getCedisDashboard(organizationId: string, dateRange?: { start: Date; end: Date }) {
     const now = new Date();
-    const todayStart = dateRange?.start ?? new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const todayEnd = dateRange?.end ?? new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+    const todayStart =
+      dateRange?.start ?? new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const todayEnd =
+      dateRange?.end ?? new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
     const weekAgo = dateRange?.start ?? new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 
@@ -279,7 +307,8 @@ export class RoleDashboardService {
       where: { branchId: { in: branchIds } },
     });
     const reorderAlerts = allInventory.filter(
-      (inv) => Number(inv.currentQuantity) <= Number(inv.minimumStock) && Number(inv.minimumStock) > 0,
+      (inv) =>
+        Number(inv.currentQuantity) <= Number(inv.minimumStock) && Number(inv.minimumStock) > 0,
     ).length;
 
     // --- Today's dispatches (transfers created today) ---
@@ -316,7 +345,10 @@ export class RoleDashboardService {
       include: { product: { select: { name: true, sku: true } } },
     });
 
-    const productRequestMap = new Map<string, { name: string; sku: string; count: number; totalQty: number }>();
+    const productRequestMap = new Map<
+      string,
+      { name: string; sku: string; count: number; totalQty: number }
+    >();
     for (const item of recentReqItems) {
       const key = item.productId;
       const existing = productRequestMap.get(key) || {
@@ -384,7 +416,8 @@ export class RoleDashboardService {
   async getInvestorDashboard(organizationId: string, dateRange?: { start: Date; end: Date }) {
     const now = new Date();
     const currentMonthStart = dateRange?.start ?? new Date(now.getFullYear(), now.getMonth(), 1);
-    const currentMonthEnd = dateRange?.end ?? new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+    const currentMonthEnd =
+      dateRange?.end ?? new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
     const prevMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     const prevMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
 
@@ -397,7 +430,10 @@ export class RoleDashboardService {
     // --- Revenue this month vs last month ---
     const [curCorntech, curPos, prevCorntech, prevPos] = await Promise.all([
       this.prisma.corntechSale.aggregate({
-        where: { branchId: { in: branchIds }, saleDate: { gte: currentMonthStart, lte: currentMonthEnd } },
+        where: {
+          branchId: { in: branchIds },
+          saleDate: { gte: currentMonthStart, lte: currentMonthEnd },
+        },
         _sum: { total: true },
       }),
       this.prisma.posSale.aggregate({
@@ -405,7 +441,10 @@ export class RoleDashboardService {
         _sum: { total: true },
       }),
       this.prisma.corntechSale.aggregate({
-        where: { branchId: { in: branchIds }, saleDate: { gte: prevMonthStart, lte: prevMonthEnd } },
+        where: {
+          branchId: { in: branchIds },
+          saleDate: { gte: prevMonthStart, lte: prevMonthEnd },
+        },
         _sum: { total: true },
       }),
       this.prisma.posSale.aggregate({
@@ -414,10 +453,8 @@ export class RoleDashboardService {
       }),
     ]);
 
-    const revenueThisMonth =
-      Number(curCorntech._sum.total || 0) + Number(curPos._sum.total || 0);
-    const revenueLastMonth =
-      Number(prevCorntech._sum.total || 0) + Number(prevPos._sum.total || 0);
+    const revenueThisMonth = Number(curCorntech._sum.total || 0) + Number(curPos._sum.total || 0);
+    const revenueLastMonth = Number(prevCorntech._sum.total || 0) + Number(prevPos._sum.total || 0);
     const revenueChange =
       revenueLastMonth > 0
         ? Math.round(((revenueThisMonth - revenueLastMonth) / revenueLastMonth) * 10000) / 100
@@ -455,7 +492,8 @@ export class RoleDashboardService {
       ]);
       branchRevenue.push({
         name: br.name,
-        revenue: Math.round((Number(cAgg._sum.total || 0) + Number(pAgg._sum.total || 0)) * 100) / 100,
+        revenue:
+          Math.round((Number(cAgg._sum.total || 0) + Number(pAgg._sum.total || 0)) * 100) / 100,
       });
     }
     const topBranches = branchRevenue.sort((a, b) => b.revenue - a.revenue).slice(0, 5);
@@ -465,7 +503,20 @@ export class RoleDashboardService {
     for (let i = 11; i >= 0; i--) {
       const mStart = new Date(now.getFullYear(), now.getMonth() - i, 1);
       const mEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0, 23, 59, 59, 999);
-      const monthNames = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+      const monthNames = [
+        "Ene",
+        "Feb",
+        "Mar",
+        "Abr",
+        "May",
+        "Jun",
+        "Jul",
+        "Ago",
+        "Sep",
+        "Oct",
+        "Nov",
+        "Dic",
+      ];
       const label = `${monthNames[mStart.getMonth()]} ${mStart.getFullYear().toString().slice(-2)}`;
 
       const [mCorntech, mPos, mExpenses] = await Promise.all([
@@ -489,7 +540,9 @@ export class RoleDashboardService {
 
       monthlyTrend.push({
         month: label,
-        revenue: Math.round((Number(mCorntech._sum.total || 0) + Number(mPos._sum.total || 0)) * 100) / 100,
+        revenue:
+          Math.round((Number(mCorntech._sum.total || 0) + Number(mPos._sum.total || 0)) * 100) /
+          100,
         expenses: Math.round(Number(mExpenses._sum.total || 0) * 100) / 100,
       });
     }
@@ -515,9 +568,7 @@ export class RoleDashboardService {
 
     // --- Food cost % ---
     const foodCostPct =
-      revenueThisMonth > 0
-        ? Math.round((expensesThisMonth / revenueThisMonth) * 10000) / 100
-        : 0;
+      revenueThisMonth > 0 ? Math.round((expensesThisMonth / revenueThisMonth) * 10000) / 100 : 0;
 
     return {
       type: "investor" as const,
@@ -554,14 +605,15 @@ export class RoleDashboardService {
     });
     const bankAccountIds = bankAccounts.map((b) => b.id);
 
-    const unreconciledTxns = bankAccountIds.length > 0
-      ? await this.prisma.bankTransaction.count({
-          where: {
-            bankAccountId: { in: bankAccountIds },
-            isReconciled: false,
-          },
-        })
-      : 0;
+    const unreconciledTxns =
+      bankAccountIds.length > 0
+        ? await this.prisma.bankTransaction.count({
+            where: {
+              bankAccountId: { in: bankAccountIds },
+              isReconciled: false,
+            },
+          })
+        : 0;
 
     // --- Open fiscal period ---
     const openPeriod = await this.prisma.fiscalPeriod.findFirst({
@@ -596,7 +648,8 @@ export class RoleDashboardService {
 
     // --- ISR/IVA provisional (sum from revenue CFDIs this month or dateRange) ---
     const currentMonthStart = dateRange?.start ?? new Date(now.getFullYear(), now.getMonth(), 1);
-    const currentMonthEnd = dateRange?.end ?? new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+    const currentMonthEnd =
+      dateRange?.end ?? new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
 
     const revenueCfdis = await this.prisma.cFDI.findMany({
       where: {
@@ -611,7 +664,7 @@ export class RoleDashboardService {
     const totalSubtotal = revenueCfdis.reduce((sum, c) => sum + Number(c.subtotal), 0);
     const totalTotal = revenueCfdis.reduce((sum, c) => sum + Number(c.total), 0);
     const ivaEstimate = Math.round((totalTotal - totalSubtotal) * 100) / 100;
-    const isrEstimate = Math.round(totalSubtotal * 0.10 * 100) / 100; // Simplified ISR provisional
+    const isrEstimate = Math.round(totalSubtotal * 0.1 * 100) / 100; // Simplified ISR provisional
 
     return {
       type: "accountant" as const,

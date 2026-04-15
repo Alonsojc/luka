@@ -1,21 +1,9 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Patch,
-  Param,
-  Body,
-  Query,
-  UseGuards,
-} from "@nestjs/common";
+import { Controller, Get, Post, Patch, Param, Body, Query, UseGuards } from "@nestjs/common";
 import { ApiTags, ApiBearerAuth } from "@nestjs/swagger";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
 import { Permissions } from "../../common/decorators/roles.decorator";
-import {
-  CurrentUser,
-  JwtPayload,
-} from "../../common/decorators/current-user.decorator";
+import { CurrentUser, JwtPayload } from "../../common/decorators/current-user.decorator";
 import { TransfersService } from "./transfers.service";
 import { CreateTransferDto } from "./dto/create-transfer.dto";
 import { ShipTransferDto } from "./dto/ship-transfer.dto";
@@ -56,10 +44,7 @@ export class TransfersController {
 
   @Post()
   @Permissions("inventarios:create")
-  create(
-    @CurrentUser() user: JwtPayload,
-    @Body() dto: CreateTransferDto,
-  ) {
+  create(@CurrentUser() user: JwtPayload, @Body() dto: CreateTransferDto) {
     return this.transfersService.create(user.sub, user.organizationId, dto);
   }
 
@@ -71,11 +56,7 @@ export class TransfersController {
 
   @Patch(":id/ship")
   @Permissions("inventarios:edit")
-  ship(
-    @CurrentUser() user: JwtPayload,
-    @Param("id") id: string,
-    @Body() dto: ShipTransferDto,
-  ) {
+  ship(@CurrentUser() user: JwtPayload, @Param("id") id: string, @Body() dto: ShipTransferDto) {
     return this.transfersService.ship(id, dto, user.sub, user.organizationId);
   }
 

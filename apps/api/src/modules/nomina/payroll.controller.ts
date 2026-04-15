@@ -1,22 +1,10 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Patch,
-  Param,
-  Body,
-  Res,
-  UseGuards,
-} from "@nestjs/common";
+import { Controller, Get, Post, Patch, Param, Body, Res, UseGuards } from "@nestjs/common";
 import { ApiTags, ApiBearerAuth } from "@nestjs/swagger";
 import type { Response } from "express";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
 import { Permissions } from "../../common/decorators/roles.decorator";
-import {
-  CurrentUser,
-  JwtPayload,
-} from "../../common/decorators/current-user.decorator";
+import { CurrentUser, JwtPayload } from "../../common/decorators/current-user.decorator";
 import { PayrollService } from "./payroll.service";
 
 @ApiTags("Nomina - Periodos")
@@ -39,10 +27,7 @@ export class PayrollController {
     @Param("periodId") periodId: string,
     @Res() res: Response,
   ) {
-    const period = await this.payrollService.findPeriod(
-      user.organizationId,
-      periodId,
-    );
+    const period = await this.payrollService.findPeriod(user.organizationId, periodId);
 
     const header = [
       "Numero Empleado",

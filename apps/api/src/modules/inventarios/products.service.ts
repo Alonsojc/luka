@@ -25,7 +25,8 @@ export class ProductsService {
     },
   ) {
     // Use cache only for unfiltered requests (default listing)
-    const isUnfiltered = !filters?.search && !filters?.categoryId && !filters?.includeInactive && !filters?.page;
+    const isUnfiltered =
+      !filters?.search && !filters?.categoryId && !filters?.includeInactive && !filters?.page;
     const cacheKey = `products:${organizationId}`;
 
     if (isUnfiltered) {

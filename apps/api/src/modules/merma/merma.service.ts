@@ -80,7 +80,9 @@ export class MermaService {
       where: { id, organizationId },
       include: {
         branch: { select: { id: true, name: true, code: true } },
-        product: { select: { id: true, name: true, sku: true, unitOfMeasure: true, costPerUnit: true } },
+        product: {
+          select: { id: true, name: true, sku: true, unitOfMeasure: true, costPerUnit: true },
+        },
         reporter: { select: { id: true, firstName: true, lastName: true } },
       },
     });
@@ -235,9 +237,7 @@ export class MermaService {
     });
 
     // Get branch names
-    const branchIds = byBranchRaw
-      .map((b) => b.branchId)
-      .filter(Boolean) as string[];
+    const branchIds = byBranchRaw.map((b) => b.branchId).filter(Boolean) as string[];
     const branches =
       branchIds.length > 0
         ? await this.prisma.branch.findMany({
@@ -287,9 +287,7 @@ export class MermaService {
     const trendWhere: Prisma.WasteLogWhereInput = {
       ...where,
       reportedAt: {
-        gte: filters.dateFrom
-          ? new Date(filters.dateFrom)
-          : thirtyDaysAgo,
+        gte: filters.dateFrom ? new Date(filters.dateFrom) : thirtyDaysAgo,
         ...(filters.dateTo && {
           lte: new Date(filters.dateTo + "T23:59:59.999Z"),
         }),
@@ -303,10 +301,7 @@ export class MermaService {
     });
 
     // Group by date
-    const trendMap = new Map<
-      string,
-      { quantity: number; cost: number }
-    >();
+    const trendMap = new Map<string, { quantity: number; cost: number }>();
     for (const r of trendRaw) {
       const dateKey = r.reportedAt.toISOString().split("T")[0];
       const existing = trendMap.get(dateKey) || { quantity: 0, cost: 0 };

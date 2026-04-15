@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import {
   Bike,
   UtensilsCrossed,
@@ -11,30 +11,22 @@ import {
   ChevronLeft,
   ChevronRight,
   Search,
-  Download,
 } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
+import { useApiQuery } from "@/hooks/use-api-query";
+import { useToast } from "@/components/ui/toast";
 import { DataTable } from "@/components/ui/data-table";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { FormField, Input, Select } from "@/components/ui/form-field";
-import { formatMXN } from "@luka/shared";
-
-function safeNum(value: unknown): number {
-  const n = Number(value);
-  return isNaN(n) ? 0 : n;
-}
+import { formatMXN, safeNum } from "@luka/shared";
+import type { Branch } from "@luka/shared";
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
-
-interface Branch {
-  id: string;
-  name: string;
-  code: string;
-}
 
 interface DeliveryOrder {
   id: string;
@@ -150,7 +142,7 @@ const STATUS_LABEL: Record<string, string> = {
   CANCELLED: "Cancelada",
 };
 
-const STATUS_VARIANT: Record<string, string> = {
+const _STATUS_VARIANT: Record<string, string> = {
   RECEIVED: "blue",
   PREPARING: "yellow",
   READY: "purple",
@@ -164,32 +156,59 @@ const STATUS_VARIANT: Record<string, string> = {
 // ---------------------------------------------------------------------------
 
 export default function DeliveryPage() {
-  const { user, loading: authLoading, authFetch } = useAuth();
+  const { user: _user, loading: authLoading, authFetch } = useAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [tab, setTab] = useState<Tab>("Ordenes");
 
-  // Orders state
-  const [orders, setOrders] = useState<DeliveryOrder[]>([]);
-  const [ordersTotal, setOrdersTotal] = useState(0);
+  // Orders filter/pagination state
   const [ordersPage, setOrdersPage] = useState(1);
-  const [ordersTotalPages, setOrdersTotalPages] = useState(1);
-  const [ordersLoading, setOrdersLoading] = useState(false);
   const [filterPlatform, setFilterPlatform] = useState("");
   const [filterBranch, setFilterBranch] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
   const [filterDateFrom, setFilterDateFrom] = useState("");
   const [filterDateTo, setFilterDateTo] = useState("");
 
-  // Summary state
-  const [summary, setSummary] = useState<DeliverySummary | null>(null);
-  const [summaryLoading, setSummaryLoading] = useState(false);
+  // Build orders query string
+  const ordersQueryString = useMemo(() => {
+    const params = new URLSearchParams();
+    params.set("page", String(ordersPage));
+    params.set("limit", "25");
+    if (filterPlatform) params.set("platform", filterPlatform);
+    if (filterBranch) params.set("branchId", filterBranch);
+    if (filterStatus) params.set("status", filterStatus);
+    if (filterDateFrom) params.set("dateFrom", filterDateFrom);
+    if (filterDateTo) params.set("dateTo", filterDateTo);
+    return params.toString();
+  }, [ordersPage, filterPlatform, filterBranch, filterStatus, filterDateFrom, filterDateTo]);
 
-  // Config state
-  const [configs, setConfigs] = useState<DeliveryConfig[]>([]);
-  const [configsLoading, setConfigsLoading] = useState(false);
+  // Orders (React Query)
+  const { data: ordersResponse, isLoading: ordersLoading } = useApiQuery<OrdersResponse>(
+    `/delivery/orders?${ordersQueryString}`,
+    ["delivery-orders", ordersQueryString],
+    { enabled: tab === "Ordenes" },
+  );
+  const orders = ordersResponse?.data ?? [];
+  const ordersTotal = ordersResponse?.total ?? 0;
+  const ordersTotalPages = ordersResponse?.totalPages ?? 1;
+
+  // Summary (React Query)
+  const { data: summary, isLoading: summaryLoading } = useApiQuery<DeliverySummary>(
+    "/delivery/summary",
+    ["delivery-summary"],
+    { enabled: tab === "Dashboard" },
+  );
+
+  // Config (React Query)
+  const { data: configs = [], isLoading: configsLoading } = useApiQuery<DeliveryConfig[]>(
+    "/delivery/config",
+    ["delivery-config"],
+    { enabled: tab === "Configuracion" },
+  );
   const [syncingPlatform, setSyncingPlatform] = useState<string | null>(null);
 
-  // Branch list for filters
-  const [branches, setBranches] = useState<Branch[]>([]);
+  // Branch list for filters (React Query)
+  const { data: branches = [] } = useApiQuery<Branch[]>("/branches", ["branches"]);
 
   // Manual order modal
   const [showModal, setShowModal] = useState(false);
@@ -206,116 +225,22 @@ export default function DeliveryPage() {
   } | null>(null);
 
   // ---------------------------------------------------------------
-  // Data fetching
-  // ---------------------------------------------------------------
-
-  const fetchBranches = useCallback(async () => {
-    try {
-      const data = await authFetch<Branch[]>("get", "/branches");
-      setBranches(data);
-    } catch {
-      /* silent */
-    }
-  }, [authFetch]);
-
-  const fetchOrders = useCallback(async () => {
-    setOrdersLoading(true);
-    try {
-      const params = new URLSearchParams();
-      params.set("page", String(ordersPage));
-      params.set("limit", "25");
-      if (filterPlatform) params.set("platform", filterPlatform);
-      if (filterBranch) params.set("branchId", filterBranch);
-      if (filterStatus) params.set("status", filterStatus);
-      if (filterDateFrom) params.set("dateFrom", filterDateFrom);
-      if (filterDateTo) params.set("dateTo", filterDateTo);
-
-      const res = await authFetch<OrdersResponse>(
-        "get",
-        `/delivery/orders?${params.toString()}`,
-      );
-      setOrders(res.data);
-      setOrdersTotal(res.total);
-      setOrdersTotalPages(res.totalPages);
-    } catch {
-      /* silent */
-    } finally {
-      setOrdersLoading(false);
-    }
-  }, [
-    authFetch,
-    ordersPage,
-    filterPlatform,
-    filterBranch,
-    filterStatus,
-    filterDateFrom,
-    filterDateTo,
-  ]);
-
-  const fetchSummary = useCallback(async () => {
-    setSummaryLoading(true);
-    try {
-      const data = await authFetch<DeliverySummary>(
-        "get",
-        "/delivery/summary",
-      );
-      setSummary(data);
-    } catch {
-      /* silent */
-    } finally {
-      setSummaryLoading(false);
-    }
-  }, [authFetch]);
-
-  const fetchConfigs = useCallback(async () => {
-    setConfigsLoading(true);
-    try {
-      const data = await authFetch<DeliveryConfig[]>(
-        "get",
-        "/delivery/config",
-      );
-      setConfigs(data);
-    } catch {
-      /* silent */
-    } finally {
-      setConfigsLoading(false);
-    }
-  }, [authFetch]);
-
-  useEffect(() => {
-    if (!user) return;
-    fetchBranches();
-  }, [user, fetchBranches]);
-
-  useEffect(() => {
-    if (!user) return;
-    if (tab === "Ordenes") fetchOrders();
-  }, [user, tab, fetchOrders]);
-
-  useEffect(() => {
-    if (!user) return;
-    if (tab === "Dashboard") fetchSummary();
-  }, [user, tab, fetchSummary]);
-
-  useEffect(() => {
-    if (!user) return;
-    if (tab === "Configuracion") fetchConfigs();
-  }, [user, tab, fetchConfigs]);
-
-  // ---------------------------------------------------------------
   // Handlers
   // ---------------------------------------------------------------
 
-  const handleStatusChange = async (orderId: string, newStatus: string) => {
-    try {
-      await authFetch("patch", `/delivery/orders/${orderId}/status`, {
-        status: newStatus,
-      });
-      fetchOrders();
-    } catch {
-      /* silent */
-    }
-  };
+  const handleStatusChange = useCallback(
+    async (orderId: string, newStatus: string) => {
+      try {
+        await authFetch("patch", `/delivery/orders/${orderId}/status`, {
+          status: newStatus,
+        });
+        queryClient.invalidateQueries({ queryKey: ["delivery-orders"] });
+      } catch (err) {
+        toast(err instanceof Error ? err.message : "Error al actualizar", "error");
+      }
+    },
+    [authFetch, queryClient, toast],
+  );
 
   const handleManualOrder = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -335,9 +260,9 @@ export default function DeliveryPage() {
         items: [],
       });
       setShowModal(false);
-      fetchOrders();
-    } catch {
-      /* silent */
+      queryClient.invalidateQueries({ queryKey: ["delivery-orders"] });
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Error al guardar", "error");
     } finally {
       setModalSaving(false);
     }
@@ -350,9 +275,9 @@ export default function DeliveryPage() {
       await authFetch("post", "/delivery/config", editingConfig);
       setShowConfigModal(false);
       setEditingConfig(null);
-      fetchConfigs();
-    } catch {
-      /* silent */
+      queryClient.invalidateQueries({ queryKey: ["delivery-config"] });
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Error al guardar", "error");
     }
   };
 
@@ -360,9 +285,9 @@ export default function DeliveryPage() {
     setSyncingPlatform(platform);
     try {
       await authFetch("post", "/delivery/sync", { platform });
-      fetchConfigs();
-    } catch {
-      /* silent */
+      queryClient.invalidateQueries({ queryKey: ["delivery-config"] });
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Error al actualizar", "error");
     } finally {
       setSyncingPlatform(null);
     }
@@ -375,9 +300,9 @@ export default function DeliveryPage() {
         branchId: config.branchId || undefined,
         isActive: !config.isActive,
       });
-      fetchConfigs();
-    } catch {
-      /* silent */
+      queryClient.invalidateQueries({ queryKey: ["delivery-config"] });
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Error al actualizar", "error");
     }
   };
 
@@ -403,17 +328,14 @@ export default function DeliveryPage() {
         render: (row: DeliveryOrder) => (
           <StatusBadge
             label={PLATFORM_LABEL[row.platform] || row.platform}
-            variant={
-              (PLATFORM_VARIANT[row.platform] || "gray") as any
-            }
+            variant={(PLATFORM_VARIANT[row.platform] || "gray") as any}
           />
         ),
       },
       {
         key: "externalOrderId",
         header: "# Orden",
-        render: (row: DeliveryOrder) =>
-          row.externalOrderId || row.id.slice(0, 8),
+        render: (row: DeliveryOrder) => row.externalOrderId || row.id.slice(0, 8),
       },
       {
         key: "branch",
@@ -444,17 +366,14 @@ export default function DeliveryPage() {
         key: "fees",
         header: "Comision",
         render: (row: DeliveryOrder) => {
-          const fees =
-            safeNum(row.deliveryFee) + safeNum(row.platformFee);
+          const fees = safeNum(row.deliveryFee) + safeNum(row.platformFee);
           return fees > 0 ? formatMXN(fees) : "-";
         },
       },
       {
         key: "total",
         header: "Total",
-        render: (row: DeliveryOrder) => (
-          <span className="font-medium">{formatMXN(row.total)}</span>
-        ),
+        render: (row: DeliveryOrder) => <span className="font-medium">{formatMXN(row.total)}</span>,
       },
       {
         key: "status",
@@ -475,7 +394,7 @@ export default function DeliveryPage() {
         ),
       },
     ],
-    [],
+    [handleStatusChange],
   );
 
   // ---------------------------------------------------------------
@@ -483,11 +402,7 @@ export default function DeliveryPage() {
   // ---------------------------------------------------------------
 
   if (authLoading) {
-    return (
-      <div className="flex items-center justify-center h-64 text-gray-400">
-        Cargando...
-      </div>
-    );
+    return <div className="flex items-center justify-center h-64 text-gray-400">Cargando...</div>;
   }
 
   // ---------------------------------------------------------------
@@ -576,7 +491,11 @@ export default function DeliveryPage() {
             className="border rounded-md px-3 py-2 text-sm"
           />
         </div>
-        <Button variant="outline" size="sm" onClick={fetchOrders}>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => queryClient.invalidateQueries({ queryKey: ["delivery-orders"] })}
+        >
           <Search className="h-4 w-4" /> Buscar
         </Button>
         <div className="ml-auto">
@@ -639,26 +558,16 @@ export default function DeliveryPage() {
       );
     }
 
-    const maxPlatformOrders = Math.max(
-      ...summary.byPlatform.map((p) => p.orders),
-      1,
-    );
-    const maxBranchRevenue = Math.max(
-      ...summary.byBranch.map((b) => b.revenue),
-      1,
-    );
-    const maxDailyOrders = Math.max(
-      ...summary.dailyTrend.map((d) => d.orders),
-      1,
-    );
+    const maxPlatformOrders = Math.max(...summary.byPlatform.map((p) => p.orders), 1);
+    const maxBranchRevenue = Math.max(...summary.byBranch.map((b) => b.revenue), 1);
+    const maxDailyOrders = Math.max(...summary.dailyTrend.map((d) => d.orders), 1);
 
     // Top products from all order items
     const productCountMap: Record<string, number> = {};
     for (const order of orders) {
       if (order.items && Array.isArray(order.items)) {
         for (const item of order.items) {
-          productCountMap[item.name] =
-            (productCountMap[item.name] || 0) + item.qty;
+          productCountMap[item.name] = (productCountMap[item.name] || 0) + item.qty;
         }
       }
     }
@@ -690,10 +599,7 @@ export default function DeliveryPage() {
               value: formatMXN(summary.avgOrderValue),
             },
           ].map((kpi) => (
-            <div
-              key={kpi.label}
-              className="rounded-xl border bg-white p-4"
-            >
+            <div key={kpi.label} className="rounded-xl border bg-white p-4">
               <p className="text-xs text-gray-500 mb-1">{kpi.label}</p>
               <p className="text-xl font-semibold">{kpi.value}</p>
             </div>
@@ -703,13 +609,9 @@ export default function DeliveryPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Pie Chart: Orders by Platform */}
           <div className="rounded-xl border bg-white p-5">
-            <h3 className="text-sm font-semibold mb-4">
-              Ordenes por plataforma
-            </h3>
+            <h3 className="text-sm font-semibold mb-4">Ordenes por plataforma</h3>
             {summary.byPlatform.length === 0 ? (
-              <p className="text-gray-400 text-sm text-center py-8">
-                Sin datos
-              </p>
+              <p className="text-gray-400 text-sm text-center py-8">Sin datos</p>
             ) : (
               <div className="space-y-3">
                 {summary.byPlatform.map((p) => {
@@ -724,13 +626,10 @@ export default function DeliveryPage() {
                           <span
                             className="inline-block h-3 w-3 rounded-full"
                             style={{
-                              backgroundColor:
-                                PLATFORM_COLOR[p.platform] || "#6b7280",
+                              backgroundColor: PLATFORM_COLOR[p.platform] || "#6b7280",
                             }}
                           />
-                          <span>
-                            {PLATFORM_LABEL[p.platform] || p.platform}
-                          </span>
+                          <span>{PLATFORM_LABEL[p.platform] || p.platform}</span>
                         </div>
                         <span className="font-medium">
                           {p.orders} ({pct}%)
@@ -741,8 +640,7 @@ export default function DeliveryPage() {
                           className="h-full rounded-full transition-all"
                           style={{
                             width: `${(p.orders / maxPlatformOrders) * 100}%`,
-                            backgroundColor:
-                              PLATFORM_COLOR[p.platform] || "#6b7280",
+                            backgroundColor: PLATFORM_COLOR[p.platform] || "#6b7280",
                           }}
                         />
                       </div>
@@ -755,22 +653,16 @@ export default function DeliveryPage() {
 
           {/* Bar Chart: Revenue by Branch */}
           <div className="rounded-xl border bg-white p-5">
-            <h3 className="text-sm font-semibold mb-4">
-              Ingresos por sucursal
-            </h3>
+            <h3 className="text-sm font-semibold mb-4">Ingresos por sucursal</h3>
             {summary.byBranch.length === 0 ? (
-              <p className="text-gray-400 text-sm text-center py-8">
-                Sin datos
-              </p>
+              <p className="text-gray-400 text-sm text-center py-8">Sin datos</p>
             ) : (
               <div className="space-y-3">
                 {summary.byBranch.map((b) => (
                   <div key={b.branchId}>
                     <div className="flex items-center justify-between text-sm mb-1">
                       <span>{b.branchName}</span>
-                      <span className="font-medium">
-                        {formatMXN(b.revenue)}
-                      </span>
+                      <span className="font-medium">{formatMXN(b.revenue)}</span>
                     </div>
                     <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
                       <div
@@ -789,23 +681,16 @@ export default function DeliveryPage() {
 
         {/* Line Chart: Daily Trend */}
         <div className="rounded-xl border bg-white p-5">
-          <h3 className="text-sm font-semibold mb-4">
-            Tendencia diaria (ultimos 30 dias)
-          </h3>
+          <h3 className="text-sm font-semibold mb-4">Tendencia diaria (ultimos 30 dias)</h3>
           {summary.dailyTrend.length === 0 ? (
-            <p className="text-gray-400 text-sm text-center py-8">
-              Sin datos
-            </p>
+            <p className="text-gray-400 text-sm text-center py-8">Sin datos</p>
           ) : (
             <div className="overflow-x-auto">
               <div className="flex items-end gap-1 min-w-[600px] h-40">
                 {summary.dailyTrend.map((d) => {
                   const heightPct = (d.orders / maxDailyOrders) * 100;
                   return (
-                    <div
-                      key={d.date}
-                      className="flex-1 flex flex-col items-center group relative"
-                    >
+                    <div key={d.date} className="flex-1 flex flex-col items-center group relative">
                       <div className="absolute -top-8 hidden group-hover:block bg-black text-white text-xs rounded px-2 py-1 whitespace-nowrap z-10">
                         {d.date}: {d.orders} ordenes, {formatMXN(d.revenue)}
                       </div>
@@ -829,18 +714,12 @@ export default function DeliveryPage() {
         {/* Top Products */}
         {topProducts.length > 0 && (
           <div className="rounded-xl border bg-white p-5">
-            <h3 className="text-sm font-semibold mb-4">
-              Top 5 productos en delivery
-            </h3>
+            <h3 className="text-sm font-semibold mb-4">Top 5 productos en delivery</h3>
             <table className="w-full">
               <thead>
                 <tr className="border-b">
-                  <th className="text-left text-xs font-medium text-gray-500 pb-2">
-                    Producto
-                  </th>
-                  <th className="text-right text-xs font-medium text-gray-500 pb-2">
-                    Cantidad
-                  </th>
+                  <th className="text-left text-xs font-medium text-gray-500 pb-2">Producto</th>
+                  <th className="text-right text-xs font-medium text-gray-500 pb-2">Cantidad</th>
                 </tr>
               </thead>
               <tbody>
@@ -852,9 +731,7 @@ export default function DeliveryPage() {
                       </span>
                       {p.name}
                     </td>
-                    <td className="py-2 text-sm text-right font-medium">
-                      {p.qty}
-                    </td>
+                    <td className="py-2 text-sm text-right font-medium">{p.qty}</td>
                   </tr>
                 ))}
               </tbody>
@@ -895,9 +772,7 @@ export default function DeliveryPage() {
                       backgroundColor: PLATFORM_COLOR[platform],
                     }}
                   />
-                  <h3 className="text-sm font-semibold">
-                    {PLATFORM_LABEL[platform]}
-                  </h3>
+                  <h3 className="text-sm font-semibold">{PLATFORM_LABEL[platform]}</h3>
                 </div>
                 <button
                   onClick={() =>
@@ -906,19 +781,17 @@ export default function DeliveryPage() {
                       : authFetch("post", "/delivery/config", {
                           platform,
                           isActive: true,
-                        }).then(() => fetchConfigs())
+                        }).then(() =>
+                          queryClient.invalidateQueries({ queryKey: ["delivery-config"] }),
+                        )
                   }
                   className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                    config?.isActive
-                      ? "bg-black"
-                      : "bg-gray-200"
+                    config?.isActive ? "bg-black" : "bg-gray-200"
                   }`}
                 >
                   <span
                     className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                      config?.isActive
-                        ? "translate-x-6"
-                        : "translate-x-1"
+                      config?.isActive ? "translate-x-6" : "translate-x-1"
                     }`}
                   />
                 </button>
@@ -928,9 +801,7 @@ export default function DeliveryPage() {
                 <div>
                   <label className="text-xs text-gray-500">API Key</label>
                   <p className="font-mono text-xs bg-gray-50 rounded px-2 py-1.5 truncate">
-                    {config?.apiKey
-                      ? "****" + config.apiKey.slice(-4)
-                      : "No configurada"}
+                    {config?.apiKey ? "****" + config.apiKey.slice(-4) : "No configurada"}
                   </p>
                 </div>
                 <div>
@@ -940,9 +811,7 @@ export default function DeliveryPage() {
                   </p>
                 </div>
                 <div>
-                  <label className="text-xs text-gray-500">
-                    Ultima sincronizacion
-                  </label>
+                  <label className="text-xs text-gray-500">Ultima sincronizacion</label>
                   <p className="text-xs">
                     {config?.lastSyncAt
                       ? new Date(config.lastSyncAt).toLocaleString("es-MX")
@@ -950,12 +819,8 @@ export default function DeliveryPage() {
                   </p>
                 </div>
                 <div>
-                  <label className="text-xs text-gray-500">
-                    Intervalo de sincronizacion
-                  </label>
-                  <p className="text-xs">
-                    Cada {config?.syncInterval || 15} minutos
-                  </p>
+                  <label className="text-xs text-gray-500">Intervalo de sincronizacion</label>
+                  <p className="text-xs">Cada {config?.syncInterval || 15} minutos</p>
                 </div>
               </div>
 
@@ -981,19 +846,13 @@ export default function DeliveryPage() {
                   variant="primary"
                   size="sm"
                   className="flex-1"
-                  disabled={
-                    !config?.isActive || syncingPlatform === platform
-                  }
+                  disabled={!config?.isActive || syncingPlatform === platform}
                   onClick={() => handleSync(platform)}
                 >
                   <RefreshCw
-                    className={`h-3.5 w-3.5 ${
-                      syncingPlatform === platform ? "animate-spin" : ""
-                    }`}
+                    className={`h-3.5 w-3.5 ${syncingPlatform === platform ? "animate-spin" : ""}`}
                   />
-                  {syncingPlatform === platform
-                    ? "Sincronizando..."
-                    : "Sync Now"}
+                  {syncingPlatform === platform ? "Sincronizando..." : "Sync Now"}
                 </Button>
               </div>
             </div>
@@ -1017,9 +876,7 @@ export default function DeliveryPage() {
           </div>
           <div>
             <h1 className="text-xl font-semibold">Delivery</h1>
-            <p className="text-sm text-gray-500">
-              UberEats, Rappi, DiDi Food
-            </p>
+            <p className="text-sm text-gray-500">UberEats, Rappi, DiDi Food</p>
           </div>
         </div>
       </div>
@@ -1053,12 +910,7 @@ export default function DeliveryPage() {
       {tab === "Configuracion" && renderConfiguracion()}
 
       {/* Manual Order Modal */}
-      <Modal
-        open={showModal}
-        onClose={() => setShowModal(false)}
-        title="Nueva Orden Manual"
-        wide
-      >
+      <Modal open={showModal} onClose={() => setShowModal(false)} title="Nueva Orden Manual" wide>
         <form onSubmit={handleManualOrder} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <FormField label="Plataforma" required>
@@ -1096,54 +948,23 @@ export default function DeliveryPage() {
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <FormField label="Subtotal" required>
-              <Input
-                name="subtotal"
-                type="number"
-                step="0.01"
-                min="0"
-                required
-              />
+              <Input name="subtotal" type="number" step="0.01" min="0" required />
             </FormField>
             <FormField label="Tarifa envio">
-              <Input
-                name="deliveryFee"
-                type="number"
-                step="0.01"
-                min="0"
-              />
+              <Input name="deliveryFee" type="number" step="0.01" min="0" />
             </FormField>
             <FormField label="Comision plataforma">
-              <Input
-                name="platformFee"
-                type="number"
-                step="0.01"
-                min="0"
-              />
+              <Input name="platformFee" type="number" step="0.01" min="0" />
             </FormField>
             <FormField label="Descuento">
-              <Input
-                name="discount"
-                type="number"
-                step="0.01"
-                min="0"
-              />
+              <Input name="discount" type="number" step="0.01" min="0" />
             </FormField>
           </div>
           <FormField label="Total" required>
-            <Input
-              name="total"
-              type="number"
-              step="0.01"
-              min="0"
-              required
-            />
+            <Input name="total" type="number" step="0.01" min="0" required />
           </FormField>
           <div className="flex justify-end gap-3 pt-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setShowModal(false)}
-            >
+            <Button type="button" variant="outline" onClick={() => setShowModal(false)}>
               Cancelar
             </Button>
             <Button type="submit" disabled={modalSaving}>

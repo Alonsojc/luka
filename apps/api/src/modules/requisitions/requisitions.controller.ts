@@ -1,30 +1,12 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Patch,
-  Param,
-  Body,
-  Query,
-  UseGuards,
-} from "@nestjs/common";
+import { Controller, Get, Post, Patch, Param, Body, Query, UseGuards } from "@nestjs/common";
 import { ApiTags, ApiBearerAuth } from "@nestjs/swagger";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
 import { Permissions } from "../../common/decorators/roles.decorator";
-import {
-  CurrentUser,
-  JwtPayload,
-} from "../../common/decorators/current-user.decorator";
+import { CurrentUser, JwtPayload } from "../../common/decorators/current-user.decorator";
 import { RequisitionsService } from "./requisitions.service";
-import {
-  CreateRequisitionDto,
-  UpdateRequisitionDto,
-} from "./dto/create-requisition.dto";
-import {
-  ApproveRequisitionDto,
-  RejectRequisitionDto,
-} from "./dto/approve-requisition.dto";
+import { CreateRequisitionDto, UpdateRequisitionDto } from "./dto/create-requisition.dto";
+import { ApproveRequisitionDto, RejectRequisitionDto } from "./dto/approve-requisition.dto";
 
 @ApiTags("Requisiciones")
 @ApiBearerAuth()
@@ -35,14 +17,8 @@ export class RequisitionsController {
 
   @Get("summary")
   @Permissions("inventarios:view")
-  getSummary(
-    @CurrentUser() user: JwtPayload,
-    @Query("branchId") branchId?: string,
-  ) {
-    return this.requisitionsService.getSummary(
-      user.organizationId,
-      branchId,
-    );
+  getSummary(@CurrentUser() user: JwtPayload, @Query("branchId") branchId?: string) {
+    return this.requisitionsService.getSummary(user.organizationId, branchId);
   }
 
   @Get()
@@ -74,15 +50,8 @@ export class RequisitionsController {
 
   @Post()
   @Permissions("inventarios:create")
-  create(
-    @CurrentUser() user: JwtPayload,
-    @Body() dto: CreateRequisitionDto,
-  ) {
-    return this.requisitionsService.create(
-      user.sub,
-      user.organizationId,
-      dto,
-    );
+  create(@CurrentUser() user: JwtPayload, @Body() dto: CreateRequisitionDto) {
+    return this.requisitionsService.create(user.sub, user.organizationId, dto);
   }
 
   @Patch(":id")
@@ -92,12 +61,7 @@ export class RequisitionsController {
     @Param("id") id: string,
     @Body() dto: UpdateRequisitionDto,
   ) {
-    return this.requisitionsService.update(
-      id,
-      user.sub,
-      user.organizationId,
-      dto,
-    );
+    return this.requisitionsService.update(id, user.sub, user.organizationId, dto);
   }
 
   @Post(":id/submit")
@@ -113,12 +77,7 @@ export class RequisitionsController {
     @Param("id") id: string,
     @Body() dto: ApproveRequisitionDto,
   ) {
-    return this.requisitionsService.approve(
-      id,
-      user.sub,
-      user.organizationId,
-      dto,
-    );
+    return this.requisitionsService.approve(id, user.sub, user.organizationId, dto);
   }
 
   @Post(":id/reject")
@@ -128,22 +87,13 @@ export class RequisitionsController {
     @Param("id") id: string,
     @Body() dto: RejectRequisitionDto,
   ) {
-    return this.requisitionsService.reject(
-      id,
-      user.sub,
-      user.organizationId,
-      dto,
-    );
+    return this.requisitionsService.reject(id, user.sub, user.organizationId, dto);
   }
 
   @Post(":id/fulfill")
   @Permissions("inventarios:edit")
   fulfill(@CurrentUser() user: JwtPayload, @Param("id") id: string) {
-    return this.requisitionsService.fulfill(
-      id,
-      user.sub,
-      user.organizationId,
-    );
+    return this.requisitionsService.fulfill(id, user.sub, user.organizationId);
   }
 
   @Post(":id/cancel")

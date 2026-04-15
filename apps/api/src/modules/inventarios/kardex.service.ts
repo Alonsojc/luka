@@ -191,10 +191,7 @@ export class KardexService {
       include: { branch: { select: { name: true } } },
     });
 
-    const currentStock = inventoryRecords.reduce(
-      (sum, r) => sum + toNumber(r.currentQuantity),
-      0,
-    );
+    const currentStock = inventoryRecords.reduce((sum, r) => sum + toNumber(r.currentQuantity), 0);
 
     // Product info
     const product = await this.prisma.product.findFirst({
@@ -445,7 +442,7 @@ export class KardexService {
   private async getGroupedData(
     where: any,
     groupBy: "product" | "branch" | "movementType",
-    organizationId: string,
+    _organizationId: string,
   ) {
     const allMovements = await this.prisma.inventoryMovement.findMany({
       where,
@@ -458,7 +455,14 @@ export class KardexService {
     if (groupBy === "product") {
       const groups = new Map<
         string,
-        { name: string; sku: string; entries: number; exits: number; adjustments: number; totalCost: number }
+        {
+          name: string;
+          sku: string;
+          entries: number;
+          exits: number;
+          adjustments: number;
+          totalCost: number;
+        }
       >();
 
       for (const m of allMovements) {
@@ -496,7 +500,14 @@ export class KardexService {
     if (groupBy === "branch") {
       const groups = new Map<
         string,
-        { name: string; code: string; entries: number; exits: number; adjustments: number; totalMovements: number }
+        {
+          name: string;
+          code: string;
+          entries: number;
+          exits: number;
+          adjustments: number;
+          totalMovements: number;
+        }
       >();
 
       for (const m of allMovements) {

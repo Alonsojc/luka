@@ -14,17 +14,14 @@ interface StatusBadgeProps {
 
 export function StatusBadge({ label, variant = "gray" }: StatusBadgeProps) {
   return (
-    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${VARIANTS[variant]}`}>
+    <span
+      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${VARIANTS[variant]}`}
+    >
       {label}
     </span>
   );
 }
 
 export function ActiveBadge({ active }: { active: boolean }) {
-  return (
-    <StatusBadge
-      label={active ? "Activa" : "Inactiva"}
-      variant={active ? "green" : "red"}
-    />
-  );
+  return <StatusBadge label={active ? "Activa" : "Inactiva"} variant={active ? "green" : "red"} />;
 }

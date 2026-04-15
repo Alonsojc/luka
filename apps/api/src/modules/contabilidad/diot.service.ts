@@ -38,7 +38,7 @@ const THIRD_PARTY_NATIONAL = "04"; // Proveedor nacional
 // SAT Operation Type codes
 const OP_PROFESSIONAL_SERVICES = "85";
 const OP_PURCHASE_OF_GOODS = "06";
-const OP_LEASE = "03";
+const _OP_LEASE = "03";
 
 @Injectable()
 export class DiotService {
@@ -48,11 +48,7 @@ export class DiotService {
    * Generate DIOT data for a given month
    * Groups all supplier payments by RFC, calculates IVA breakdown
    */
-  async generateDiot(
-    organizationId: string,
-    year: number,
-    month: number,
-  ): Promise<DiotRecord[]> {
+  async generateDiot(organizationId: string, year: number, month: number): Promise<DiotRecord[]> {
     this.validatePeriod(year, month);
 
     const startDate = new Date(year, month - 1, 1);
@@ -138,17 +134,11 @@ export class DiotService {
    * Format: tipo_tercero|tipo_operacion|RFC|IDFiscal|NombreExtranjero|PaisResidencia|Nacionalidad|
    *         MontoIVA16|16||||MontoIVA0|||||MontoExento||||||
    */
-  async generateDiotFile(
-    organizationId: string,
-    year: number,
-    month: number,
-  ): Promise<string> {
+  async generateDiotFile(organizationId: string, year: number, month: number): Promise<string> {
     const records = await this.generateDiot(organizationId, year, month);
 
     if (records.length === 0) {
-      throw new BadRequestException(
-        "No hay pagos a proveedores en el periodo seleccionado",
-      );
+      throw new BadRequestException("No hay pagos a proveedores en el periodo seleccionado");
     }
 
     const lines = records.map((record) => {
@@ -174,10 +164,8 @@ export class DiotService {
       const tasaStr = record.iva16 > 0 ? "16" : "";
       const iva0Str = record.iva0 > 0 ? record.iva0.toFixed(0) : "";
       const exemptStr = record.exempt > 0 ? record.exempt.toFixed(0) : "";
-      const withheldIvaStr =
-        record.withheldIva > 0 ? record.withheldIva.toFixed(0) : "";
-      const withheldIsrStr =
-        record.withheldIsr > 0 ? record.withheldIsr.toFixed(0) : "";
+      const withheldIvaStr = record.withheldIva > 0 ? record.withheldIva.toFixed(0) : "";
+      const withheldIsrStr = record.withheldIsr > 0 ? record.withheldIsr.toFixed(0) : "";
 
       return [
         THIRD_PARTY_NATIONAL, // Tipo de tercero
@@ -270,11 +258,7 @@ export class DiotService {
   /**
    * Get DIOT summary/preview without full generation
    */
-  async getDiotSummary(
-    organizationId: string,
-    year: number,
-    month: number,
-  ): Promise<DiotSummary> {
+  async getDiotSummary(organizationId: string, year: number, month: number): Promise<DiotSummary> {
     const records = await this.generateDiot(organizationId, year, month);
 
     return {

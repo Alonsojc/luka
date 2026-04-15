@@ -97,8 +97,7 @@ export class AccountsReceivableService {
       });
 
       const newBalance = Number(receivable.balanceDue) - data.amount;
-      const newStatus =
-        newBalance <= 0 ? "PAID" : "PARTIALLY_PAID";
+      const newStatus = newBalance <= 0 ? "PAID" : "PARTIALLY_PAID";
 
       const updated = await tx.accountReceivable.update({
         where: { id },

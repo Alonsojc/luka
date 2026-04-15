@@ -65,12 +65,7 @@ export class CorntechService {
     branchId: string,
     sales: PosSaleDto[],
   ): Promise<SyncResult> {
-    const log = await this.createPosSyncLog(
-      orgId,
-      branchId,
-      "SALES",
-      sales.length,
-    );
+    const log = await this.createPosSyncLog(orgId, branchId, "SALES", sales.length);
 
     let synced = 0;
     let failed = 0;
@@ -194,7 +189,14 @@ export class CorntechService {
     const branchMap = new Map(branches.map((b) => [b.id, b.name]));
 
     // Group by branch
-    const byBranch = new Map<string, { sales: { paymentMethod: string; count: number; total: number }[]; totalSales: number; totalCount: number }>();
+    const byBranch = new Map<
+      string,
+      {
+        sales: { paymentMethod: string; count: number; total: number }[];
+        totalSales: number;
+        totalCount: number;
+      }
+    >();
     for (const row of raw) {
       const total = Number(row._sum.total) || 0;
       const count = row._count;
@@ -225,12 +227,7 @@ export class CorntechService {
   }
 
   /** List recent POS sales for a branch */
-  async getPosSales(
-    orgId: string,
-    branchId?: string,
-    date?: string,
-    limit = 50,
-  ) {
+  async getPosSales(orgId: string, branchId?: string, date?: string, limit = 50) {
     const where: any = { organizationId: orgId };
     if (branchId) where.branchId = branchId;
     if (date) {
@@ -262,12 +259,7 @@ export class CorntechService {
     });
   }
 
-  private async createPosSyncLog(
-    orgId: string,
-    branchId: string,
-    type: string,
-    total: number,
-  ) {
+  private async createPosSyncLog(orgId: string, branchId: string, type: string, total: number) {
     return this.prisma.posSyncLog.create({
       data: {
         organizationId: orgId,
@@ -279,12 +271,7 @@ export class CorntechService {
     });
   }
 
-  private async completePosSyncLog(
-    id: string,
-    synced: number,
-    failed: number,
-    error?: string,
-  ) {
+  private async completePosSyncLog(id: string, synced: number, failed: number, error?: string) {
     return this.prisma.posSyncLog.update({
       where: { id },
       data: {
@@ -416,11 +403,7 @@ export class CorntechService {
     return { synced: results.length };
   }
 
-  async getCashClosings(
-    branchId: string,
-    startDate?: string,
-    endDate?: string,
-  ) {
+  async getCashClosings(branchId: string, startDate?: string, endDate?: string) {
     return this.prisma.corntechCashClosing.findMany({
       where: {
         branchId,
@@ -451,9 +434,7 @@ export class CorntechService {
   }) {
     const { closingDate, ...rest } = data;
     const diff =
-      data.difference !== undefined
-        ? data.difference
-        : data.actualTotal - data.expectedTotal;
+      data.difference !== undefined ? data.difference : data.actualTotal - data.expectedTotal;
 
     return this.prisma.corntechCashClosing.upsert({
       where: {

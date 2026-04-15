@@ -1,21 +1,9 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Patch,
-  Delete,
-  Param,
-  Body,
-  UseGuards,
-} from "@nestjs/common";
+import { Controller, Get, Post, Patch, Delete, Param, Body, UseGuards } from "@nestjs/common";
 import { ApiTags, ApiBearerAuth } from "@nestjs/swagger";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
 import { Permissions } from "../../common/decorators/roles.decorator";
-import {
-  CurrentUser,
-  JwtPayload,
-} from "../../common/decorators/current-user.decorator";
+import { CurrentUser, JwtPayload } from "../../common/decorators/current-user.decorator";
 import { SuppliersService } from "./suppliers.service";
 import { CreateSupplierDto } from "./dto/create-supplier.dto";
 
@@ -40,10 +28,7 @@ export class SuppliersController {
 
   @Post()
   @Permissions("compras:create")
-  create(
-    @CurrentUser() user: JwtPayload,
-    @Body() body: CreateSupplierDto,
-  ) {
+  create(@CurrentUser() user: JwtPayload, @Body() body: CreateSupplierDto) {
     return this.suppliersService.create(user.organizationId, body);
   }
 

@@ -71,12 +71,7 @@ const EMPTY_FORM: LegalEntityForm = {
   postalCode: "",
 };
 
-const REQUIRED_FIELDS: (keyof LegalEntityForm)[] = [
-  "name",
-  "rfc",
-  "razonSocial",
-  "regimenFiscal",
-];
+const REQUIRED_FIELDS: (keyof LegalEntityForm)[] = ["name", "rfc", "razonSocial", "regimenFiscal"];
 
 const REGIMEN_FISCAL_OPTIONS = [
   { value: "601", label: "601 - General de Ley Personas Morales" },
@@ -95,7 +90,10 @@ const REGIMEN_FISCAL_OPTIONS = [
   { value: "622", label: "622 - Actividades Agricolas, Ganaderas, Silvicolas y Pesqueras" },
   { value: "623", label: "623 - Opcional para Grupos de Sociedades" },
   { value: "624", label: "624 - Coordinados" },
-  { value: "625", label: "625 - Regimen de las Actividades Empresariales con Ingresos a traves de Plataformas" },
+  {
+    value: "625",
+    label: "625 - Regimen de las Actividades Empresariales con Ingresos a traves de Plataformas",
+  },
   { value: "626", label: "626 - Regimen Simplificado de Confianza" },
 ];
 
@@ -140,17 +138,13 @@ export default function RazonesSocialesPage() {
   const [entities, setEntities] = useState<LegalEntity[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedEntity, setSelectedEntity] = useState<LegalEntity | null>(
-    null,
-  );
+  const [selectedEntity, setSelectedEntity] = useState<LegalEntity | null>(null);
 
   // ---------- Form state ----------
   const [modalOpen, setModalOpen] = useState(false);
   const [editingEntity, setEditingEntity] = useState<LegalEntity | null>(null);
   const [form, setForm] = useState<LegalEntityForm>(EMPTY_FORM);
-  const [errors, setErrors] = useState<
-    Partial<Record<keyof LegalEntityForm, string>>
-  >({});
+  const [errors, setErrors] = useState<Partial<Record<keyof LegalEntityForm, string>>>({});
   const [saving, setSaving] = useState(false);
 
   // ---------- Delete state ----------
@@ -186,10 +180,7 @@ export default function RazonesSocialesPage() {
   const fetchEntityDetail = useCallback(
     async (id: string) => {
       try {
-        const data = await authFetch<LegalEntity>(
-          "get",
-          `/legal-entities/${id}`,
-        );
+        const data = await authFetch<LegalEntity>("get", `/legal-entities/${id}`);
         setSelectedEntity(data);
       } catch {
         // silent
@@ -270,11 +261,7 @@ export default function RazonesSocialesPage() {
       }
 
       if (editingEntity) {
-        await authFetch<LegalEntity>(
-          "patch",
-          `/legal-entities/${editingEntity.id}`,
-          body,
-        );
+        await authFetch<LegalEntity>("patch", `/legal-entities/${editingEntity.id}`, body);
       } else {
         await authFetch<LegalEntity>("post", "/legal-entities", body);
       }
@@ -352,9 +339,7 @@ export default function RazonesSocialesPage() {
     {
       key: "name",
       header: "Nombre",
-      render: (row: LegalEntity) => (
-        <span className="font-medium">{row.name}</span>
-      ),
+      render: (row: LegalEntity) => <span className="font-medium">{row.name}</span>,
     },
     { key: "rfc", header: "RFC" },
     {
@@ -424,9 +409,7 @@ export default function RazonesSocialesPage() {
 
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">
-              {selectedEntity.name}
-            </h1>
+            <h1 className="text-2xl font-bold text-gray-900">{selectedEntity.name}</h1>
             <p className="text-sm text-muted-foreground mt-1">
               RFC: {selectedEntity.rfc} | {selectedEntity.razonSocial}
             </p>
@@ -446,33 +429,24 @@ export default function RazonesSocialesPage() {
             <p className="text-sm font-medium">{selectedEntity.razonSocial}</p>
           </div>
           <div className="border rounded-lg p-4">
-            <p className="text-xs text-muted-foreground mb-1">
-              Regimen Fiscal
-            </p>
-            <p className="text-sm font-medium">
-              {regimenLabel(selectedEntity.regimenFiscal)}
-            </p>
+            <p className="text-xs text-muted-foreground mb-1">Regimen Fiscal</p>
+            <p className="text-sm font-medium">{regimenLabel(selectedEntity.regimenFiscal)}</p>
           </div>
           <div className="border rounded-lg p-4">
             <p className="text-xs text-muted-foreground mb-1">Direccion</p>
             <p className="text-sm font-medium">
               {selectedEntity.address || "Sin direccion"}
-              {selectedEntity.postalCode
-                ? `, CP ${selectedEntity.postalCode}`
-                : ""}
+              {selectedEntity.postalCode ? `, CP ${selectedEntity.postalCode}` : ""}
             </p>
           </div>
         </div>
 
         {/* CSD Certificate Section */}
         <div className="border rounded-lg p-4 mb-8">
-          <h3 className="text-sm font-semibold mb-2">
-            Certificado de Sello Digital (CSD)
-          </h3>
+          <h3 className="text-sm font-semibold mb-2">Certificado de Sello Digital (CSD)</h3>
           <p className="text-xs text-muted-foreground">
-            Los certificados CSD se utilizan para firmar CFDIs. Sube el
-            certificado (.cer), la llave (.key) y la contrasena para habilitar
-            la facturacion electronica con esta razon social.
+            Los certificados CSD se utilizan para firmar CFDIs. Sube el certificado (.cer), la llave
+            (.key) y la contrasena para habilitar la facturacion electronica con esta razon social.
           </p>
           <div className="mt-3 flex gap-3">
             <div className="flex-1 border border-dashed rounded-lg p-4 text-center text-xs text-muted-foreground">
@@ -528,12 +502,8 @@ export default function RazonesSocialesPage() {
                     key={branch.id}
                     className="border-b last:border-0 hover:bg-muted/30 transition-colors"
                   >
-                    <td className="px-4 py-3 text-sm font-medium">
-                      {branch.name}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-muted-foreground">
-                      {branch.code}
-                    </td>
+                    <td className="px-4 py-3 text-sm font-medium">{branch.name}</td>
+                    <td className="px-4 py-3 text-sm text-muted-foreground">{branch.code}</td>
                     <td className="px-4 py-3 text-sm">{branch.city}</td>
                     <td className="px-4 py-3">{branchTypeBadge(branch.branchType)}</td>
                     <td className="px-4 py-3 text-right">
@@ -564,10 +534,7 @@ export default function RazonesSocialesPage() {
         >
           <p className="text-sm text-muted-foreground mb-4">
             Selecciona una sucursal sin asignar para vincularla a{" "}
-            <span className="font-medium text-foreground">
-              {selectedEntity.name}
-            </span>
-            .
+            <span className="font-medium text-foreground">{selectedEntity.name}</span>.
           </p>
           {unassignedBranches.length === 0 ? (
             <p className="text-sm text-muted-foreground">
@@ -575,10 +542,7 @@ export default function RazonesSocialesPage() {
             </p>
           ) : (
             <FormField label="Sucursal">
-              <Select
-                value={assignTarget}
-                onChange={(e) => setAssignTarget(e.target.value)}
-              >
+              <Select value={assignTarget} onChange={(e) => setAssignTarget(e.target.value)}>
                 <option value="">Seleccionar sucursal...</option>
                 {unassignedBranches.map((b) => (
                   <option key={b.id} value={b.id}>
@@ -589,10 +553,7 @@ export default function RazonesSocialesPage() {
             </FormField>
           )}
           <div className="mt-6 flex justify-end gap-3">
-            <Button
-              variant="outline"
-              onClick={() => setAssignModalOpen(false)}
-            >
+            <Button variant="outline" onClick={() => setAssignModalOpen(false)}>
               Cancelar
             </Button>
             <Button onClick={handleAssignBranch} disabled={!assignTarget}>
@@ -630,9 +591,7 @@ export default function RazonesSocialesPage() {
           <FormField label="RFC" required error={errors.rfc}>
             <Input
               value={form.rfc}
-              onChange={(e) =>
-                updateField("rfc", e.target.value.toUpperCase())
-              }
+              onChange={(e) => updateField("rfc", e.target.value.toUpperCase())}
               placeholder="FNO150101ABC"
               maxLength={13}
             />
@@ -648,11 +607,7 @@ export default function RazonesSocialesPage() {
             </FormField>
           </div>
 
-          <FormField
-            label="Regimen Fiscal"
-            required
-            error={errors.regimenFiscal}
-          >
+          <FormField label="Regimen Fiscal" required error={errors.regimenFiscal}>
             <Select
               value={form.regimenFiscal}
               onChange={(e) => updateField("regimenFiscal", e.target.value)}
@@ -691,11 +646,7 @@ export default function RazonesSocialesPage() {
             Cancelar
           </Button>
           <Button onClick={handleSave} disabled={saving}>
-            {saving
-              ? "Guardando..."
-              : editingEntity
-                ? "Guardar Cambios"
-                : "Crear Razon Social"}
+            {saving ? "Guardando..." : editingEntity ? "Guardar Cambios" : "Crear Razon Social"}
           </Button>
         </div>
       </>
@@ -751,10 +702,7 @@ export default function RazonesSocialesPage() {
           branches={branches}
           onAssign={async (branchId: string, entityId: string) => {
             try {
-              await authFetch<Branch>(
-                "post",
-                `/legal-entities/${entityId}/branches/${branchId}`,
-              );
+              await authFetch<Branch>("post", `/legal-entities/${entityId}/branches/${branchId}`);
               await fetchEntities();
               await fetchBranches();
             } catch {
@@ -763,10 +711,7 @@ export default function RazonesSocialesPage() {
           }}
           onUnassign={async (branchId: string, entityId: string) => {
             try {
-              await authFetch<Branch>(
-                "delete",
-                `/legal-entities/${entityId}/branches/${branchId}`,
-              );
+              await authFetch<Branch>("delete", `/legal-entities/${entityId}/branches/${branchId}`);
               await fetchEntities();
               await fetchBranches();
             } catch {
@@ -794,20 +739,14 @@ export default function RazonesSocialesPage() {
       >
         <p className="text-sm text-muted-foreground">
           Esta seguro que desea desactivar la razon social{" "}
-          <span className="font-semibold text-foreground">
-            {deleteTarget?.name}
-          </span>
-          ? Las sucursales asignadas no seran desvinculadas.
+          <span className="font-semibold text-foreground">{deleteTarget?.name}</span>? Las
+          sucursales asignadas no seran desvinculadas.
         </p>
         <div className="mt-6 flex justify-end gap-3">
           <Button variant="outline" onClick={() => setDeleteTarget(null)}>
             Cancelar
           </Button>
-          <Button
-            variant="destructive"
-            onClick={handleDelete}
-            disabled={deleting}
-          >
+          <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
             {deleting ? "Desactivando..." : "Desactivar"}
           </Button>
         </div>
@@ -852,11 +791,8 @@ function OrgTreeView({
   };
 
   const cedisBranches = branches.filter((b) => b.branchType === "CEDIS");
-  const entityBranches = (entityId: string) =>
-    branches.filter((b) => b.legalEntityId === entityId);
-  const unassignedBranches = branches.filter(
-    (b) => !b.legalEntityId && b.branchType !== "CEDIS",
-  );
+  const entityBranches = (entityId: string) => branches.filter((b) => b.legalEntityId === entityId);
+  const unassignedBranches = branches.filter((b) => !b.legalEntityId && b.branchType !== "CEDIS");
 
   const handleReassign = async () => {
     if (!reassignModal) return;
@@ -898,9 +834,7 @@ function OrgTreeView({
               {branchTypeIcon("CEDIS")}
               <span className="text-sm font-medium">{branch.name}</span>
               {branchTypeBadge("CEDIS")}
-              <span className="text-xs text-muted-foreground ml-auto">
-                {branch.city}
-              </span>
+              <span className="text-xs text-muted-foreground ml-auto">{branch.city}</span>
             </div>
           ))}
 
@@ -925,16 +859,10 @@ function OrgTreeView({
                   </div>
                   <div className="flex-1 min-w-0">
                     <span className="text-sm font-medium">{entity.name}</span>
-                    <span className="text-xs text-muted-foreground ml-2">
-                      (Razon Social)
-                    </span>
+                    <span className="text-xs text-muted-foreground ml-2">(Razon Social)</span>
                   </div>
-                  {!entity.isActive && (
-                    <StatusBadge label="Inactiva" variant="red" />
-                  )}
-                  <span className="text-xs text-muted-foreground">
-                    RFC: {entity.rfc}
-                  </span>
+                  {!entity.isActive && <StatusBadge label="Inactiva" variant="red" />}
+                  <span className="text-xs text-muted-foreground">RFC: {entity.rfc}</span>
                   <span className="bg-gray-100 rounded-full px-2 py-0.5 text-xs font-medium text-gray-600">
                     {entityBranchesList.length}
                   </span>
@@ -993,9 +921,7 @@ function OrgTreeView({
               <div className="h-8 w-8 rounded-lg bg-yellow-50 flex items-center justify-center">
                 <Building2 className="h-4 w-4 text-yellow-600" />
               </div>
-              <span className="text-sm font-medium text-yellow-700">
-                Sin asignar
-              </span>
+              <span className="text-sm font-medium text-yellow-700">Sin asignar</span>
               <span className="bg-yellow-100 rounded-full px-2 py-0.5 text-xs font-medium text-yellow-700">
                 {unassignedBranches.length}
               </span>
@@ -1016,9 +942,7 @@ function OrgTreeView({
                       {branchTypeIcon(branch.branchType)}
                       <span className="text-sm">{branch.name}</span>
                       {branchTypeBadge(branch.branchType)}
-                      <span className="text-xs text-muted-foreground ml-auto">
-                        {branch.city}
-                      </span>
+                      <span className="text-xs text-muted-foreground ml-auto">{branch.city}</span>
                       <button
                         onClick={() =>
                           setReassignModal({
@@ -1047,11 +971,7 @@ function OrgTreeView({
           setReassignModal(null);
           setReassignTarget("");
         }}
-        title={
-          reassignModal?.fromEntityId
-            ? "Reasignar Sucursal"
-            : "Asignar Sucursal"
-        }
+        title={reassignModal?.fromEntityId ? "Reasignar Sucursal" : "Asignar Sucursal"}
       >
         {reassignModal && (
           <>
@@ -1061,16 +981,10 @@ function OrgTreeView({
                 : `Asignar "${reassignModal.branch.name}" a una razon social.`}
             </p>
             <FormField label="Razon Social destino">
-              <Select
-                value={reassignTarget}
-                onChange={(e) => setReassignTarget(e.target.value)}
-              >
+              <Select value={reassignTarget} onChange={(e) => setReassignTarget(e.target.value)}>
                 <option value="">Seleccionar razon social...</option>
                 {entities
-                  .filter(
-                    (e) =>
-                      e.isActive && e.id !== reassignModal.fromEntityId,
-                  )
+                  .filter((e) => e.isActive && e.id !== reassignModal.fromEntityId)
                   .map((e) => (
                     <option key={e.id} value={e.id}>
                       {e.name} ({e.rfc})

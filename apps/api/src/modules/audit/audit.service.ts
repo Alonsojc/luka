@@ -38,11 +38,9 @@ export class AuditService {
       })
       .catch(() => {
         // Queue unavailable — fall back to direct write
-        this.prisma.auditLog
-          .create({ data: params })
-          .catch((err) => {
-            this.logger.error(`Audit log failed: ${err.message}`);
-          });
+        this.prisma.auditLog.create({ data: params }).catch((err) => {
+          this.logger.error(`Audit log failed: ${err.message}`);
+        });
       });
   }
 
@@ -104,13 +102,7 @@ export class AuditService {
       if (endDate) where.createdAt.lte = endDate;
     }
 
-    const [
-      totalActions,
-      byModule,
-      byAction,
-      byUser,
-      dailyActivity,
-    ] = await Promise.all([
+    const [totalActions, byModule, byAction, byUser, dailyActivity] = await Promise.all([
       this.prisma.auditLog.count({ where }),
 
       this.prisma.auditLog.groupBy({
@@ -143,11 +135,7 @@ export class AuditService {
          ${endDate ? `AND created_at <= $${startDate ? 3 : 2}` : ""}
          GROUP BY DATE(created_at)
          ORDER BY date ASC`,
-        ...[
-          organizationId,
-          ...(startDate ? [startDate] : []),
-          ...(endDate ? [endDate] : []),
-        ],
+        ...[organizationId, ...(startDate ? [startDate] : []), ...(endDate ? [endDate] : [])],
       ),
     ]);
 
@@ -163,20 +151,13 @@ export class AuditService {
        GROUP BY hour
        ORDER BY count DESC
        LIMIT 1`,
-      ...[
-        organizationId,
-        ...(startDate ? [startDate] : []),
-        ...(endDate ? [endDate] : []),
-      ],
+      ...[organizationId, ...(startDate ? [startDate] : []), ...(endDate ? [endDate] : [])],
     );
 
-    const activeUsers = new Set(
-      byUser.filter((u) => u.userId).map((u) => u.userId),
-    ).size;
+    const activeUsers = new Set(byUser.filter((u) => u.userId).map((u) => u.userId)).size;
 
     const topModule = byModule.length > 0 ? byModule[0].module : "N/A";
-    const peakHour =
-      peakHourResult.length > 0 ? `${peakHourResult[0].hour}:00` : "N/A";
+    const peakHour = peakHourResult.length > 0 ? `${peakHourResult[0].hour}:00` : "N/A";
 
     return {
       totalActions,
@@ -197,11 +178,7 @@ export class AuditService {
     };
   }
 
-  async getEntityHistory(
-    organizationId: string,
-    entityType: string,
-    entityId: string,
-  ) {
+  async getEntityHistory(organizationId: string, entityType: string, entityId: string) {
     return this.prisma.auditLog.findMany({
       where: { organizationId, entityType, entityId },
       include: { user: { select: { id: true, firstName: true, lastName: true, email: true } } },

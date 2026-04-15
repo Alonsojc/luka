@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Gift,
   Star,
@@ -12,11 +13,8 @@ import {
   Pencil,
   Trash2,
   ArrowUpCircle,
-  ArrowDownCircle,
   Settings,
-  ChevronLeft,
   TrendingUp,
-  TrendingDown,
 } from "lucide-react";
 import {
   PieChart,
@@ -29,10 +27,10 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Legend,
 } from "recharts";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/components/ui/toast";
+import { useApiQuery } from "@/hooks/use-api-query";
 import { DataTable } from "@/components/ui/data-table";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
@@ -191,30 +189,36 @@ function TierBadge({ tier }: { tier: string }) {
 export default function LealtadPage() {
   const { authFetch, loading: authLoading } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [tab, setTab] = useState("miembros");
 
-  // Shared state
-  const [customers, setCustomers] = useState<LoyaltyCustomer[]>([]);
-  const [rewards, setRewards] = useState<LoyaltyReward[]>([]);
-  const [program, setProgram] = useState<LoyaltyProgram | null>(null);
-  const [dashboard, setDashboard] = useState<DashboardData | null>(null);
-  const [loading, setLoading] = useState(true);
+  // Shared state via React Query
+  const { data: customers = [], isLoading: customersLoading } = useApiQuery<LoyaltyCustomer[]>(
+    "/loyalty/customers",
+    ["loyalty-customers"],
+  );
+  const { data: rewards = [], isLoading: rewardsLoading } = useApiQuery<LoyaltyReward[]>(
+    "/loyalty/rewards",
+    ["loyalty-rewards"],
+  );
+  const { data: program } = useApiQuery<LoyaltyProgram>("/loyalty/program", ["loyalty-program"]);
+  const { data: dashboard } = useApiQuery<DashboardData>("/loyalty/dashboard", [
+    "loyalty-dashboard",
+  ]);
+  const loading = customersLoading || rewardsLoading;
 
   // Search / filter
   const [search, setSearch] = useState("");
   const [tierFilter, setTierFilter] = useState("all");
 
   // Modals
-  const [selectedCustomer, setSelectedCustomer] =
-    useState<CustomerDetail | null>(null);
+  const [selectedCustomer, setSelectedCustomer] = useState<CustomerDetail | null>(null);
   const [showCustomerDetail, setShowCustomerDetail] = useState(false);
   const [showEarnModal, setShowEarnModal] = useState(false);
   const [showRedeemModal, setShowRedeemModal] = useState(false);
   const [showAdjustModal, setShowAdjustModal] = useState(false);
   const [showRewardModal, setShowRewardModal] = useState(false);
-  const [editingReward, setEditingReward] = useState<LoyaltyReward | null>(
-    null,
-  );
+  const [editingReward, setEditingReward] = useState<LoyaltyReward | null>(null);
 
   // Form state
   const [earnForm, setEarnForm] = useState({ customerId: "", amount: "" });
@@ -249,71 +253,33 @@ export default function LealtadPage() {
   const [saving, setSaving] = useState(false);
 
   // -----------------------------------------------------------------------
-  // Data fetching
+  // Sync program config form when data loads
   // -----------------------------------------------------------------------
 
-  const fetchCustomers = useCallback(async () => {
-    try {
-      const data = await authFetch<LoyaltyCustomer[]>("get", "/loyalty/customers");
-      setCustomers(data);
-    } catch {
-      // silent
-    }
-  }, [authFetch]);
-
-  const fetchRewards = useCallback(async () => {
-    try {
-      const data = await authFetch<LoyaltyReward[]>("get", "/loyalty/rewards");
-      setRewards(data);
-    } catch {
-      // silent
-    }
-  }, [authFetch]);
-
-  const fetchProgram = useCallback(async () => {
-    try {
-      const data = await authFetch<LoyaltyProgram>("get", "/loyalty/program");
-      setProgram(data);
+  useEffect(() => {
+    if (program) {
       setConfigForm({
-        name: data.name,
-        pointsPerDollar: String(data.pointsPerDollar),
-        pointValue: String(data.pointValue),
-        minRedemption: String(data.minRedemption),
-        expirationDays: data.expirationDays != null ? String(data.expirationDays) : "",
-        tiers: data.tiers || [
+        name: program.name,
+        pointsPerDollar: String(program.pointsPerDollar),
+        pointValue: String(program.pointValue),
+        minRedemption: String(program.minRedemption),
+        expirationDays: program.expirationDays != null ? String(program.expirationDays) : "",
+        tiers: program.tiers || [
           { name: "Bronce", minPoints: 0, multiplier: 1 },
           { name: "Plata", minPoints: 500, multiplier: 1.5 },
           { name: "Oro", minPoints: 2000, multiplier: 2 },
         ],
       });
-    } catch {
-      // silent
     }
-  }, [authFetch]);
+  }, [program]);
 
-  const fetchDashboard = useCallback(async () => {
-    try {
-      const data = await authFetch<DashboardData>("get", "/loyalty/dashboard");
-      setDashboard(data);
-    } catch {
-      // silent
-    }
-  }, [authFetch]);
-
-  const fetchAll = useCallback(async () => {
-    setLoading(true);
-    await Promise.all([
-      fetchCustomers(),
-      fetchRewards(),
-      fetchProgram(),
-      fetchDashboard(),
-    ]);
-    setLoading(false);
-  }, [fetchCustomers, fetchRewards, fetchProgram, fetchDashboard]);
-
-  useEffect(() => {
-    if (!authLoading) fetchAll();
-  }, [authLoading, fetchAll]);
+  // Helper to invalidate queries after mutations
+  const invalidateCustomers = () =>
+    queryClient.invalidateQueries({ queryKey: ["loyalty-customers"] });
+  const invalidateRewards = () => queryClient.invalidateQueries({ queryKey: ["loyalty-rewards"] });
+  const invalidateDashboard = () =>
+    queryClient.invalidateQueries({ queryKey: ["loyalty-dashboard"] });
+  const invalidateProgram = () => queryClient.invalidateQueries({ queryKey: ["loyalty-program"] });
 
   // -----------------------------------------------------------------------
   // Customer detail
@@ -322,10 +288,7 @@ export default function LealtadPage() {
   const openCustomerDetail = useCallback(
     async (customerId: string) => {
       try {
-        const data = await authFetch<CustomerDetail>(
-          "get",
-          `/loyalty/customers/${customerId}`,
-        );
+        const data = await authFetch<CustomerDetail>("get", `/loyalty/customers/${customerId}`);
         setSelectedCustomer(data);
         setShowCustomerDetail(true);
       } catch {
@@ -357,8 +320,8 @@ export default function LealtadPage() {
       );
       setShowEarnModal(false);
       setEarnForm({ customerId: "", amount: "" });
-      fetchCustomers();
-      fetchDashboard();
+      invalidateCustomers();
+      invalidateDashboard();
       if (selectedCustomer?.id === earnForm.customerId) {
         openCustomerDetail(earnForm.customerId);
       }
@@ -394,9 +357,9 @@ export default function LealtadPage() {
       );
       setShowRedeemModal(false);
       setRedeemForm({ customerId: "", rewardId: "", points: "" });
-      fetchCustomers();
-      fetchRewards();
-      fetchDashboard();
+      invalidateCustomers();
+      invalidateRewards();
+      invalidateDashboard();
       if (selectedCustomer?.id === redeemForm.customerId) {
         openCustomerDetail(redeemForm.customerId);
       }
@@ -415,20 +378,16 @@ export default function LealtadPage() {
     if (!adjustForm.customerId || !adjustForm.points) return;
     setSaving(true);
     try {
-      const res = await authFetch<{ newBalance: number }>(
-        "post",
-        "/loyalty/adjust",
-        {
-          customerId: adjustForm.customerId,
-          points: parseInt(adjustForm.points, 10),
-          description: adjustForm.description || undefined,
-        },
-      );
+      const res = await authFetch<{ newBalance: number }>("post", "/loyalty/adjust", {
+        customerId: adjustForm.customerId,
+        points: parseInt(adjustForm.points, 10),
+        description: adjustForm.description || undefined,
+      });
       toast(`Ajuste aplicado. Nuevo balance: ${fmtNum(res.newBalance)}`, "success");
       setShowAdjustModal(false);
       setAdjustForm({ customerId: "", points: "", description: "" });
-      fetchCustomers();
-      fetchDashboard();
+      invalidateCustomers();
+      invalidateDashboard();
       if (selectedCustomer?.id === adjustForm.customerId) {
         openCustomerDetail(adjustForm.customerId);
       }
@@ -495,7 +454,7 @@ export default function LealtadPage() {
         toast("Recompensa creada", "success");
       }
       setShowRewardModal(false);
-      fetchRewards();
+      invalidateRewards();
     } catch (err: any) {
       toast(err.message || "Error al guardar recompensa", "error");
     } finally {
@@ -507,7 +466,7 @@ export default function LealtadPage() {
     try {
       await authFetch("delete", `/loyalty/rewards/${id}`);
       toast("Recompensa desactivada", "success");
-      fetchRewards();
+      invalidateRewards();
     } catch (err: any) {
       toast(err.message || "Error al desactivar recompensa", "error");
     }
@@ -525,13 +484,11 @@ export default function LealtadPage() {
         pointsPerDollar: parseInt(configForm.pointsPerDollar, 10),
         pointValue: parseFloat(configForm.pointValue),
         minRedemption: parseInt(configForm.minRedemption, 10),
-        expirationDays: configForm.expirationDays
-          ? parseInt(configForm.expirationDays, 10)
-          : null,
+        expirationDays: configForm.expirationDays ? parseInt(configForm.expirationDays, 10) : null,
         tiers: configForm.tiers,
       });
       toast("Configuracion guardada", "success");
-      fetchProgram();
+      invalidateProgram();
     } catch (err: any) {
       toast(err.message || "Error al guardar configuracion", "error");
     } finally {
@@ -565,11 +522,7 @@ export default function LealtadPage() {
   // -----------------------------------------------------------------------
 
   if (authLoading || loading) {
-    return (
-      <div className="flex items-center justify-center h-64 text-gray-400">
-        Cargando...
-      </div>
-    );
+    return <div className="flex items-center justify-center h-64 text-gray-400">Cargando...</div>;
   }
 
   // =======================================================================
@@ -581,12 +534,9 @@ export default function LealtadPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            Programa de Lealtad
-          </h1>
+          <h1 className="text-2xl font-bold text-gray-900">Programa de Lealtad</h1>
           <p className="text-sm text-gray-500 mt-1">
-            {program?.name || "Luka Rewards"} &mdash; Gestiona puntos, canjes y
-            recompensas
+            {program?.name || "Luka Rewards"} &mdash; Gestiona puntos, canjes y recompensas
           </p>
         </div>
       </div>
@@ -688,17 +638,13 @@ export default function LealtadPage() {
                 key: "loyaltyPoints",
                 header: "Puntos",
                 render: (r: LoyaltyCustomer) => (
-                  <span className="font-semibold">
-                    {fmtNum(r.loyaltyPoints)}
-                  </span>
+                  <span className="font-semibold">{fmtNum(r.loyaltyPoints)}</span>
                 ),
               },
               {
                 key: "loyaltyTier",
                 header: "Tier",
-                render: (r: LoyaltyCustomer) => (
-                  <TierBadge tier={r.loyaltyTier} />
-                ),
+                render: (r: LoyaltyCustomer) => <TierBadge tier={r.loyaltyTier} />,
               },
               {
                 key: "lastActivity",
@@ -723,8 +669,7 @@ export default function LealtadPage() {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <p className="text-sm text-gray-500">
-              {rewards.length} recompensa{rewards.length !== 1 ? "s" : ""}{" "}
-              configuradas
+              {rewards.length} recompensa{rewards.length !== 1 ? "s" : ""} configuradas
             </p>
             <Button size="sm" onClick={openCreateReward}>
               <Plus className="h-4 w-4" /> Nueva Recompensa
@@ -757,20 +702,13 @@ export default function LealtadPage() {
                   />
                 </div>
 
-                {r.description && (
-                  <p className="text-sm text-gray-600">{r.description}</p>
-                )}
+                {r.description && <p className="text-sm text-gray-600">{r.description}</p>}
 
                 <div className="flex items-center justify-between text-sm">
-                  <span className="font-semibold text-black">
-                    {fmtNum(r.pointsCost)} pts
-                  </span>
+                  <span className="font-semibold text-black">{fmtNum(r.pointsCost)} pts</span>
                   <span className="text-gray-500">
                     {r.currentRedemptions}
-                    {r.maxRedemptions != null
-                      ? ` / ${r.maxRedemptions}`
-                      : ""}{" "}
-                    canjes
+                    {r.maxRedemptions != null ? ` / ${r.maxRedemptions}` : ""} canjes
                   </span>
                 </div>
 
@@ -783,11 +721,7 @@ export default function LealtadPage() {
                 )}
 
                 <div className="flex gap-2 pt-1">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => openEditReward(r)}
-                  >
+                  <Button size="sm" variant="outline" onClick={() => openEditReward(r)}>
                     <Pencil className="h-3 w-3" /> Editar
                   </Button>
                   {r.isActive && (
@@ -821,11 +755,7 @@ export default function LealtadPage() {
         <div className="space-y-6">
           {/* KPI Cards */}
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <KpiCard
-              label="Total Miembros"
-              value={fmtNum(dashboard.totalMembers)}
-              icon={Users}
-            />
+            <KpiCard label="Total Miembros" value={fmtNum(dashboard.totalMembers)} icon={Users} />
             <KpiCard
               label="Miembros Activos"
               value={fmtNum(dashboard.activeMembers)}
@@ -849,9 +779,7 @@ export default function LealtadPage() {
           <div className="grid gap-6 lg:grid-cols-2">
             {/* Tier distribution pie */}
             <div className="bg-white rounded-xl border p-5">
-              <h3 className="text-sm font-semibold text-gray-900 mb-4">
-                Distribucion por Tier
-              </h3>
+              <h3 className="text-sm font-semibold text-gray-900 mb-4">Distribucion por Tier</h3>
               {dashboard.tierDistribution.length > 0 ? (
                 <ResponsiveContainer width="100%" height={250}>
                   <PieChart>
@@ -865,19 +793,14 @@ export default function LealtadPage() {
                       label={({ tier, count }) => `${tier}: ${count}`}
                     >
                       {dashboard.tierDistribution.map((_, i) => (
-                        <Cell
-                          key={i}
-                          fill={PIE_COLORS[i % PIE_COLORS.length]}
-                        />
+                        <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
                       ))}
                     </Pie>
                     <Tooltip />
                   </PieChart>
                 </ResponsiveContainer>
               ) : (
-                <p className="text-sm text-gray-400 text-center py-8">
-                  Sin datos
-                </p>
+                <p className="text-sm text-gray-400 text-center py-8">Sin datos</p>
               )}
             </div>
 
@@ -911,9 +834,7 @@ export default function LealtadPage() {
 
           {/* Top redeemers table */}
           <div className="bg-white rounded-xl border p-5">
-            <h3 className="text-sm font-semibold text-gray-900 mb-4">
-              Top 5 Miembros por Puntos
-            </h3>
+            <h3 className="text-sm font-semibold text-gray-900 mb-4">Top 5 Miembros por Puntos</h3>
             <DataTable
               columns={[
                 { key: "name", header: "Nombre" },
@@ -927,9 +848,7 @@ export default function LealtadPage() {
                 {
                   key: "tier",
                   header: "Tier",
-                  render: (r: DashboardData["topRedeemers"][0]) => (
-                    <TierBadge tier={r.tier} />
-                  ),
+                  render: (r: DashboardData["topRedeemers"][0]) => <TierBadge tier={r.tier} />,
                 },
               ]}
               data={dashboard.topRedeemers}
@@ -945,17 +864,13 @@ export default function LealtadPage() {
       {tab === "configuracion" && (
         <div className="max-w-2xl space-y-6">
           <div className="bg-white rounded-xl border p-6 space-y-5">
-            <h3 className="font-semibold text-gray-900">
-              Configuracion del Programa
-            </h3>
+            <h3 className="font-semibold text-gray-900">Configuracion del Programa</h3>
 
             <div className="grid gap-4 sm:grid-cols-2">
               <FormField label="Nombre del programa">
                 <Input
                   value={configForm.name}
-                  onChange={(e) =>
-                    setConfigForm({ ...configForm, name: e.target.value })
-                  }
+                  onChange={(e) => setConfigForm({ ...configForm, name: e.target.value })}
                 />
               </FormField>
               <FormField label="Puntos por $1 MXN gastado">
@@ -1018,9 +933,7 @@ export default function LealtadPage() {
           {/* Tiers */}
           <div className="bg-white rounded-xl border p-6 space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="font-semibold text-gray-900">
-                Configuracion de Tiers
-              </h3>
+              <h3 className="font-semibold text-gray-900">Configuracion de Tiers</h3>
               <Button
                 size="sm"
                 variant="outline"
@@ -1044,10 +957,7 @@ export default function LealtadPage() {
 
             <div className="space-y-3">
               {configForm.tiers.map((tier, i) => (
-                <div
-                  key={i}
-                  className="grid grid-cols-4 gap-3 items-end border rounded-lg p-3"
-                >
+                <div key={i} className="grid grid-cols-4 gap-3 items-end border rounded-lg p-3">
                   <FormField label="Nombre">
                     <Input
                       value={tier.name}
@@ -1096,9 +1006,7 @@ export default function LealtadPage() {
                         variant="ghost"
                         className="text-red-500"
                         onClick={() => {
-                          const updated = configForm.tiers.filter(
-                            (_, j) => j !== i,
-                          );
+                          const updated = configForm.tiers.filter((_, j) => j !== i);
                           setConfigForm({ ...configForm, tiers: updated });
                         }}
                       >
@@ -1133,9 +1041,7 @@ export default function LealtadPage() {
             {/* Summary */}
             <div className="grid gap-4 sm:grid-cols-3">
               <div className="bg-gray-50 rounded-lg p-4 text-center">
-                <p className="text-2xl font-bold">
-                  {fmtNum(selectedCustomer.loyaltyPoints)}
-                </p>
+                <p className="text-2xl font-bold">{fmtNum(selectedCustomer.loyaltyPoints)}</p>
                 <p className="text-xs text-gray-500">Balance de Puntos</p>
               </div>
               <div className="bg-gray-50 rounded-lg p-4 text-center">
@@ -1143,9 +1049,7 @@ export default function LealtadPage() {
                 <p className="text-xs text-gray-500 mt-1">Tier Actual</p>
               </div>
               <div className="bg-gray-50 rounded-lg p-4 text-center">
-                <p className="text-2xl font-bold">
-                  {fmtNum(selectedCustomer.totalPointsEarned)}
-                </p>
+                <p className="text-2xl font-bold">{fmtNum(selectedCustomer.totalPointsEarned)}</p>
                 <p className="text-xs text-gray-500">Total Ganados</p>
               </div>
             </div>
@@ -1156,9 +1060,7 @@ export default function LealtadPage() {
                 <div className="flex justify-between text-sm mb-2">
                   <span className="text-gray-600">
                     Progreso hacia{" "}
-                    <span className="font-semibold">
-                      {selectedCustomer.nextTier.name}
-                    </span>
+                    <span className="font-semibold">{selectedCustomer.nextTier.name}</span>
                   </span>
                   <span className="text-gray-500">
                     Faltan {fmtNum(selectedCustomer.pointsToNextTier)} pts
@@ -1228,54 +1130,34 @@ export default function LealtadPage() {
 
             {/* Transaction history */}
             <div>
-              <h4 className="text-sm font-semibold mb-3">
-                Historial de Transacciones
-              </h4>
+              <h4 className="text-sm font-semibold mb-3">Historial de Transacciones</h4>
               <div className="border rounded-lg max-h-64 overflow-y-auto">
                 <table className="w-full text-sm">
                   <thead className="sticky top-0 bg-gray-50">
                     <tr className="border-b">
-                      <th className="text-left px-3 py-2 font-medium text-gray-500">
-                        Fecha
-                      </th>
-                      <th className="text-left px-3 py-2 font-medium text-gray-500">
-                        Tipo
-                      </th>
-                      <th className="text-right px-3 py-2 font-medium text-gray-500">
-                        Puntos
-                      </th>
-                      <th className="text-right px-3 py-2 font-medium text-gray-500">
-                        Balance
-                      </th>
-                      <th className="text-left px-3 py-2 font-medium text-gray-500">
-                        Descripcion
-                      </th>
+                      <th className="text-left px-3 py-2 font-medium text-gray-500">Fecha</th>
+                      <th className="text-left px-3 py-2 font-medium text-gray-500">Tipo</th>
+                      <th className="text-right px-3 py-2 font-medium text-gray-500">Puntos</th>
+                      <th className="text-right px-3 py-2 font-medium text-gray-500">Balance</th>
+                      <th className="text-left px-3 py-2 font-medium text-gray-500">Descripcion</th>
                     </tr>
                   </thead>
                   <tbody>
                     {selectedCustomer.loyaltyTransactions.map((tx) => (
                       <tr key={tx.id} className="border-b last:border-0">
-                        <td className="px-3 py-2 text-gray-500">
-                          {fmtDate(tx.createdAt)}
-                        </td>
+                        <td className="px-3 py-2 text-gray-500">{fmtDate(tx.createdAt)}</td>
                         <td className="px-3 py-2">
                           <TransactionTypeBadge type={tx.type} />
                         </td>
                         <td
                           className={`px-3 py-2 text-right font-semibold ${
-                            tx.points > 0
-                              ? "text-green-600"
-                              : tx.points < 0
-                                ? "text-red-600"
-                                : ""
+                            tx.points > 0 ? "text-green-600" : tx.points < 0 ? "text-red-600" : ""
                           }`}
                         >
                           {tx.points > 0 ? "+" : ""}
                           {fmtNum(tx.points)}
                         </td>
-                        <td className="px-3 py-2 text-right text-gray-600">
-                          {fmtNum(tx.balance)}
-                        </td>
+                        <td className="px-3 py-2 text-right text-gray-600">{fmtNum(tx.balance)}</td>
                         <td className="px-3 py-2 text-gray-500 truncate max-w-[200px]">
                           {tx.description || "-"}
                         </td>
@@ -1283,10 +1165,7 @@ export default function LealtadPage() {
                     ))}
                     {selectedCustomer.loyaltyTransactions.length === 0 && (
                       <tr>
-                        <td
-                          colSpan={5}
-                          className="px-3 py-6 text-center text-gray-400"
-                        >
+                        <td colSpan={5} className="px-3 py-6 text-center text-gray-400">
                           Sin transacciones
                         </td>
                       </tr>
@@ -1302,18 +1181,12 @@ export default function LealtadPage() {
       {/* ================================================================= */}
       {/* MODAL: Earn Points                                                */}
       {/* ================================================================= */}
-      <Modal
-        open={showEarnModal}
-        onClose={() => setShowEarnModal(false)}
-        title="Asignar Puntos"
-      >
+      <Modal open={showEarnModal} onClose={() => setShowEarnModal(false)} title="Asignar Puntos">
         <div className="space-y-4">
           <FormField label="Cliente" required>
             <Select
               value={earnForm.customerId}
-              onChange={(e) =>
-                setEarnForm({ ...earnForm, customerId: e.target.value })
-              }
+              onChange={(e) => setEarnForm({ ...earnForm, customerId: e.target.value })}
             >
               <option value="">Seleccionar cliente...</option>
               {customers.map((c) => (
@@ -1330,30 +1203,20 @@ export default function LealtadPage() {
               step={0.01}
               placeholder="0.00"
               value={earnForm.amount}
-              onChange={(e) =>
-                setEarnForm({ ...earnForm, amount: e.target.value })
-              }
+              onChange={(e) => setEarnForm({ ...earnForm, amount: e.target.value })}
             />
           </FormField>
           {earnForm.amount && program && (
             <p className="text-sm text-gray-500">
               Se otorgaran aproximadamente{" "}
               <span className="font-semibold text-black">
-                {fmtNum(
-                  Math.floor(
-                    parseFloat(earnForm.amount || "0") *
-                      program.pointsPerDollar,
-                  ),
-                )}
+                {fmtNum(Math.floor(parseFloat(earnForm.amount || "0") * program.pointsPerDollar))}
               </span>{" "}
               puntos base (sin multiplicador de tier)
             </p>
           )}
           <div className="flex justify-end gap-2 pt-2">
-            <Button
-              variant="outline"
-              onClick={() => setShowEarnModal(false)}
-            >
+            <Button variant="outline" onClick={() => setShowEarnModal(false)}>
               Cancelar
             </Button>
             <Button onClick={handleEarn} disabled={saving}>
@@ -1375,9 +1238,7 @@ export default function LealtadPage() {
           <FormField label="Cliente" required>
             <Select
               value={redeemForm.customerId}
-              onChange={(e) =>
-                setRedeemForm({ ...redeemForm, customerId: e.target.value })
-              }
+              onChange={(e) => setRedeemForm({ ...redeemForm, customerId: e.target.value })}
             >
               <option value="">Seleccionar cliente...</option>
               {customers.map((c) => (
@@ -1416,19 +1277,14 @@ export default function LealtadPage() {
                 type="number"
                 min={1}
                 value={redeemForm.points}
-                onChange={(e) =>
-                  setRedeemForm({ ...redeemForm, points: e.target.value })
-                }
+                onChange={(e) => setRedeemForm({ ...redeemForm, points: e.target.value })}
                 placeholder={`Minimo ${program?.minRedemption || 100}`}
               />
             </FormField>
           )}
 
           <div className="flex justify-end gap-2 pt-2">
-            <Button
-              variant="outline"
-              onClick={() => setShowRedeemModal(false)}
-            >
+            <Button variant="outline" onClick={() => setShowRedeemModal(false)}>
               Cancelar
             </Button>
             <Button onClick={handleRedeem} disabled={saving}>
@@ -1450,9 +1306,7 @@ export default function LealtadPage() {
           <FormField label="Cliente" required>
             <Select
               value={adjustForm.customerId}
-              onChange={(e) =>
-                setAdjustForm({ ...adjustForm, customerId: e.target.value })
-              }
+              onChange={(e) => setAdjustForm({ ...adjustForm, customerId: e.target.value })}
             >
               <option value="">Seleccionar cliente...</option>
               {customers.map((c) => (
@@ -1466,26 +1320,19 @@ export default function LealtadPage() {
             <Input
               type="number"
               value={adjustForm.points}
-              onChange={(e) =>
-                setAdjustForm({ ...adjustForm, points: e.target.value })
-              }
+              onChange={(e) => setAdjustForm({ ...adjustForm, points: e.target.value })}
               placeholder="Ej: 50 o -20"
             />
           </FormField>
           <FormField label="Descripcion">
             <Textarea
               value={adjustForm.description}
-              onChange={(e) =>
-                setAdjustForm({ ...adjustForm, description: e.target.value })
-              }
+              onChange={(e) => setAdjustForm({ ...adjustForm, description: e.target.value })}
               placeholder="Razon del ajuste..."
             />
           </FormField>
           <div className="flex justify-end gap-2 pt-2">
-            <Button
-              variant="outline"
-              onClick={() => setShowAdjustModal(false)}
-            >
+            <Button variant="outline" onClick={() => setShowAdjustModal(false)}>
               Cancelar
             </Button>
             <Button onClick={handleAdjust} disabled={saving}>
@@ -1507,18 +1354,14 @@ export default function LealtadPage() {
           <FormField label="Nombre" required>
             <Input
               value={rewardForm.name}
-              onChange={(e) =>
-                setRewardForm({ ...rewardForm, name: e.target.value })
-              }
+              onChange={(e) => setRewardForm({ ...rewardForm, name: e.target.value })}
               placeholder="Ej: Bowl gratis"
             />
           </FormField>
           <FormField label="Descripcion">
             <Textarea
               value={rewardForm.description}
-              onChange={(e) =>
-                setRewardForm({ ...rewardForm, description: e.target.value })
-              }
+              onChange={(e) => setRewardForm({ ...rewardForm, description: e.target.value })}
               placeholder="Descripcion de la recompensa..."
             />
           </FormField>
@@ -1528,17 +1371,13 @@ export default function LealtadPage() {
                 type="number"
                 min={1}
                 value={rewardForm.pointsCost}
-                onChange={(e) =>
-                  setRewardForm({ ...rewardForm, pointsCost: e.target.value })
-                }
+                onChange={(e) => setRewardForm({ ...rewardForm, pointsCost: e.target.value })}
               />
             </FormField>
             <FormField label="Categoria">
               <Select
                 value={rewardForm.category}
-                onChange={(e) =>
-                  setRewardForm({ ...rewardForm, category: e.target.value })
-                }
+                onChange={(e) => setRewardForm({ ...rewardForm, category: e.target.value })}
               >
                 <option value="PRODUCT">Producto gratis</option>
                 <option value="DISCOUNT">Descuento</option>
@@ -1566,34 +1405,23 @@ export default function LealtadPage() {
               <Input
                 type="date"
                 value={rewardForm.validFrom}
-                onChange={(e) =>
-                  setRewardForm({ ...rewardForm, validFrom: e.target.value })
-                }
+                onChange={(e) => setRewardForm({ ...rewardForm, validFrom: e.target.value })}
               />
             </FormField>
             <FormField label="Valida hasta">
               <Input
                 type="date"
                 value={rewardForm.validUntil}
-                onChange={(e) =>
-                  setRewardForm({ ...rewardForm, validUntil: e.target.value })
-                }
+                onChange={(e) => setRewardForm({ ...rewardForm, validUntil: e.target.value })}
               />
             </FormField>
           </div>
           <div className="flex justify-end gap-2 pt-2">
-            <Button
-              variant="outline"
-              onClick={() => setShowRewardModal(false)}
-            >
+            <Button variant="outline" onClick={() => setShowRewardModal(false)}>
               Cancelar
             </Button>
             <Button onClick={handleSaveReward} disabled={saving}>
-              {saving
-                ? "Guardando..."
-                : editingReward
-                  ? "Actualizar"
-                  : "Crear Recompensa"}
+              {saving ? "Guardando..." : editingReward ? "Actualizar" : "Crear Recompensa"}
             </Button>
           </div>
         </div>

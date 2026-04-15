@@ -124,7 +124,7 @@ export class RecipesService {
     await this.findOne(organizationId, id);
     const { ingredients, ...recipeData } = data;
 
-    const recipe = await this.prisma.$transaction(async (tx) => {
+    const _recipe = await this.prisma.$transaction(async (tx) => {
       if (ingredients) {
         await tx.recipeIngredient.deleteMany({ where: { recipeId: id } });
         await tx.recipeIngredient.createMany({
@@ -165,10 +165,7 @@ export class RecipesService {
   /**
    * Calculate cost for a single recipe, update the DB, and return the breakdown.
    */
-  async calculateRecipeCost(
-    organizationId: string,
-    recipeId: string,
-  ): Promise<RecipeCostResult> {
+  async calculateRecipeCost(organizationId: string, recipeId: string): Promise<RecipeCostResult> {
     const recipe = await this.findOne(organizationId, recipeId);
     return this.computeCostBreakdown(recipe);
   }
@@ -193,9 +190,7 @@ export class RecipesService {
   /**
    * Food cost summary across all recipes in an organization.
    */
-  async getFoodCostSummary(
-    organizationId: string,
-  ): Promise<FoodCostSummaryItem[]> {
+  async getFoodCostSummary(organizationId: string): Promise<FoodCostSummaryItem[]> {
     const recipes = await this.prisma.recipe.findMany({
       where: { organizationId },
       include: { ingredients: { include: { product: true } } },
@@ -214,8 +209,7 @@ export class RecipesService {
       const servings = recipe.servings || 1;
       const costPerServing = totalCost / servings;
       const sellingPrice = Number(recipe.sellingPrice || 0);
-      const foodCostPct =
-        sellingPrice > 0 ? (costPerServing / sellingPrice) * 100 : 0;
+      const foodCostPct = sellingPrice > 0 ? (costPerServing / sellingPrice) * 100 : 0;
 
       let status: "OPTIMAL" | "WARNING" | "CRITICAL";
       if (foodCostPct <= 30) {
@@ -246,34 +240,30 @@ export class RecipesService {
   private async computeCostBreakdown(recipe: any): Promise<RecipeCostResult> {
     let totalCost = 0;
 
-    const ingredientCosts: IngredientCostDetail[] = recipe.ingredients.map(
-      (ing: any) => {
-        const qty = Number(ing.quantity);
-        const waste = Number(ing.wastePercentage) || 0;
-        const effectiveQty = qty * (1 + waste / 100);
-        const unitCost = Number(ing.product.costPerUnit);
-        const ingredientTotal = effectiveQty * unitCost;
-        totalCost += ingredientTotal;
+    const ingredientCosts: IngredientCostDetail[] = recipe.ingredients.map((ing: any) => {
+      const qty = Number(ing.quantity);
+      const waste = Number(ing.wastePercentage) || 0;
+      const effectiveQty = qty * (1 + waste / 100);
+      const unitCost = Number(ing.product.costPerUnit);
+      const ingredientTotal = effectiveQty * unitCost;
+      totalCost += ingredientTotal;
 
-        return {
-          productName: ing.product.name,
-          quantity: qty,
-          unit: ing.unitOfMeasure,
-          wastePercentage: waste,
-          unitCost,
-          totalCost: Math.round(ingredientTotal * 100) / 100,
-        };
-      },
-    );
+      return {
+        productName: ing.product.name,
+        quantity: qty,
+        unit: ing.unitOfMeasure,
+        wastePercentage: waste,
+        unitCost,
+        totalCost: Math.round(ingredientTotal * 100) / 100,
+      };
+    });
 
     const servings = recipe.servings || 1;
     const costPerServing = totalCost / servings;
     const sellingPrice = Number(recipe.sellingPrice || 0);
-    const foodCostPercentage =
-      sellingPrice > 0 ? (costPerServing / sellingPrice) * 100 : 0;
+    const foodCostPercentage = sellingPrice > 0 ? (costPerServing / sellingPrice) * 100 : 0;
     const grossMargin = sellingPrice - costPerServing;
-    const marginPercentage =
-      sellingPrice > 0 ? (grossMargin / sellingPrice) * 100 : 0;
+    const marginPercentage = sellingPrice > 0 ? (grossMargin / sellingPrice) * 100 : 0;
 
     // Persist computed costs
     await this.prisma.recipe.update({

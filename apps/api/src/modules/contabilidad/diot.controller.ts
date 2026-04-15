@@ -1,21 +1,10 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Query,
-  Res,
-  UseGuards,
-  BadRequestException,
-} from "@nestjs/common";
+import { Controller, Get, Post, Query, Res, UseGuards, BadRequestException } from "@nestjs/common";
 import { ApiTags, ApiBearerAuth } from "@nestjs/swagger";
 import { Response } from "express";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
 import { Permissions } from "../../common/decorators/roles.decorator";
-import {
-  CurrentUser,
-  JwtPayload,
-} from "../../common/decorators/current-user.decorator";
+import { CurrentUser, JwtPayload } from "../../common/decorators/current-user.decorator";
 import { DiotService } from "./diot.service";
 
 @ApiTags("Contabilidad - DIOT")
@@ -64,16 +53,8 @@ export class DiotController {
     @Query("month") monthStr: string,
   ) {
     const { year, month } = this.parseYearMonth(yearStr, monthStr);
-    const records = await this.diotService.generateDiot(
-      user.organizationId,
-      year,
-      month,
-    );
-    const fileContent = await this.diotService.generateDiotFile(
-      user.organizationId,
-      year,
-      month,
-    );
+    const records = await this.diotService.generateDiot(user.organizationId, year, month);
+    const fileContent = await this.diotService.generateDiotFile(user.organizationId, year, month);
     return {
       year,
       month,
@@ -96,11 +77,7 @@ export class DiotController {
     @Res() res: Response,
   ) {
     const { year, month } = this.parseYearMonth(yearStr, monthStr);
-    const fileContent = await this.diotService.generateDiotFile(
-      user.organizationId,
-      year,
-      month,
-    );
+    const fileContent = await this.diotService.generateDiotFile(user.organizationId, year, month);
 
     const filename = `DIOT_${year}_${String(month).padStart(2, "0")}.txt`;
 
@@ -120,10 +97,7 @@ export class DiotController {
 
   // ---- helpers ----
 
-  private parseYearMonth(
-    yearStr: string,
-    monthStr: string,
-  ): { year: number; month: number } {
+  private parseYearMonth(yearStr: string, monthStr: string): { year: number; month: number } {
     const year = parseInt(yearStr, 10);
     const month = parseInt(monthStr, 10);
     if (isNaN(year) || isNaN(month)) {

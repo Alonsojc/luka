@@ -45,6 +45,17 @@ import { ForecastService } from "./forecast.service";
     LotsService,
     ForecastService,
   ],
-  exports: [ProductsService, InventoryService, RecipesService, TransfersService, PresentationsService, InventoryLoadService, KardexService, PhysicalCountService, LotsService, ForecastService],
+  exports: [
+    ProductsService,
+    InventoryService,
+    RecipesService,
+    TransfersService,
+    PresentationsService,
+    InventoryLoadService,
+    KardexService,
+    PhysicalCountService,
+    LotsService,
+    ForecastService,
+  ],
 })
 export class InventariosModule {}
