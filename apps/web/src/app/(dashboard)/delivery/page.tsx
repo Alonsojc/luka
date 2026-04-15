@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import {
   Bike,
   UtensilsCrossed,
@@ -228,16 +228,19 @@ export default function DeliveryPage() {
   // Handlers
   // ---------------------------------------------------------------
 
-  const handleStatusChange = async (orderId: string, newStatus: string) => {
-    try {
-      await authFetch("patch", `/delivery/orders/${orderId}/status`, {
-        status: newStatus,
-      });
-      queryClient.invalidateQueries({ queryKey: ["delivery-orders"] });
-    } catch (err) {
-      toast(err instanceof Error ? err.message : "Error al actualizar", "error");
-    }
-  };
+  const handleStatusChange = useCallback(
+    async (orderId: string, newStatus: string) => {
+      try {
+        await authFetch("patch", `/delivery/orders/${orderId}/status`, {
+          status: newStatus,
+        });
+        queryClient.invalidateQueries({ queryKey: ["delivery-orders"] });
+      } catch (err) {
+        toast(err instanceof Error ? err.message : "Error al actualizar", "error");
+      }
+    },
+    [authFetch, queryClient, toast],
+  );
 
   const handleManualOrder = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
