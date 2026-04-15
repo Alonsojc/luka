@@ -1,20 +1,10 @@
-import {
-  Controller,
-  Get,
-  Query,
-  Param,
-  Res,
-  UseGuards,
-} from "@nestjs/common";
+import { Controller, Get, Query, Param, Res, UseGuards } from "@nestjs/common";
 import { ApiTags, ApiBearerAuth } from "@nestjs/swagger";
 import { Response } from "express";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
 import { Permissions } from "../../common/decorators/roles.decorator";
-import {
-  CurrentUser,
-  JwtPayload,
-} from "../../common/decorators/current-user.decorator";
+import { CurrentUser, JwtPayload } from "../../common/decorators/current-user.decorator";
 import { FinancialReportsService } from "./financial-reports.service";
 
 @ApiTags("Reportes - Financieros")
@@ -47,27 +37,19 @@ export class FinancialReportsController {
     @Query("startDate") startDate: string,
     @Query("endDate") endDate: string,
   ) {
-    return this.financialReportsService.getCashFlow(
-      user.organizationId,
-      startDate,
-      endDate,
-    );
+    return this.financialReportsService.getCashFlow(user.organizationId, startDate, endDate);
   }
 
   @Get("aging/receivable")
   @Permissions("reportes:view")
   getReceivableAging(@CurrentUser() user: JwtPayload) {
-    return this.financialReportsService.getReceivableAging(
-      user.organizationId,
-    );
+    return this.financialReportsService.getReceivableAging(user.organizationId);
   }
 
   @Get("aging/payable")
   @Permissions("reportes:view")
   getPayableAging(@CurrentUser() user: JwtPayload) {
-    return this.financialReportsService.getPayableAging(
-      user.organizationId,
-    );
+    return this.financialReportsService.getPayableAging(user.organizationId);
   }
 
   @Get("export/pnl")
@@ -86,10 +68,7 @@ export class FinancialReportsController {
 
     const filename = `Estado_Resultados_${startDate}_${endDate}.csv`;
     res.setHeader("Content-Type", "text/csv; charset=utf-8");
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename="${filename}"`,
-    );
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
     res.send("\uFEFF" + csv);
   }
 
@@ -101,19 +80,12 @@ export class FinancialReportsController {
     @Res() res: Response,
   ) {
     const agingType = type === "payable" ? "payable" : "receivable";
-    const csv = await this.financialReportsService.exportAgingExcel(
-      user.organizationId,
-      agingType,
-    );
+    const csv = await this.financialReportsService.exportAgingExcel(user.organizationId, agingType);
 
-    const label =
-      agingType === "receivable" ? "Cuentas_por_Cobrar" : "Cuentas_por_Pagar";
+    const label = agingType === "receivable" ? "Cuentas_por_Cobrar" : "Cuentas_por_Pagar";
     const filename = `Antiguedad_${label}_${new Date().toISOString().split("T")[0]}.csv`;
     res.setHeader("Content-Type", "text/csv; charset=utf-8");
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename="${filename}"`,
-    );
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
     res.send("\uFEFF" + csv);
   }
 }

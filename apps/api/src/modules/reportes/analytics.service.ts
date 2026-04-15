@@ -110,7 +110,7 @@ export class AnalyticsService {
       } else {
         // Mock: branches * ~100 tickets/day * 30 days * $180 avg ticket
         const base = branchCount * 100 * 30 * 180;
-        const seasonality = 1 + 0.15 * Math.sin((range.start.getMonth() - 2) * Math.PI / 6);
+        const seasonality = 1 + 0.15 * Math.sin(((range.start.getMonth() - 2) * Math.PI) / 6);
         const noise = 0.95 + Math.random() * 0.1;
         monthlySales = Math.round(base * seasonality * noise);
       }
@@ -197,9 +197,8 @@ export class AnalyticsService {
       const purchaseTotal = Number(poAgg._sum.total || 0);
 
       // If no real sales, estimate from branch average
-      const salesTotal = realSales > 0
-        ? realSales
-        : Math.round(100 * 30 * 180 * (0.9 + Math.random() * 0.2));
+      const salesTotal =
+        realSales > 0 ? realSales : Math.round(100 * 30 * 180 * (0.9 + Math.random() * 0.2));
 
       result.push({
         name: branch.name,
@@ -265,14 +264,11 @@ export class AnalyticsService {
     });
 
     let currentMonthSales =
-      Number(currentCorntechSales._sum.total || 0) +
-      Number(currentPosSales._sum.total || 0);
+      Number(currentCorntechSales._sum.total || 0) + Number(currentPosSales._sum.total || 0);
     let previousMonthSales =
-      Number(prevCorntechSales._sum.total || 0) +
-      Number(prevPosSales._sum.total || 0);
+      Number(prevCorntechSales._sum.total || 0) + Number(prevPosSales._sum.total || 0);
     const currentSaleCount =
-      (currentCorntechSales._count.id || 0) +
-      (currentPosSales._count.id || 0);
+      (currentCorntechSales._count.id || 0) + (currentPosSales._count.id || 0);
 
     const hasRealSales = currentMonthSales > 0 || previousMonthSales > 0;
 
@@ -385,13 +381,14 @@ export class AnalyticsService {
       const bSales = Number(cAgg._sum.total || 0) + Number(pAgg._sum.total || 0);
       branchSales.push({
         name: br.name,
-        sales: bSales > 0 ? Math.round(bSales * 100) / 100 : Math.round(100 * 30 * 180 * (0.8 + Math.random() * 0.4)),
+        sales:
+          bSales > 0
+            ? Math.round(bSales * 100) / 100
+            : Math.round(100 * 30 * 180 * (0.8 + Math.random() * 0.4)),
       });
     }
 
-    const topBranches = branchSales
-      .sort((a, b) => b.sales - a.sales)
-      .slice(0, 5);
+    const topBranches = branchSales.sort((a, b) => b.sales - a.sales).slice(0, 5);
 
     // --- Inventory turnover ---
     const inventoryAll = await this.prisma.branchInventory.findMany({
@@ -416,7 +413,9 @@ export class AnalyticsService {
     const inventoryTurnover =
       avgInventoryValue > 0
         ? Math.round((cogs / avgInventoryValue) * 100) / 100
-        : hasRealSales ? 0 : 2.8;
+        : hasRealSales
+          ? 0
+          : 2.8;
 
     // --- Cash position (bank balances) ---
     const bankAgg = await this.prisma.bankAccount.aggregate({
@@ -454,11 +453,14 @@ export class AnalyticsService {
       },
       _sum: { totalEmployerCost: true, totalGross: true },
     });
-    const payrollCost = Number(payrollAgg._sum.totalEmployerCost || 0) + Number(payrollAgg._sum.totalGross || 0);
+    const payrollCost =
+      Number(payrollAgg._sum.totalEmployerCost || 0) + Number(payrollAgg._sum.totalGross || 0);
     const employeeCostRatio =
       currentMonthSales > 0
         ? Math.round((payrollCost / currentMonthSales) * 10000) / 100
-        : hasRealSales ? 0 : 18.5;
+        : hasRealSales
+          ? 0
+          : 18.5;
 
     return {
       currentMonthSales: Math.round(currentMonthSales * 100) / 100,

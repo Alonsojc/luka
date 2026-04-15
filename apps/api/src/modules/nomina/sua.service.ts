@@ -79,7 +79,7 @@ const DEFAULT_IMSS_RATES: {
   {
     branch: "cesantia_vejez",
     label: "Cesantia en Edad Avanzada y Vejez",
-    employerRate: 0.03150,
+    employerRate: 0.0315,
     employeeRate: 0.01125,
   },
   {
@@ -142,10 +142,7 @@ export class SuaService {
 
       // ALTA: hireDate falls in this month
       const hireDate = new Date(emp.hireDate);
-      if (
-        hireDate >= monthStart &&
-        hireDate <= monthEnd
-      ) {
+      if (hireDate >= monthStart && hireDate <= monthEnd) {
         movements.push({
           nss: emp.nss || "",
           curp: emp.curp || "",
@@ -208,16 +205,8 @@ export class SuaService {
   /**
    * Generate fixed-width SUA file content per IMSS specification.
    */
-  async generateSuaFile(
-    organizationId: string,
-    year: number,
-    month: number,
-  ): Promise<string> {
-    const movements = await this.generateSuaMovements(
-      organizationId,
-      year,
-      month,
-    );
+  async generateSuaFile(organizationId: string, year: number, month: number): Promise<string> {
+    const movements = await this.generateSuaMovements(organizationId, year, month);
 
     const lines: string[] = [];
 
@@ -310,8 +299,7 @@ export class SuaService {
         employeeRate: rate.employeeRate,
         employerAmount: Math.round(employerAmount * 100) / 100,
         employeeAmount: Math.round(employeeAmount * 100) / 100,
-        total:
-          Math.round((employerAmount + employeeAmount) * 100) / 100,
+        total: Math.round((employerAmount + employeeAmount) * 100) / 100,
       };
     });
 
@@ -334,8 +322,7 @@ export class SuaService {
         sbc,
         employerTotal: Math.round(employerTotal * 100) / 100,
         employeeTotal: Math.round(employeeTotal * 100) / 100,
-        total:
-          Math.round((employerTotal + employeeTotal) * 100) / 100,
+        total: Math.round((employerTotal + employeeTotal) * 100) / 100,
       };
     });
 
@@ -354,27 +341,10 @@ export class SuaService {
   /**
    * Save a generated SUA export and return the record.
    */
-  async saveSuaExport(
-    organizationId: string,
-    year: number,
-    month: number,
-    userId: string,
-  ) {
-    const fileContent = await this.generateSuaFile(
-      organizationId,
-      year,
-      month,
-    );
-    const movements = await this.generateSuaMovements(
-      organizationId,
-      year,
-      month,
-    );
-    const summary = await this.generateSuaPaymentSummary(
-      organizationId,
-      year,
-      month,
-    );
+  async saveSuaExport(organizationId: string, year: number, month: number, userId: string) {
+    const fileContent = await this.generateSuaFile(organizationId, year, month);
+    const movements = await this.generateSuaMovements(organizationId, year, month);
+    const summary = await this.generateSuaPaymentSummary(organizationId, year, month);
 
     return this.prisma.suaExport.create({
       data: {
@@ -415,11 +385,7 @@ export class SuaService {
   /**
    * Get file content for download.
    */
-  async getSuaFileContent(
-    organizationId: string,
-    year: number,
-    month: number,
-  ): Promise<string> {
+  async getSuaFileContent(organizationId: string, year: number, month: number): Promise<string> {
     // Try to find a previously generated export
     const existing = await this.prisma.suaExport.findFirst({
       where: { organizationId, year, month },
@@ -447,8 +413,7 @@ export class SuaService {
     const labels: Record<string, string> = {
       enfermedades_maternidad_fija: "Enfermedades y Maternidad (Cuota Fija)",
       enfermedades_maternidad_excedente: "Enfermedades y Maternidad (Excedente)",
-      enfermedades_maternidad_prestaciones:
-        "Enfermedades y Maternidad (Prestaciones en Dinero)",
+      enfermedades_maternidad_prestaciones: "Enfermedades y Maternidad (Prestaciones en Dinero)",
       enfermedades_maternidad_gastos_medicos:
         "Enfermedades y Maternidad (Gastos Medicos Pensionados)",
       enfermedades_maternidad: "Enfermedades y Maternidad",

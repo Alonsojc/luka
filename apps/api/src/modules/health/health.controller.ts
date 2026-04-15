@@ -71,6 +71,7 @@ export class HealthController {
   async readiness() {
     try {
       await this.prisma.$queryRaw`SELECT 1`;
+      await this.cache.set("health:ready", "1", 10);
       return { status: "ready" };
     } catch {
       return { status: "not_ready" };

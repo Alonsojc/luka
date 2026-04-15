@@ -1,13 +1,4 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Patch,
-  Param,
-  Body,
-  Query,
-  UseGuards,
-} from "@nestjs/common";
+import { Controller, Get, Post, Patch, Param, Body, Query, UseGuards } from "@nestjs/common";
 import { ApiTags, ApiBearerAuth } from "@nestjs/swagger";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
@@ -15,10 +6,7 @@ import { BranchAccessGuard } from "../../common/guards/branch-access.guard";
 import { ApiKeyGuard } from "../../common/guards/api-key.guard";
 import { Permissions } from "../../common/decorators/roles.decorator";
 import { SkipCsrf } from "../../common/decorators/skip-csrf.decorator";
-import {
-  CurrentUser,
-  JwtPayload,
-} from "../../common/decorators/current-user.decorator";
+import { CurrentUser, JwtPayload } from "../../common/decorators/current-user.decorator";
 import { CorntechService } from "./corntech.service";
 
 @ApiTags("Corntech POS")
@@ -58,11 +46,7 @@ export class CorntechController {
       }>;
     },
   ) {
-    return this.corntechService.processSalesBatch(
-      user.organizationId,
-      body.branchId,
-      body.sales,
-    );
+    return this.corntechService.processSalesBatch(user.organizationId, body.branchId, body.sales);
   }
 
   /** Get sync status per branch */
@@ -96,15 +80,9 @@ export class CorntechController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Permissions("corntech:view")
-  getDailySummary(
-    @CurrentUser() user: JwtPayload,
-    @Query("date") date?: string,
-  ) {
+  getDailySummary(@CurrentUser() user: JwtPayload, @Query("date") date?: string) {
     const targetDate = date || new Date().toISOString().split("T")[0];
-    return this.corntechService.getDailySummary(
-      user.organizationId,
-      targetDate,
-    );
+    return this.corntechService.getDailySummary(user.organizationId, targetDate);
   }
 
   /** List recent POS sales */
@@ -134,10 +112,7 @@ export class CorntechController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuard, BranchAccessGuard)
   @Permissions("corntech:view")
-  getSyncLogs(
-    @Param("branchId") branchId: string,
-    @Query("syncType") syncType?: string,
-  ) {
+  getSyncLogs(@Param("branchId") branchId: string, @Query("syncType") syncType?: string) {
     return this.corntechService.getSyncLogs(branchId, syncType);
   }
 
@@ -145,9 +120,7 @@ export class CorntechController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Permissions("corntech:sync")
-  createSyncLog(
-    @Body() body: { branchId: string; syncType: string },
-  ) {
+  createSyncLog(@Body() body: { branchId: string; syncType: string }) {
     return this.corntechService.createSyncLog(body);
   }
 
@@ -232,11 +205,7 @@ export class CorntechController {
     @Query("startDate") startDate?: string,
     @Query("endDate") endDate?: string,
   ) {
-    return this.corntechService.getCashClosings(
-      branchId,
-      startDate,
-      endDate,
-    );
+    return this.corntechService.getCashClosings(branchId, startDate, endDate);
   }
 
   @Post("cash-closings")

@@ -1,12 +1,4 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Param,
-  Query,
-  UseGuards,
-  Logger,
-} from "@nestjs/common";
+import { Controller, Get, Post, Param, Query, UseGuards, Logger } from "@nestjs/common";
 import { InjectQueue } from "@nestjs/bullmq";
 import { Queue } from "bullmq";
 import { JwtAuthGuard } from "../guards/jwt-auth.guard";
@@ -120,24 +112,12 @@ export class QueuesController {
     const start = (pageNum - 1) * limitNum;
     const end = start + limitNum - 1;
 
-    const validStatuses = [
-      "waiting",
-      "active",
-      "completed",
-      "failed",
-      "delayed",
-    ];
-    const jobStatus = validStatuses.includes(status || "")
-      ? (status as any)
-      : undefined;
+    const validStatuses = ["waiting", "active", "completed", "failed", "delayed"];
+    const jobStatus = validStatuses.includes(status || "") ? (status as any) : undefined;
 
     const jobs = jobStatus
       ? await queue.getJobs([jobStatus], start, end)
-      : await queue.getJobs(
-          ["waiting", "active", "completed", "failed", "delayed"],
-          start,
-          end,
-        );
+      : await queue.getJobs(["waiting", "active", "completed", "failed", "delayed"], start, end);
 
     return {
       queue: name,
@@ -157,19 +137,10 @@ export class QueuesController {
         progress: job.progress,
         attempts: job.attemptsMade,
         failedReason: job.failedReason || null,
-        processedOn: job.processedOn
-          ? new Date(job.processedOn).toISOString()
-          : null,
-        finishedOn: job.finishedOn
-          ? new Date(job.finishedOn).toISOString()
-          : null,
-        duration:
-          job.finishedOn && job.processedOn
-            ? job.finishedOn - job.processedOn
-            : null,
-        timestamp: job.timestamp
-          ? new Date(job.timestamp).toISOString()
-          : null,
+        processedOn: job.processedOn ? new Date(job.processedOn).toISOString() : null,
+        finishedOn: job.finishedOn ? new Date(job.finishedOn).toISOString() : null,
+        duration: job.finishedOn && job.processedOn ? job.finishedOn - job.processedOn : null,
+        timestamp: job.timestamp ? new Date(job.timestamp).toISOString() : null,
       })),
     };
   }
@@ -189,9 +160,7 @@ export class QueuesController {
         await job.retry();
         retried++;
       } catch (error: any) {
-        this.logger.warn(
-          `Could not retry job ${job.id}: ${error.message}`,
-        );
+        this.logger.warn(`Could not retry job ${job.id}: ${error.message}`);
       }
     }
 

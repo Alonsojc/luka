@@ -1,19 +1,10 @@
-import {
-  Controller,
-  Get,
-  Query,
-  Param,
-  UseGuards,
-} from "@nestjs/common";
+import { Controller, Get, Query, Param, UseGuards } from "@nestjs/common";
 import { ApiTags, ApiBearerAuth } from "@nestjs/swagger";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
 import { BranchAccessGuard } from "../../common/guards/branch-access.guard";
 import { Permissions } from "../../common/decorators/roles.decorator";
-import {
-  CurrentUser,
-  JwtPayload,
-} from "../../common/decorators/current-user.decorator";
+import { CurrentUser, JwtPayload } from "../../common/decorators/current-user.decorator";
 import { ReportesService } from "./reportes.service";
 
 @ApiTags("Reportes")
@@ -30,11 +21,7 @@ export class ReportesController {
     @Query("startDate") startDate: string,
     @Query("endDate") endDate: string,
   ) {
-    return this.reportesService.salesByBranch(
-      user.organizationId,
-      startDate,
-      endDate,
-    );
+    return this.reportesService.salesByBranch(user.organizationId, startDate, endDate);
   }
 
   @Get("sales/by-product/:branchId")
@@ -45,12 +32,7 @@ export class ReportesController {
     @Query("startDate") startDate: string,
     @Query("endDate") endDate: string,
   ) {
-    return this.reportesService.salesByProduct(
-      user.organizationId,
-      branchId,
-      startDate,
-      endDate,
-    );
+    return this.reportesService.salesByProduct(user.organizationId, branchId, startDate, endDate);
   }
 
   @Get("sales/trends")
@@ -61,12 +43,7 @@ export class ReportesController {
     @Query("startDate") startDate: string,
     @Query("endDate") endDate: string,
   ) {
-    return this.reportesService.salesTrends(
-      user.organizationId,
-      branchId,
-      startDate,
-      endDate,
-    );
+    return this.reportesService.salesTrends(user.organizationId, branchId, startDate, endDate);
   }
 
   @Get("cash-closings/:branchId")
@@ -87,13 +64,7 @@ export class ReportesController {
 
   @Get("inventory/valuation")
   @Permissions("reportes:view")
-  inventoryValuation(
-    @CurrentUser() user: JwtPayload,
-    @Query("branchId") branchId?: string,
-  ) {
-    return this.reportesService.inventoryValuation(
-      user.organizationId,
-      branchId,
-    );
+  inventoryValuation(@CurrentUser() user: JwtPayload, @Query("branchId") branchId?: string) {
+    return this.reportesService.inventoryValuation(user.organizationId, branchId);
   }
 }

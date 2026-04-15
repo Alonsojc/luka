@@ -9,12 +9,7 @@ import {
   MaxLength,
   Min,
 } from "class-validator";
-import {
-  IsRFC,
-  IsCURP,
-  IsNSS,
-  IsCLABE,
-} from "../../../common/validators/mexican-validators";
+import { IsRFC, IsCURP, IsNSS, IsCLABE } from "../../../common/validators/mexican-validators";
 
 export class CreateEmployeeDto {
   @IsString()

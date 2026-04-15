@@ -1,11 +1,6 @@
 import { NestFactory } from "@nestjs/core";
 import { NestExpressApplication } from "@nestjs/platform-express";
-import {
-  Logger,
-  ValidationPipe,
-  VERSION_NEUTRAL,
-  VersioningType,
-} from "@nestjs/common";
+import { Logger, ValidationPipe, VERSION_NEUTRAL, VersioningType } from "@nestjs/common";
 import { SwaggerModule, DocumentBuilder } from "@nestjs/swagger";
 import helmet from "helmet";
 import cookieParser from "cookie-parser";
@@ -21,9 +16,7 @@ async function bootstrap() {
 
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     // JSON-formatted logs in production for ELK/Datadog/CloudWatch parsing
-    logger: isProduction
-      ? ["error", "warn", "log"]
-      : ["error", "warn", "log", "debug", "verbose"],
+    logger: isProduction ? ["error", "warn", "log"] : ["error", "warn", "log", "debug", "verbose"],
   });
 
   const logger = new Logger("Bootstrap");
@@ -33,7 +26,7 @@ async function bootstrap() {
     helmet({
       contentSecurityPolicy: false, // Next.js handles CSP via meta tags
       crossOriginEmbedderPolicy: false, // Allow loading resources cross-origin
-    })
+    }),
   );
 
   // Cookie parsing (for httpOnly auth cookies)
@@ -60,9 +53,7 @@ async function bootstrap() {
 
   // CORS — environment-specific origins only
   const webUrl = process.env.WEB_URL || "http://localhost:3002";
-  const corsOrigins = isProduction
-    ? [webUrl]
-    : [webUrl, "http://localhost:3002"];
+  const corsOrigins = isProduction ? [webUrl] : [webUrl, "http://localhost:3002"];
 
   app.enableCors({
     origin: corsOrigins,
@@ -77,7 +68,7 @@ async function bootstrap() {
       whitelist: true,
       forbidNonWhitelisted: true,
       transform: true,
-    })
+    }),
   );
 
   // Swagger API docs — disabled in production

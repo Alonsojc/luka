@@ -1,21 +1,9 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Patch,
-  Param,
-  Body,
-  Query,
-  UseGuards,
-} from "@nestjs/common";
+import { Controller, Get, Post, Patch, Param, Body, Query, UseGuards } from "@nestjs/common";
 import { ApiTags, ApiBearerAuth } from "@nestjs/swagger";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
 import { Permissions } from "../../common/decorators/roles.decorator";
-import {
-  CurrentUser,
-  JwtPayload,
-} from "../../common/decorators/current-user.decorator";
+import { CurrentUser, JwtPayload } from "../../common/decorators/current-user.decorator";
 import { DeliveryService } from "./delivery.service";
 import { CreateDeliveryOrderDto } from "./dto/create-order.dto";
 import { UpdateDeliveryStatusDto } from "./dto/update-status.dto";
@@ -57,19 +45,13 @@ export class DeliveryController {
 
   @Get("orders/:id")
   @Permissions("delivery:view")
-  findOneOrder(
-    @CurrentUser() user: JwtPayload,
-    @Param("id") id: string,
-  ) {
+  findOneOrder(@CurrentUser() user: JwtPayload, @Param("id") id: string) {
     return this.deliveryService.findOneOrder(user.organizationId, id);
   }
 
   @Post("orders")
   @Permissions("delivery:create")
-  createOrder(
-    @CurrentUser() user: JwtPayload,
-    @Body() dto: CreateDeliveryOrderDto,
-  ) {
+  createOrder(@CurrentUser() user: JwtPayload, @Body() dto: CreateDeliveryOrderDto) {
     return this.deliveryService.createOrder(user.organizationId, dto);
   }
 
@@ -80,11 +62,7 @@ export class DeliveryController {
     @Param("id") id: string,
     @Body() dto: UpdateDeliveryStatusDto,
   ) {
-    return this.deliveryService.updateOrderStatus(
-      user.organizationId,
-      id,
-      dto,
-    );
+    return this.deliveryService.updateOrderStatus(user.organizationId, id, dto);
   }
 
   // ---------------------------------------------------------------
@@ -118,19 +96,13 @@ export class DeliveryController {
 
   @Post("config")
   @Permissions("delivery:edit")
-  upsertConfig(
-    @CurrentUser() user: JwtPayload,
-    @Body() dto: CreateDeliveryConfigDto,
-  ) {
+  upsertConfig(@CurrentUser() user: JwtPayload, @Body() dto: CreateDeliveryConfigDto) {
     return this.deliveryService.upsertConfig(user.organizationId, dto);
   }
 
   @Post("sync")
   @Permissions("delivery:edit")
-  triggerSync(
-    @CurrentUser() user: JwtPayload,
-    @Body("platform") platform: string,
-  ) {
+  triggerSync(@CurrentUser() user: JwtPayload, @Body("platform") platform: string) {
     return this.deliveryService.triggerSync(user.organizationId, platform);
   }
 }

@@ -1,17 +1,17 @@
-import { type Page, expect } from '@playwright/test';
+import { type Page, expect } from "@playwright/test";
 
 /**
  * Navigates to a given path and waits for the page to finish loading.
  */
 export async function navigateTo(page: Page, path: string) {
-  await page.goto(path, { waitUntil: 'networkidle' });
+  await page.goto(path, { waitUntil: "networkidle" });
 }
 
 /**
  * Asserts that the main heading (h1) on the page matches the given title.
  */
 export async function expectPageTitle(page: Page, title: string) {
-  const heading = page.locator('h1').first();
+  const heading = page.locator("h1").first();
   await expect(heading).toContainText(title);
 }
 
@@ -21,5 +21,5 @@ export async function expectPageTitle(page: Page, title: string) {
  */
 export async function waitForApi(page: Page) {
   // Wait until the network is idle (no ongoing fetch requests for 500 ms)
-  await page.waitForLoadState('networkidle');
+  await page.waitForLoadState("networkidle");
 }

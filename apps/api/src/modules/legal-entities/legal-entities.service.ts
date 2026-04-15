@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-  ConflictException,
-} from "@nestjs/common";
+import { Injectable, NotFoundException, ConflictException } from "@nestjs/common";
 import { PrismaService } from "../../common/prisma/prisma.service";
 import { CreateLegalEntityDto } from "./dto/create-legal-entity.dto";
 import { UpdateLegalEntityDto } from "./dto/update-legal-entity.dto";
@@ -44,9 +40,7 @@ export class LegalEntitiesService {
       },
     });
     if (existing) {
-      throw new ConflictException(
-        `Ya existe una razon social con RFC ${dto.rfc}`,
-      );
+      throw new ConflictException(`Ya existe una razon social con RFC ${dto.rfc}`);
     }
 
     return this.prisma.legalEntity.create({
@@ -66,11 +60,7 @@ export class LegalEntitiesService {
     });
   }
 
-  async update(
-    organizationId: string,
-    id: string,
-    dto: UpdateLegalEntityDto,
-  ) {
+  async update(organizationId: string, id: string, dto: UpdateLegalEntityDto) {
     await this.findOne(organizationId, id);
 
     // If RFC is changing, check for duplicates
@@ -83,9 +73,7 @@ export class LegalEntitiesService {
         },
       });
       if (existing) {
-        throw new ConflictException(
-          `Ya existe una razon social con RFC ${dto.rfc}`,
-        );
+        throw new ConflictException(`Ya existe una razon social con RFC ${dto.rfc}`);
       }
     }
 
@@ -115,11 +103,7 @@ export class LegalEntitiesService {
     });
   }
 
-  async assignBranch(
-    organizationId: string,
-    legalEntityId: string,
-    branchId: string,
-  ) {
+  async assignBranch(organizationId: string, legalEntityId: string, branchId: string) {
     // Verify legal entity belongs to org
     await this.findOne(organizationId, legalEntityId);
 
@@ -137,11 +121,7 @@ export class LegalEntitiesService {
     });
   }
 
-  async unassignBranch(
-    organizationId: string,
-    legalEntityId: string,
-    branchId: string,
-  ) {
+  async unassignBranch(organizationId: string, legalEntityId: string, branchId: string) {
     // Verify legal entity belongs to org
     await this.findOne(organizationId, legalEntityId);
 
@@ -150,9 +130,7 @@ export class LegalEntitiesService {
       where: { id: branchId, organizationId, legalEntityId },
     });
     if (!branch) {
-      throw new NotFoundException(
-        "Sucursal no encontrada o no asignada a esta razon social",
-      );
+      throw new NotFoundException("Sucursal no encontrada o no asignada a esta razon social");
     }
 
     return this.prisma.branch.update({

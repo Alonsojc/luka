@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-} from "@nestjs/common";
+import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
 import { PrismaService } from "../../common/prisma/prisma.service";
 import { ImportTransactionItemDto } from "./dto/import-transactions.dto";
 
@@ -45,8 +41,7 @@ export class ReconciliationService {
         results.push(record);
 
         // Update bank account balance
-        const balanceChange =
-          txn.type === "credit" ? txn.amount : -txn.amount;
+        const balanceChange = txn.type === "credit" ? txn.amount : -txn.amount;
         await tx.bankAccount.update({
           where: { id: accountId },
           data: { currentBalance: { increment: balanceChange } },

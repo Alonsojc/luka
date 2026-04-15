@@ -70,7 +70,9 @@ export function PushNotificationManager() {
     if (wsRef.current?.readyState === WebSocket.OPEN) return;
 
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const host = process.env.NEXT_PUBLIC_API_URL?.replace(/^https?:\/\//, "").replace("/api", "") || "localhost:3001";
+    const host =
+      process.env.NEXT_PUBLIC_API_URL?.replace(/^https?:\/\//, "").replace("/api", "") ||
+      "localhost:3001";
     const wsUrl = `${protocol}//${host}/notifications?userId=${userId}`;
 
     try {
@@ -116,7 +118,12 @@ export function PushNotificationManager() {
 
   // Also register for SW push events
   useEffect(() => {
-    if (permission !== "granted" || typeof navigator === "undefined" || !("serviceWorker" in navigator)) return;
+    if (
+      permission !== "granted" ||
+      typeof navigator === "undefined" ||
+      !("serviceWorker" in navigator)
+    )
+      return;
 
     navigator.serviceWorker.ready.then((registration) => {
       // Check if push manager is available
@@ -152,12 +159,9 @@ export function PushNotificationManager() {
             <BellRing className="h-5 w-5 text-white" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-gray-900">
-              Activar notificaciones
-            </p>
+            <p className="text-sm font-semibold text-gray-900">Activar notificaciones</p>
             <p className="text-xs text-gray-500 mt-0.5">
-              Recibe alertas en tiempo real sobre inventario bajo, requisiciones
-              urgentes y mas.
+              Recibe alertas en tiempo real sobre inventario bajo, requisiciones urgentes y mas.
             </p>
             <div className="flex items-center gap-2 mt-3">
               <button

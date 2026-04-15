@@ -3,7 +3,7 @@ import { Prisma } from "@luka/database";
 import { PrismaService } from "../../common/prisma/prisma.service";
 import { CacheService } from "../../common/cache/cache.service";
 
-const REPORT_TTL = 300; // 5 minutes
+const _REPORT_TTL = 300; // 5 minutes
 
 @Injectable()
 export class ReportesService {
@@ -12,11 +12,7 @@ export class ReportesService {
     private cache: CacheService,
   ) {}
 
-  async salesByBranch(
-    organizationId: string,
-    startDate: string,
-    endDate: string,
-  ) {
+  async salesByBranch(organizationId: string, startDate: string, endDate: string) {
     const branches = await this.prisma.branch.findMany({
       where: { organizationId, isActive: true },
       select: { id: true, name: true, code: true },
@@ -40,9 +36,7 @@ export class ReportesService {
       _count: { id: true },
     });
 
-    const salesMap = new Map(
-      salesAgg.map((s) => [s.branchId, s]),
-    );
+    const salesMap = new Map(salesAgg.map((s) => [s.branchId, s]));
 
     return branches.map((branch) => {
       const agg = salesMap.get(branch.id);
@@ -93,8 +87,7 @@ export class ReportesService {
       productName: r.product_name || "Desconocido",
       quantitySold: r.quantity_sold,
       totalRevenue: r.total_revenue,
-      averagePrice:
-        r.quantity_sold > 0 ? r.total_revenue / r.quantity_sold : 0,
+      averagePrice: r.quantity_sold > 0 ? r.total_revenue / r.quantity_sold : 0,
     }));
   }
 
@@ -104,9 +97,7 @@ export class ReportesService {
     startDate: string,
     endDate: string,
   ) {
-    const branchCondition = branchId
-      ? Prisma.sql`AND cs.branch_id = ${branchId}`
-      : Prisma.empty;
+    const branchCondition = branchId ? Prisma.sql`AND cs.branch_id = ${branchId}` : Prisma.empty;
 
     const results = await this.prisma.$queryRaw<
       Array<{
@@ -133,8 +124,7 @@ export class ReportesService {
       date: d.date,
       totalSales: d.total_sales,
       totalOrders: d.total_orders,
-      averageTicket:
-        d.total_orders > 0 ? d.total_sales / d.total_orders : 0,
+      averageTicket: d.total_orders > 0 ? d.total_sales / d.total_orders : 0,
     }));
   }
 
@@ -209,8 +199,7 @@ export class ReportesService {
       sku: inv.product.sku,
       currentQuantity: Number(inv.currentQuantity),
       costPerUnit: Number(inv.product.costPerUnit),
-      totalValue:
-        Number(inv.currentQuantity) * Number(inv.product.costPerUnit),
+      totalValue: Number(inv.currentQuantity) * Number(inv.product.costPerUnit),
     }));
 
     const totalValue = items.reduce((sum, i) => sum + i.totalValue, 0);

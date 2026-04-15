@@ -9,6 +9,8 @@ const mockPrisma = {
 };
 
 const mockCache = {
+  get: async () => "pong",
+  set: async () => {},
   get: async () => null,
   set: async () => undefined,
   del: async () => undefined,

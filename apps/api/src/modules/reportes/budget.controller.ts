@@ -1,19 +1,9 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Query,
-  UseGuards,
-} from "@nestjs/common";
+import { Controller, Get, Post, Body, Query, UseGuards } from "@nestjs/common";
 import { ApiTags, ApiBearerAuth } from "@nestjs/swagger";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
 import { Permissions } from "../../common/decorators/roles.decorator";
-import {
-  CurrentUser,
-  JwtPayload,
-} from "../../common/decorators/current-user.decorator";
+import { CurrentUser, JwtPayload } from "../../common/decorators/current-user.decorator";
 import { BudgetService } from "./budget.service";
 
 @ApiTags("Reportes - Presupuesto")
@@ -61,11 +51,7 @@ export class BudgetController {
     @Query("branchId") branchId: string,
     @Query("year") year: string,
   ) {
-    return this.budgetService.getBudgets(
-      user.organizationId,
-      branchId,
-      parseInt(year, 10),
-    );
+    return this.budgetService.getBudgets(user.organizationId, branchId, parseInt(year, 10));
   }
 
   @Get("comparison")

@@ -30,10 +30,7 @@ export class CorntechSyncProcessor extends WorkerHost {
           return { status: "unknown_job" };
       }
     } catch (error: any) {
-      this.logger.error(
-        `Job ${job.name} (id=${job.id}) failed: ${error.message}`,
-        error.stack,
-      );
+      this.logger.error(`Job ${job.name} (id=${job.id}) failed: ${error.message}`, error.stack);
       throw error;
     }
   }
@@ -47,9 +44,7 @@ export class CorntechSyncProcessor extends WorkerHost {
         branchId,
         sales || [],
       );
-      this.logger.log(
-        `sync-sales completed: ${result.synced}/${result.total} synced`,
-      );
+      this.logger.log(`sync-sales completed: ${result.synced}/${result.total} synced`);
       return result;
     } catch (error: any) {
       this.logger.error(`sync-sales failed: ${error.message}`);
@@ -64,10 +59,7 @@ export class CorntechSyncProcessor extends WorkerHost {
       // bulkUpsertSales handles product-like data through the existing service
       // If a dedicated product sync method exists, use it; otherwise log placeholder
       if (typeof this.corntechService.bulkUpsertSales === "function" && products) {
-        const result = await this.corntechService.bulkUpsertSales(
-          branchId,
-          products,
-        );
+        const result = await this.corntechService.bulkUpsertSales(branchId, products);
         this.logger.log(`sync-products completed: ${result.synced} synced`);
         return result;
       }
@@ -100,9 +92,7 @@ export class CorntechSyncProcessor extends WorkerHost {
         synced++;
       }
 
-      this.logger.log(
-        `sync-cash-closings completed: ${synced} closings synced`,
-      );
+      this.logger.log(`sync-cash-closings completed: ${synced} closings synced`);
       return { synced };
     } catch (error: any) {
       this.logger.error(`sync-cash-closings failed: ${error.message}`);

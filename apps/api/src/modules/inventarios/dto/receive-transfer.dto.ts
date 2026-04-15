@@ -1,11 +1,4 @@
-import {
-  IsArray,
-  ValidateNested,
-  IsString,
-  IsNumber,
-  Min,
-  ArrayMinSize,
-} from "class-validator";
+import { IsArray, ValidateNested, IsString, IsNumber, Min, ArrayMinSize } from "class-validator";
 import { Type } from "class-transformer";
 
 class ReceiveItemDto {

@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-} from "@nestjs/common";
+import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
 import { PrismaService } from "../../common/prisma/prisma.service";
 
 // ────────────────────────────────────────────────────────────
@@ -54,14 +50,29 @@ const MOCK_DEPARTMENTS = [
 ];
 
 const MOCK_FIRST_NAMES = [
-  "Carlos", "María", "José", "Ana", "Luis",
-  "Sofía", "Miguel", "Fernanda", "Ricardo", "Valentina",
+  "Carlos",
+  "María",
+  "José",
+  "Ana",
+  "Luis",
+  "Sofía",
+  "Miguel",
+  "Fernanda",
+  "Ricardo",
+  "Valentina",
 ];
 
 const MOCK_LAST_NAMES = [
-  "García López", "Hernández Martínez", "López Rodríguez",
-  "González Pérez", "Ramírez Sánchez", "Torres Flores",
-  "Díaz Rivera", "Morales Cruz", "Reyes Gómez", "Jiménez Ortiz",
+  "García López",
+  "Hernández Martínez",
+  "López Rodríguez",
+  "González Pérez",
+  "Ramírez Sánchez",
+  "Torres Flores",
+  "Díaz Rivera",
+  "Morales Cruz",
+  "Reyes Gómez",
+  "Jiménez Ortiz",
 ];
 
 function generateMockRFC(): string {
@@ -116,8 +127,12 @@ function fetchEmployeesFromWorky(_apiKey: string, _companyId: string): WorkyEmpl
       position: MOCK_POSITIONS[i % MOCK_POSITIONS.length],
       department: MOCK_DEPARTMENTS[i % MOCK_DEPARTMENTS.length],
       dailySalary: Math.round((200 + Math.random() * 600) * 100) / 100,
-      bankAccount: i % 3 === 0 ? String(Math.floor(Math.random() * 9000000000) + 1000000000) : undefined,
-      clabe: i % 4 === 0 ? String(Math.floor(Math.random() * 900000000000000000) + 100000000000000000) : undefined,
+      bankAccount:
+        i % 3 === 0 ? String(Math.floor(Math.random() * 9000000000) + 1000000000) : undefined,
+      clabe:
+        i % 4 === 0
+          ? String(Math.floor(Math.random() * 900000000000000000) + 100000000000000000)
+          : undefined,
       isActive: i < count - 1, // last one is inactive for testing
     });
   }
@@ -218,9 +233,7 @@ export class WorkyService {
     });
 
     if (!config || !config.apiKey) {
-      throw new BadRequestException(
-        "Worky no está configurado. Configura la API Key primero.",
-      );
+      throw new BadRequestException("Worky no está configurado. Configura la API Key primero.");
     }
 
     // Get branches to assign employees (use the first active branch as default)
@@ -230,9 +243,7 @@ export class WorkyService {
     });
 
     if (branches.length === 0) {
-      throw new BadRequestException(
-        "No hay sucursales activas. Crea al menos una sucursal.",
-      );
+      throw new BadRequestException("No hay sucursales activas. Crea al menos una sucursal.");
     }
 
     const defaultBranchId = branches[0].id;
@@ -251,15 +262,12 @@ export class WorkyService {
     const errors: Array<{ employee: string; error: string }> = [];
     let created = 0;
     let updated = 0;
-    let skipped = 0;
+    const skipped = 0;
     let failed = 0;
 
     try {
       // Fetch employees from Worky (mock)
-      const workyEmployees = fetchEmployeesFromWorky(
-        config.apiKey,
-        config.companyId || "",
-      );
+      const workyEmployees = fetchEmployeesFromWorky(config.apiKey, config.companyId || "");
 
       for (const we of workyEmployees) {
         try {
@@ -267,10 +275,7 @@ export class WorkyService {
           const existing = await this.prisma.employee.findFirst({
             where: {
               organizationId,
-              OR: [
-                ...(we.rfc ? [{ rfc: we.rfc }] : []),
-                ...(we.curp ? [{ curp: we.curp }] : []),
-              ],
+              OR: [...(we.rfc ? [{ rfc: we.rfc }] : []), ...(we.curp ? [{ curp: we.curp }] : [])],
             },
           });
 
@@ -372,11 +377,7 @@ export class WorkyService {
 
   // ── CSV Import ─────────────────────────────────────────────
 
-  async importFromCsv(
-    organizationId: string,
-    csvContent: string,
-    branchId: string,
-  ) {
+  async importFromCsv(organizationId: string, csvContent: string, branchId: string) {
     // Verify the branch belongs to this organization
     const branch = await this.prisma.branch.findFirst({
       where: { id: branchId, organizationId },
@@ -422,10 +423,14 @@ export class WorkyService {
 
       // Parse header
       const headers = lines[0].split(",").map((h) => h.trim().toLowerCase());
-      const requiredHeaders = ["employeenumber", "firstname", "lastname", "hiredate", "dailysalary"];
-      const missingHeaders = requiredHeaders.filter(
-        (rh) => !headers.includes(rh),
-      );
+      const requiredHeaders = [
+        "employeenumber",
+        "firstname",
+        "lastname",
+        "hiredate",
+        "dailysalary",
+      ];
+      const missingHeaders = requiredHeaders.filter((rh) => !headers.includes(rh));
       if (missingHeaders.length > 0) {
         throw new BadRequestException(
           `Columnas requeridas faltantes: ${missingHeaders.join(", ")}`,

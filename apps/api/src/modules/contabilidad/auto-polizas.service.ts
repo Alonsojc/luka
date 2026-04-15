@@ -1,9 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-  Logger,
-} from "@nestjs/common";
+import { Injectable, NotFoundException, BadRequestException, Logger } from "@nestjs/common";
 import { PrismaService } from "../../common/prisma/prisma.service";
 
 /**
@@ -201,11 +196,7 @@ export class AutoPolizasService {
   // 2. Generate from Sale (Venta POS o Corntech)
   // ------------------------------------------------------------------
 
-  async generateFromSale(
-    saleId: string,
-    type: "pos" | "corntech",
-    userId: string,
-  ) {
+  async generateFromSale(saleId: string, type: "pos" | "corntech", userId: string) {
     let subtotal: number;
     let tax: number;
     let total: number;
@@ -303,23 +294,18 @@ export class AutoPolizasService {
 
     const orgId = period.organizationId;
 
-    const [
-      sueldosSalarios,
-      cajaBancos,
-      isrPorPagar,
-      imssPorPagar,
-      cuotasImssPatron,
-    ] = await Promise.all([
-      this.findAccountByCode(orgId, ACCOUNT_CODES.SUELDOS_SALARIOS),
-      this.findAccountByCode(orgId, ACCOUNT_CODES.CAJA_BANCOS),
-      this.findAccountByCode(orgId, ACCOUNT_CODES.ISR_POR_PAGAR),
-      this.findAccountByCode(orgId, ACCOUNT_CODES.IMSS_POR_PAGAR),
-      this.findAccountByCode(orgId, ACCOUNT_CODES.CUOTAS_IMSS_PATRON),
-    ]);
+    const [sueldosSalarios, cajaBancos, isrPorPagar, imssPorPagar, cuotasImssPatron] =
+      await Promise.all([
+        this.findAccountByCode(orgId, ACCOUNT_CODES.SUELDOS_SALARIOS),
+        this.findAccountByCode(orgId, ACCOUNT_CODES.CAJA_BANCOS),
+        this.findAccountByCode(orgId, ACCOUNT_CODES.ISR_POR_PAGAR),
+        this.findAccountByCode(orgId, ACCOUNT_CODES.IMSS_POR_PAGAR),
+        this.findAccountByCode(orgId, ACCOUNT_CODES.CUOTAS_IMSS_PATRON),
+      ]);
 
     const totalGross = Number(period.totalGross);
     const totalNet = Number(period.totalNet);
-    const totalEmployerCost = Number(period.totalEmployerCost);
+    const _totalEmployerCost = Number(period.totalEmployerCost);
 
     // Calculate totals from receipts for ISR and IMSS breakdown
     let totalIsr = 0;
@@ -336,8 +322,7 @@ export class AutoPolizasService {
       totalEmployerInfonavit += Number(receipt.employerInfonavit);
     }
 
-    const totalPatronal =
-      totalEmployerImss + totalEmployerRcv + totalEmployerInfonavit;
+    const totalPatronal = totalEmployerImss + totalEmployerRcv + totalEmployerInfonavit;
 
     const periodLabel = `${period.startDate.toISOString().slice(0, 10)} al ${period.endDate.toISOString().slice(0, 10)}`;
 
@@ -451,9 +436,7 @@ export class AutoPolizasService {
         },
       );
     } else {
-      throw new BadRequestException(
-        `Tipo de pago no soportado: ${payment.type}`,
-      );
+      throw new BadRequestException(`Tipo de pago no soportado: ${payment.type}`);
     }
 
     return this.createJournalEntry({
@@ -489,9 +472,7 @@ export class AutoPolizasService {
       },
     });
     if (existingEntry) {
-      throw new BadRequestException(
-        `Ya existe una poliza para esta transaccion bancaria`,
-      );
+      throw new BadRequestException(`Ya existe una poliza para esta transaccion bancaria`);
     }
 
     if (!txn.isReconciled) {
@@ -504,10 +485,7 @@ export class AutoPolizasService {
     const amount = Math.abs(Number(txn.amount));
     const txnRef = txn.reference || txn.id.slice(-6);
 
-    const cajaBancos = await this.findAccountByCode(
-      orgId,
-      ACCOUNT_CODES.CAJA_BANCOS,
-    );
+    const cajaBancos = await this.findAccountByCode(orgId, ACCOUNT_CODES.CAJA_BANCOS);
 
     const lines: JournalLineInput[] = [];
 
@@ -584,9 +562,7 @@ export class AutoPolizasService {
       include: { supplier: true, branch: true },
       orderBy: { createdAt: "desc" },
     });
-    const pendingPurchases = purchases.filter(
-      (po) => !linkedIds.has(`purchaseOrder:${po.id}`),
-    );
+    const pendingPurchases = purchases.filter((po) => !linkedIds.has(`purchaseOrder:${po.id}`));
 
     // Find unlinked POS sales
     const posSales = await this.prisma.posSale.findMany({
@@ -595,9 +571,7 @@ export class AutoPolizasService {
       orderBy: { saleDate: "desc" },
       take: 200,
     });
-    const pendingPosSales = posSales.filter(
-      (s) => !linkedIds.has(`posSale:${s.id}`),
-    );
+    const pendingPosSales = posSales.filter((s) => !linkedIds.has(`posSale:${s.id}`));
 
     // Find unlinked Corntech sales (through branches)
     const orgBranches = await this.prisma.branch.findMany({
@@ -623,9 +597,7 @@ export class AutoPolizasService {
       },
       orderBy: { endDate: "desc" },
     });
-    const pendingPayrolls = payrollPeriods.filter(
-      (p) => !linkedIds.has(`payrollPeriod:${p.id}`),
-    );
+    const pendingPayrolls = payrollPeriods.filter((p) => !linkedIds.has(`payrollPeriod:${p.id}`));
 
     // Find unlinked payments
     const payments = await this.prisma.payment.findMany({
@@ -634,9 +606,7 @@ export class AutoPolizasService {
       orderBy: { paymentDate: "desc" },
       take: 200,
     });
-    const pendingPayments = payments.filter(
-      (p) => !linkedIds.has(`payment:${p.id}`),
-    );
+    const pendingPayments = payments.filter((p) => !linkedIds.has(`payment:${p.id}`));
 
     // Format results
     const events: Array<{
@@ -705,9 +675,7 @@ export class AutoPolizasService {
     }
 
     // Sort by date descending
-    events.sort(
-      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
-    );
+    events.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
     return {
       summary: {
@@ -731,11 +699,7 @@ export class AutoPolizasService {
   // Batch generate: create entries for all pending events
   // ------------------------------------------------------------------
 
-  async generateBatch(
-    organizationId: string,
-    userId: string,
-    types?: string[],
-  ) {
+  async generateBatch(organizationId: string, userId: string, types?: string[]) {
     const pending = await this.getPendingEvents(organizationId);
     const results: Array<{
       type: string;
@@ -780,9 +744,7 @@ export class AutoPolizasService {
           entryId: entry.id,
         });
       } catch (error: any) {
-        this.logger.warn(
-          `Error generando poliza para ${event.type}:${event.id}: ${error.message}`,
-        );
+        this.logger.warn(`Error generando poliza para ${event.type}:${event.id}: ${error.message}`);
         results.push({
           type: event.type,
           referenceId: event.id,

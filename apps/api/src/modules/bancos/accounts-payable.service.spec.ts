@@ -39,10 +39,7 @@ describe("AccountsPayableService", () => {
     };
 
     const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        AccountsPayableService,
-        { provide: PrismaService, useValue: mockPrisma },
-      ],
+      providers: [AccountsPayableService, { provide: PrismaService, useValue: mockPrisma }],
     }).compile();
 
     service = module.get<AccountsPayableService>(AccountsPayableService);
@@ -56,9 +53,7 @@ describe("AccountsPayableService", () => {
     it("should throw NotFoundException when payable not found", async () => {
       mockPrisma.accountPayable.findFirst.mockResolvedValue(null);
 
-      await expect(service.findOne(ORG_ID, "bad-id")).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(service.findOne(ORG_ID, "bad-id")).rejects.toThrow(NotFoundException);
     });
   });
 

@@ -14,7 +14,7 @@ function getCsrfToken(): string | undefined {
 class ApiError extends Error {
   constructor(
     public status: number,
-    message: string
+    message: string,
   ) {
     super(message);
     this.name = "ApiError";
@@ -40,10 +40,7 @@ async function refreshAccessToken(): Promise<boolean> {
   }
 }
 
-async function request<T>(
-  path: string,
-  options: ApiOptions = {}
-): Promise<T> {
+async function request<T>(path: string, options: ApiOptions = {}): Promise<T> {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     ...(options.headers as Record<string, string>),
@@ -102,16 +99,14 @@ async function request<T>(
 }
 
 export const api = {
-  get: <T>(path: string, opts?: ApiOptions) =>
-    request<T>(path, { ...opts, method: "GET" }),
+  get: <T>(path: string, opts?: ApiOptions) => request<T>(path, { ...opts, method: "GET" }),
   post: <T>(path: string, body: unknown, opts?: ApiOptions) =>
     request<T>(path, { ...opts, method: "POST", body: JSON.stringify(body) }),
   patch: <T>(path: string, body: unknown, opts?: ApiOptions) =>
     request<T>(path, { ...opts, method: "PATCH", body: JSON.stringify(body) }),
   put: <T>(path: string, body: unknown, opts?: ApiOptions) =>
     request<T>(path, { ...opts, method: "PUT", body: JSON.stringify(body) }),
-  delete: <T>(path: string, opts?: ApiOptions) =>
-    request<T>(path, { ...opts, method: "DELETE" }),
+  delete: <T>(path: string, opts?: ApiOptions) => request<T>(path, { ...opts, method: "DELETE" }),
 };
 
 export { ApiError };

@@ -16,17 +16,10 @@ export default function Error({
   return (
     <div className="min-h-screen flex items-center justify-center bg-black">
       <div className="text-center px-4">
-        <img
-          src="/luka-logo.png"
-          alt="Luka"
-          className="mx-auto h-16 w-auto mb-8 opacity-50"
-        />
-        <h1 className="text-4xl font-bold text-white mb-4">
-          Algo salio mal
-        </h1>
+        <img src="/luka-logo.png" alt="Luka" className="mx-auto h-16 w-auto mb-8 opacity-50" />
+        <h1 className="text-4xl font-bold text-white mb-4">Algo salio mal</h1>
         <p className="text-white/60 text-lg mb-8">
-          Ocurrio un error inesperado. Si el problema persiste, contacta a
-          soporte.
+          Ocurrio un error inesperado. Si el problema persiste, contacta a soporte.
         </p>
         <button
           onClick={reset}

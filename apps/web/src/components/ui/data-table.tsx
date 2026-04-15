@@ -1,7 +1,15 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Search, Download, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Inbox } from "lucide-react";
+import {
+  Search,
+  Download,
+  ChevronUp,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  Inbox,
+} from "lucide-react";
 import { Skeleton } from "./skeleton";
 
 // ---------------------------------------------------------------------------
@@ -312,16 +320,12 @@ export function DataTable<T extends Record<string, any>>({
             >
               {/* First column as card title */}
               <div className="text-sm font-semibold text-foreground truncate">
-                {columns[0]?.render
-                  ? columns[0].render(row)
-                  : (row as any)[columns[0]?.key]}
+                {columns[0]?.render ? columns[0].render(row) : (row as any)[columns[0]?.key]}
               </div>
               {/* Remaining columns as label: value */}
               {columns.slice(1).map((col) => (
                 <div key={col.key} className="flex items-start justify-between gap-2">
-                  <span className="text-xs text-muted-foreground shrink-0">
-                    {colLabel(col)}
-                  </span>
+                  <span className="text-xs text-muted-foreground shrink-0">{colLabel(col)}</span>
                   <span className="text-sm text-foreground text-right truncate">
                     {col.render ? col.render(row) : (row as any)[col.key]}
                   </span>

@@ -39,8 +39,7 @@ export class GenerateBatchAutoPolizaDto {
   @ApiPropertyOptional({
     enum: AutoPolizaType,
     isArray: true,
-    description:
-      "Tipos de evento a procesar. Si se omite, procesa todos los tipos.",
+    description: "Tipos de evento a procesar. Si se omite, procesa todos los tipos.",
   })
   @IsOptional()
   @IsArray()

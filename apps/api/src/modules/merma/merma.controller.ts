@@ -14,10 +14,7 @@ import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
 import { BranchAccessGuard } from "../../common/guards/branch-access.guard";
 import { Permissions } from "../../common/decorators/roles.decorator";
-import {
-  CurrentUser,
-  JwtPayload,
-} from "../../common/decorators/current-user.decorator";
+import { CurrentUser, JwtPayload } from "../../common/decorators/current-user.decorator";
 import { MermaService } from "./merma.service";
 import { CreateMermaDto } from "./dto/create-merma.dto";
 import { UpdateMermaDto } from "./dto/update-merma.dto";
@@ -83,11 +80,7 @@ export class MermaController {
 
   @Patch(":id")
   @Permissions("inventarios:edit")
-  update(
-    @CurrentUser() user: JwtPayload,
-    @Param("id") id: string,
-    @Body() dto: UpdateMermaDto,
-  ) {
+  update(@CurrentUser() user: JwtPayload, @Param("id") id: string, @Body() dto: UpdateMermaDto) {
     return this.mermaService.update(user.organizationId, id, dto);
   }
 

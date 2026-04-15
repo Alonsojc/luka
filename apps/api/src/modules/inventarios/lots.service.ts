@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-} from "@nestjs/common";
+import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
 import { PrismaService } from "../../common/prisma/prisma.service";
 import { CreateLotDto } from "./dto/create-lot.dto";
 import { UpdateLotDto } from "./dto/update-lot.dto";
@@ -16,8 +12,7 @@ export class LotsService {
   // Create a new lot (receiving product)
   // ---------------------------------------------------------------
   async createLot(organizationId: string, userId: string, dto: CreateLotDto) {
-    const lotNumber =
-      dto.lotNumber || this.generateLotNumber(dto.productId, dto.branchId);
+    const lotNumber = dto.lotNumber || this.generateLotNumber(dto.productId, dto.branchId);
 
     return this.prisma.productLot.create({
       data: {
@@ -80,9 +75,7 @@ export class LotsService {
       }),
       ...(filters.expiringWithin && {
         expirationDate: {
-          lte: new Date(
-            now.getTime() + filters.expiringWithin * 24 * 60 * 60 * 1000,
-          ),
+          lte: new Date(now.getTime() + filters.expiringWithin * 24 * 60 * 60 * 1000),
           gte: now,
         },
         status: "ACTIVE",
@@ -209,11 +202,7 @@ export class LotsService {
   // ---------------------------------------------------------------
   // Consume from a lot (FEFO — First Expired, First Out)
   // ---------------------------------------------------------------
-  async consumeFromLot(
-    organizationId: string,
-    lotId: string,
-    quantity: number,
-  ) {
+  async consumeFromLot(organizationId: string, lotId: string, quantity: number) {
     const lot = await this.prisma.productLot.findFirst({
       where: { id: lotId, organizationId },
     });
@@ -255,12 +244,7 @@ export class LotsService {
   // ---------------------------------------------------------------
   // Dispose lot -> mark DISPOSED + create WasteLog entry
   // ---------------------------------------------------------------
-  async disposeLot(
-    organizationId: string,
-    lotId: string,
-    userId: string,
-    reason: string,
-  ) {
+  async disposeLot(organizationId: string, lotId: string, userId: string, reason: string) {
     const lot = await this.prisma.productLot.findFirst({
       where: { id: lotId, organizationId },
       include: {
@@ -273,9 +257,7 @@ export class LotsService {
     }
 
     const remainingQty = Number(lot.quantity);
-    const costPerUnit = lot.unitCost
-      ? Number(lot.unitCost)
-      : Number(lot.product.costPerUnit);
+    const costPerUnit = lot.unitCost ? Number(lot.unitCost) : Number(lot.product.costPerUnit);
     const wasteCost = remainingQty * costPerUnit;
 
     return this.prisma.$transaction(async (tx) => {
@@ -314,15 +296,9 @@ export class LotsService {
   // ---------------------------------------------------------------
   // Expiring alerts — lots expiring within N days, grouped by urgency
   // ---------------------------------------------------------------
-  async getExpiringAlerts(
-    organizationId: string,
-    daysAhead: number = 7,
-    branchId?: string,
-  ) {
+  async getExpiringAlerts(organizationId: string, daysAhead: number = 7, branchId?: string) {
     const now = new Date();
-    const futureDate = new Date(
-      now.getTime() + daysAhead * 24 * 60 * 60 * 1000,
-    );
+    const futureDate = new Date(now.getTime() + daysAhead * 24 * 60 * 60 * 1000);
 
     const where: Prisma.ProductLotWhereInput = {
       organizationId,
@@ -407,9 +383,7 @@ export class LotsService {
     });
 
     const valueAtRisk = atRiskLots.reduce((acc, lot) => {
-      const cost = lot.unitCost
-        ? Number(lot.unitCost)
-        : Number(lot.product.costPerUnit);
+      const cost = lot.unitCost ? Number(lot.unitCost) : Number(lot.product.costPerUnit);
       return acc + Number(lot.quantity) * cost;
     }, 0);
 
@@ -457,12 +431,10 @@ export class LotsService {
       byBranchMap.set(row.branchId, entry);
     }
 
-    const byBranch = Array.from(byBranchMap.entries()).map(
-      ([branchId, data]) => ({
-        branchId,
-        ...data,
-      }),
-    );
+    const byBranch = Array.from(byBranchMap.entries()).map(([branchId, data]) => ({
+      branchId,
+      ...data,
+    }));
 
     // Top 10 products with most expiring lots
     const byProductRaw = await this.prisma.productLot.groupBy({
@@ -513,9 +485,7 @@ export class LotsService {
       },
     });
     const fifoCompliance =
-      totalFinishedLots > 0
-        ? Math.round((consumedLots / totalFinishedLots) * 100)
-        : 100;
+      totalFinishedLots > 0 ? Math.round((consumedLots / totalFinishedLots) * 100) : 100;
 
     // Trend: daily counts of expired/disposed/consumed over last 30 days
     const thirtyDaysAgo = new Date();
@@ -531,10 +501,7 @@ export class LotsService {
       orderBy: { updatedAt: "asc" },
     });
 
-    const trendMap = new Map<
-      string,
-      { expired: number; disposed: number; consumed: number }
-    >();
+    const trendMap = new Map<string, { expired: number; disposed: number; consumed: number }>();
     for (const r of trendRaw) {
       const dateKey = r.updatedAt.toISOString().split("T")[0];
       const entry = trendMap.get(dateKey) || {
@@ -590,11 +557,7 @@ export class LotsService {
   // ---------------------------------------------------------------
   // All lots for a product sorted by expiration (FEFO view)
   // ---------------------------------------------------------------
-  async getLotsByProduct(
-    organizationId: string,
-    productId: string,
-    branchId?: string,
-  ) {
+  async getLotsByProduct(organizationId: string, productId: string, branchId?: string) {
     return this.prisma.productLot.findMany({
       where: {
         organizationId,
@@ -613,13 +576,10 @@ export class LotsService {
   // ---------------------------------------------------------------
   // Helper: generate lot number
   // ---------------------------------------------------------------
-  private generateLotNumber(productId: string, branchId: string): string {
+  private generateLotNumber(productId: string, _branchId: string): string {
     const now = new Date();
     const datePart = now.toISOString().slice(0, 10).replace(/-/g, "");
-    const timePart = now
-      .toISOString()
-      .slice(11, 19)
-      .replace(/:/g, "");
+    const timePart = now.toISOString().slice(11, 19).replace(/:/g, "");
     const suffix = productId.slice(-4).toUpperCase();
     return `LOT-${datePart}-${timePart}-${suffix}`;
   }

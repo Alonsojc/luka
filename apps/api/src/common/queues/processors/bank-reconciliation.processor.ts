@@ -28,10 +28,7 @@ export class BankReconciliationProcessor extends WorkerHost {
           return { status: "unknown_job" };
       }
     } catch (error: any) {
-      this.logger.error(
-        `Job ${job.name} (id=${job.id}) failed: ${error.message}`,
-        error.stack,
-      );
+      this.logger.error(`Job ${job.name} (id=${job.id}) failed: ${error.message}`, error.stack);
       throw error;
     }
   }
@@ -40,10 +37,7 @@ export class BankReconciliationProcessor extends WorkerHost {
     const { organizationId, accountId } = job.data;
 
     try {
-      const result = await this.reconciliationService.autoReconcile(
-        organizationId,
-        accountId,
-      );
+      const result = await this.reconciliationService.autoReconcile(organizationId, accountId);
 
       this.logger.log(
         `auto-reconcile completed for account ${accountId}: ${result.matched}/${result.total} matched`,

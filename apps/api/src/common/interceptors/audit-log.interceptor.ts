@@ -1,9 +1,4 @@
-import {
-  Injectable,
-  NestInterceptor,
-  ExecutionContext,
-  CallHandler,
-} from "@nestjs/common";
+import { Injectable, NestInterceptor, ExecutionContext, CallHandler } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
 import { Observable, tap } from "rxjs";
 import { AuditService } from "../../modules/audit/audit.service";
@@ -66,9 +61,7 @@ export class AuditInterceptor implements NestInterceptor {
       tap({
         next: () => {
           try {
-            const userName = user
-              ? [user.email].filter(Boolean).join(" ")
-              : undefined;
+            const userName = user ? [user.email].filter(Boolean).join(" ") : undefined;
 
             this.auditService.log({
               organizationId: user?.organizationId || "unknown",
@@ -79,10 +72,7 @@ export class AuditInterceptor implements NestInterceptor {
               entityType,
               entityId: entityId ? String(entityId) : undefined,
               description: `${action} ${module}${entityType ? "/" + entityType : ""}${entityId ? " #" + entityId : ""}`,
-              ipAddress:
-                request.ip ||
-                request.headers?.["x-forwarded-for"] ||
-                undefined,
+              ipAddress: request.ip || request.headers?.["x-forwarded-for"] || undefined,
               userAgent: request.headers?.["user-agent"] || undefined,
             });
           } catch {

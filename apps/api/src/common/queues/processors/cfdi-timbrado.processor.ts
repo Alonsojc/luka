@@ -28,10 +28,7 @@ export class CfdiTimbradoProcessor extends WorkerHost {
           return { status: "unknown_job" };
       }
     } catch (error: any) {
-      this.logger.error(
-        `Job ${job.name} (id=${job.id}) failed: ${error.message}`,
-        error.stack,
-      );
+      this.logger.error(`Job ${job.name} (id=${job.id}) failed: ${error.message}`, error.stack);
       throw error;
     }
   }
@@ -43,10 +40,7 @@ export class CfdiTimbradoProcessor extends WorkerHost {
       // Generate XML through the existing service (which already handles the
       // CFDI XML building). The actual PAC timbrado call is a placeholder
       // in the service — it sets status to STAMPED.
-      const result = await this.facturacionService.generateXml(
-        organizationId,
-        invoiceId,
-      );
+      const result = await this.facturacionService.generateXml(organizationId, invoiceId);
 
       this.logger.log(
         `stamp-invoice completed for invoice ${invoiceId} — XML generated, status: STAMPED`,

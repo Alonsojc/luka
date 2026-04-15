@@ -16,14 +16,7 @@ export const MODULES = [
 
 export type Module = (typeof MODULES)[number];
 
-export const ACTIONS = [
-  "view",
-  "create",
-  "update",
-  "delete",
-  "approve",
-  "export",
-] as const;
+export const ACTIONS = ["view", "create", "update", "delete", "approve", "export"] as const;
 
 export type Action = (typeof ACTIONS)[number];
 
@@ -115,9 +108,5 @@ export const ROLE_PERMISSIONS: Record<SystemRole, Permission[]> = {
     "compras:view",
   ],
 
-  cashier: [
-    "corntech:view",
-    "inventarios:view",
-    "sucursales:view",
-  ],
+  cashier: ["corntech:view", "inventarios:view", "sucursales:view"],
 };

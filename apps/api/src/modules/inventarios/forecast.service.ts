@@ -281,11 +281,23 @@ export class ForecastService {
     const allAlerts: ReorderAlert[] = [];
     const productGrowthMap = new Map<
       string,
-      { productId: string; productName: string; productSku: string; growthRate: number; avgWeeklyConsumption: number }
+      {
+        productId: string;
+        productName: string;
+        productSku: string;
+        growthRate: number;
+        avgWeeklyConsumption: number;
+      }
     >();
     const productDeclineMap = new Map<
       string,
-      { productId: string; productName: string; productSku: string; declineRate: number; avgWeeklyConsumption: number }
+      {
+        productId: string;
+        productName: string;
+        productSku: string;
+        declineRate: number;
+        avgWeeklyConsumption: number;
+      }
     >();
     const costByBranch: Array<{ branchId: string; branchName: string; totalCost: number }> = [];
 
@@ -503,8 +515,7 @@ export class ForecastService {
     // Variance factor: low variance = high confidence
     const quantities = historical.map((h) => h.quantity);
     const mean = quantities.reduce((s, q) => s + q, 0) / quantities.length;
-    const variance =
-      quantities.reduce((s, q) => s + Math.pow(q - mean, 2), 0) / quantities.length;
+    const variance = quantities.reduce((s, q) => s + Math.pow(q - mean, 2), 0) / quantities.length;
     const cv = mean > 0 ? Math.sqrt(variance) / mean : 1;
     const varianceFactor = Math.max(0.3, 1 - cv * 0.5);
 

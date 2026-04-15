@@ -55,10 +55,7 @@ describe("PurchaseOrdersService", () => {
     };
 
     const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        PurchaseOrdersService,
-        { provide: PrismaService, useValue: mockPrisma },
-      ],
+      providers: [PurchaseOrdersService, { provide: PrismaService, useValue: mockPrisma }],
     }).compile();
 
     service = module.get<PurchaseOrdersService>(PurchaseOrdersService);
@@ -84,9 +81,7 @@ describe("PurchaseOrdersService", () => {
     it("should throw NotFoundException when PO not found", async () => {
       mockPrisma.purchaseOrder.findFirst.mockResolvedValue(null);
 
-      await expect(service.findOne(ORG_ID, "bad-id")).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(service.findOne(ORG_ID, "bad-id")).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -118,9 +113,7 @@ describe("PurchaseOrdersService", () => {
       await service.create(ORG_ID, USER_ID, {
         branchId: "branch-1",
         supplierId: "supplier-1",
-        items: [
-          { productId: "p1", quantity: 1, unitPrice: 100, unitOfMeasure: "pz" },
-        ],
+        items: [{ productId: "p1", quantity: 1, unitPrice: 100, unitOfMeasure: "pz" }],
       });
 
       const createCall = mockPrisma.purchaseOrder.create.mock.calls[0][0];
@@ -148,9 +141,7 @@ describe("PurchaseOrdersService", () => {
         status: "SENT",
       });
 
-      await expect(service.send(ORG_ID, "po-1")).rejects.toThrow(
-        BadRequestException,
-      );
+      await expect(service.send(ORG_ID, "po-1")).rejects.toThrow(BadRequestException);
     });
   });
 
@@ -159,9 +150,7 @@ describe("PurchaseOrdersService", () => {
       mockPrisma.purchaseOrder.findFirst.mockResolvedValue(mockPO);
 
       await expect(
-        service.receive(ORG_ID, "po-1", USER_ID, [
-          { itemId: "item-1", receivedQuantity: 10 },
-        ]),
+        service.receive(ORG_ID, "po-1", USER_ID, [{ itemId: "item-1", receivedQuantity: 10 }]),
       ).rejects.toThrow(BadRequestException);
     });
 
@@ -224,9 +213,7 @@ describe("PurchaseOrdersService", () => {
       ]);
       mockPrisma.purchaseOrder.update.mockResolvedValue(mockPO);
 
-      await service.receive(ORG_ID, "po-1", USER_ID, [
-        { itemId: "item-1", receivedQuantity: 10 },
-      ]);
+      await service.receive(ORG_ID, "po-1", USER_ID, [{ itemId: "item-1", receivedQuantity: 10 }]);
 
       expect(mockPrisma.inventoryMovement.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
@@ -260,9 +247,7 @@ describe("PurchaseOrdersService", () => {
         status: "RECEIVED",
       });
 
-      await expect(service.remove(ORG_ID, "po-1")).rejects.toThrow(
-        BadRequestException,
-      );
+      await expect(service.remove(ORG_ID, "po-1")).rejects.toThrow(BadRequestException);
     });
   });
 });

@@ -23,9 +23,7 @@ import {
   Settings,
   LogOut,
   ChevronDown,
-  ChevronRight,
   LayoutDashboard,
-  Menu,
   X,
   Bell,
   BellRing,
@@ -139,11 +137,7 @@ function timeAgo(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString("es-MX");
 }
 
-export default function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -171,8 +165,8 @@ export default function DashboardLayout({
     try {
       const data = await api.get<Branch[]>("/branches");
       setBranches(data);
-    } catch {
-      // silent fail
+    } catch (err) {
+      console.error("Failed to fetch branches:", err);
     }
   }, []);
 
@@ -186,19 +180,17 @@ export default function DashboardLayout({
         "/notifications?limit=10",
       );
       setNotifications(data.notifications);
-    } catch {
-      // silent fail
+    } catch (err) {
+      console.error("Failed to fetch notifications:", err);
     }
   }, []);
 
   const fetchUnreadCount = useCallback(async () => {
     try {
-      const data = await api.get<{ count: number }>(
-        "/notifications/unread-count",
-      );
+      const data = await api.get<{ count: number }>("/notifications/unread-count");
       setUnreadCount(data.count);
-    } catch {
-      // silent fail
+    } catch (err) {
+      console.error("Failed to fetch unread count:", err);
     }
   }, []);
 
@@ -245,10 +237,7 @@ export default function DashboardLayout({
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (
-        notificationsRef.current &&
-        !notificationsRef.current.contains(event.target as Node)
-      ) {
+      if (notificationsRef.current && !notificationsRef.current.contains(event.target as Node)) {
         setNotificationsOpen(false);
       }
     }
@@ -273,8 +262,8 @@ export default function DashboardLayout({
       await api.post("/notifications/read-all", {});
       setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
       setUnreadCount(0);
-    } catch {
-      // silent fail
+    } catch (err) {
+      console.error("Failed to mark all notifications read:", err);
     }
   };
 
@@ -286,8 +275,8 @@ export default function DashboardLayout({
           prev.map((n) => (n.id === notification.id ? { ...n, isRead: true } : n)),
         );
         setUnreadCount((prev) => Math.max(0, prev - 1));
-      } catch {
-        // silent fail
+      } catch (err) {
+        console.error("Failed to mark notification read:", err);
       }
     }
     setNotificationsOpen(false);
@@ -307,8 +296,7 @@ export default function DashboardLayout({
     { id: "all", name: "Todas las Sucursales", code: "", city: "" },
     ...branches,
   ];
-  const currentBranch =
-    allBranches.find((b) => b.id === selectedBranch) || allBranches[0];
+  const currentBranch = allBranches.find((b) => b.id === selectedBranch) || allBranches[0];
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
@@ -357,9 +345,11 @@ export default function DashboardLayout({
                   onClick={() => toggleSection(section.label)}
                   className="flex w-full items-center justify-between rounded-md px-3 py-1.5 group transition-colors hover:bg-white/5"
                 >
-                  <span className={`text-[10px] font-semibold uppercase tracking-[0.2em] ${
-                    hasActiveItem ? "text-white/50" : "text-white/30"
-                  } group-hover:text-white/50 transition-colors`}>
+                  <span
+                    className={`text-[10px] font-semibold uppercase tracking-[0.2em] ${
+                      hasActiveItem ? "text-white/50" : "text-white/30"
+                    } group-hover:text-white/50 transition-colors`}
+                  >
                     {section.label}
                   </span>
                   <ChevronDown
@@ -455,9 +445,7 @@ export default function DashboardLayout({
                     >
                       <span>{branch.name}</span>
                       {branch.city && (
-                        <span className="ml-2 text-xs text-muted-foreground">
-                          {branch.city}
-                        </span>
+                        <span className="ml-2 text-xs text-muted-foreground">{branch.city}</span>
                       )}
                     </button>
                   ))}
@@ -469,11 +457,7 @@ export default function DashboardLayout({
               className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted transition-colors"
               title={theme === "light" ? "Cambiar a modo oscuro" : "Cambiar a modo claro"}
             >
-              {theme === "light" ? (
-                <Sun className="h-5 w-5" />
-              ) : (
-                <Moon className="h-5 w-5" />
-              )}
+              {theme === "light" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
             </button>
             <PushToggle />
             <div ref={notificationsRef} className="relative">
@@ -495,9 +479,7 @@ export default function DashboardLayout({
               {notificationsOpen && (
                 <div className="absolute right-0 top-full mt-1 w-80 rounded-lg border border-border bg-card shadow-lg z-50">
                   <div className="flex items-center justify-between border-b border-border px-4 py-3">
-                    <h3 className="text-sm font-semibold text-foreground">
-                      Notificaciones
-                    </h3>
+                    <h3 className="text-sm font-semibold text-foreground">Notificaciones</h3>
                     {unreadCount > 0 && (
                       <button
                         onClick={handleMarkAllRead}
@@ -534,9 +516,7 @@ export default function DashboardLayout({
                             >
                               {n.title}
                             </p>
-                            <p className="text-xs text-muted-foreground truncate">
-                              {n.message}
-                            </p>
+                            <p className="text-xs text-muted-foreground truncate">{n.message}</p>
                             <p className="text-[10px] text-muted-foreground mt-0.5">
                               {timeAgo(n.createdAt)}
                             </p>

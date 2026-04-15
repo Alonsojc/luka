@@ -21,7 +21,6 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   ResponsiveContainer,
   PieChart,
   Pie,
@@ -29,6 +28,7 @@ import {
 } from "recharts";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/components/ui/toast";
+import { useApiQuery } from "@/hooks/use-api-query";
 import { DataTable } from "@/components/ui/data-table";
 import { Button } from "@/components/ui/button";
 import { FormField, Input, Select } from "@/components/ui/form-field";
@@ -262,20 +262,13 @@ function DateFilters({
       </div>
       <div className="w-44">
         <FormField label="Fecha Fin">
-          <Input
-            type="date"
-            value={endDate}
-            onChange={(e) => onEndDateChange(e.target.value)}
-          />
+          <Input type="date" value={endDate} onChange={(e) => onEndDateChange(e.target.value)} />
         </FormField>
       </div>
       {showBranch && (
         <div className="w-52">
           <FormField label="Sucursal">
-            <Select
-              value={branchValue ?? ""}
-              onChange={(e) => onBranchChange?.(e.target.value)}
-            >
+            <Select value={branchValue ?? ""} onChange={(e) => onBranchChange?.(e.target.value)}>
               <option value="">Todas las sucursales</option>
               {branches.map((b) => (
                 <option key={b.id} value={b.id}>
@@ -326,19 +319,12 @@ function BranchRequiredFilters({
       </div>
       <div className="w-44">
         <FormField label="Fecha Fin">
-          <Input
-            type="date"
-            value={endDate}
-            onChange={(e) => onEndDateChange(e.target.value)}
-          />
+          <Input type="date" value={endDate} onChange={(e) => onEndDateChange(e.target.value)} />
         </FormField>
       </div>
       <div className="w-52">
         <FormField label="Sucursal" required>
-          <Select
-            value={selectedBranchId}
-            onChange={(e) => onBranchChange(e.target.value)}
-          >
+          <Select value={selectedBranchId} onChange={(e) => onBranchChange(e.target.value)}>
             {branches.length === 0 && <option value="">Cargando sucursales...</option>}
             {branches.map((b) => (
               <option key={b.id} value={b.id}>
@@ -377,9 +363,7 @@ function PnlRow({
       <td className={`py-2 pr-4 ${indent ? "pl-8" : "pl-4"} text-sm text-gray-700`}>
         {negative && amount !== 0 ? `(-) ${label}` : label}
       </td>
-      <td className="py-2 px-4 text-right text-sm text-gray-900">
-        {formatMXN(amount)}
-      </td>
+      <td className="py-2 px-4 text-right text-sm text-gray-900">{formatMXN(amount)}</td>
       <td className="py-2 px-4 text-right text-sm text-gray-500">
         {margin !== undefined ? formatPct(margin) : ""}
       </td>
@@ -397,8 +381,9 @@ export default function ReportesPage() {
   const [activeTab, setActiveTab] = useState<TabKey>("ventas-sucursal");
 
   // ---- Shared state ----
-  const [branches, setBranches] = useState<Branch[]>([]);
-  const [branchesLoaded, setBranchesLoaded] = useState(false);
+  const { data: branches = [], isSuccess: branchesLoaded } = useApiQuery<Branch[]>("/branches", [
+    "branches",
+  ]);
 
   // ---- Date filters ----
   const [startDate, setStartDate] = useState(getFirstDayOfMonth);
@@ -440,22 +425,14 @@ export default function ReportesPage() {
   const [agingExporting, setAgingExporting] = useState(false);
 
   // =======================================================================
-  // Fetch branches (shared across tabs)
+  // Set default branch when branches load
   // =======================================================================
 
-  const fetchBranches = useCallback(async () => {
-    if (branchesLoaded) return;
-    try {
-      const data = await authFetch<Branch[]>("get", "/branches");
-      setBranches(data);
-      if (data.length > 0) {
-        setSelectedBranchId((prev) => prev || data[0].id);
-      }
-      setBranchesLoaded(true);
-    } catch {
-      toast("Error al cargar sucursales", "error");
+  useEffect(() => {
+    if (branches.length > 0) {
+      setSelectedBranchId((prev) => prev || branches[0].id);
     }
-  }, [authFetch, branchesLoaded, toast]);
+  }, [branches]);
 
   // =======================================================================
   // Data-fetching functions (existing)
@@ -500,11 +477,8 @@ export default function ReportesPage() {
       setInventoryLoading(true);
       try {
         const qs = branchId ? `?branchId=${branchId}` : "";
-        const data = await authFetch<any>(
-          "get",
-          `/reportes/inventory/valuation${qs}`,
-        );
-        setInventoryData(Array.isArray(data) ? data : data.items ?? []);
+        const data = await authFetch<any>("get", `/reportes/inventory/valuation${qs}`);
+        setInventoryData(Array.isArray(data) ? data : (data.items ?? []));
       } catch {
         toast("Error al cargar valuacion de inventario", "error");
       } finally {
@@ -546,10 +520,7 @@ export default function ReportesPage() {
     try {
       const params = new URLSearchParams({ startDate, endDate });
       if (pnlBranchId) params.set("branchId", pnlBranchId);
-      const data = await authFetch<PnlData>(
-        "get",
-        `/reportes/financial/pnl?${params.toString()}`,
-      );
+      const data = await authFetch<PnlData>("get", `/reportes/financial/pnl?${params.toString()}`);
       setPnlData(data);
     } catch {
       toast("Error al cargar estado de resultados", "error");
@@ -578,10 +549,7 @@ export default function ReportesPage() {
     async (type: "receivable" | "payable") => {
       setAgingLoading(true);
       try {
-        const data = await authFetch<AgingData>(
-          "get",
-          `/reportes/financial/aging/${type}`,
-        );
+        const data = await authFetch<AgingData>("get", `/reportes/financial/aging/${type}`);
         setAgingData(data);
       } catch {
         toast("Error al cargar antiguedad de saldos", "error");
@@ -656,11 +624,6 @@ export default function ReportesPage() {
   // =======================================================================
 
   useEffect(() => {
-    if (authLoading) return;
-    fetchBranches();
-  }, [authLoading, fetchBranches]);
-
-  useEffect(() => {
     if (authLoading || !branchesLoaded) return;
 
     if (activeTab === "ventas-sucursal") {
@@ -728,8 +691,7 @@ export default function ReportesPage() {
     totalOrders: salesByBranch.reduce((sum, r) => sum + safeNum(r.totalOrders), 0),
     avgTicket:
       salesByBranch.length > 0
-        ? salesByBranch.reduce((sum, r) => sum + safeNum(r.averageTicket), 0) /
-          salesByBranch.length
+        ? salesByBranch.reduce((sum, r) => sum + safeNum(r.averageTicket), 0) / salesByBranch.length
         : 0,
     branchCount: salesByBranch.length,
   };
@@ -740,9 +702,8 @@ export default function ReportesPage() {
     productCount: salesByProduct.length,
     topProduct:
       salesByProduct.length > 0
-        ? [...salesByProduct].sort(
-            (a, b) => safeNum(b.totalRevenue) - safeNum(a.totalRevenue),
-          )[0].productName
+        ? [...salesByProduct].sort((a, b) => safeNum(b.totalRevenue) - safeNum(a.totalRevenue))[0]
+            .productName
         : "-",
   };
 
@@ -770,9 +731,7 @@ export default function ReportesPage() {
     {
       key: "branchName",
       header: "Sucursal",
-      render: (r: SalesByBranch) => (
-        <span className="font-medium">{r.branchName}</span>
-      ),
+      render: (r: SalesByBranch) => <span className="font-medium">{r.branchName}</span>,
     },
     {
       key: "totalSales",
@@ -798,9 +757,7 @@ export default function ReportesPage() {
     {
       key: "productName",
       header: "Producto",
-      render: (r: SalesByProduct) => (
-        <span className="font-medium">{r.productName}</span>
-      ),
+      render: (r: SalesByProduct) => <span className="font-medium">{r.productName}</span>,
     },
     {
       key: "quantitySold",
@@ -831,9 +788,7 @@ export default function ReportesPage() {
     {
       key: "productName",
       header: "Producto",
-      render: (r: InventoryValuation) => (
-        <span className="font-medium">{r.productName}</span>
-      ),
+      render: (r: InventoryValuation) => <span className="font-medium">{r.productName}</span>,
     },
     {
       key: "branchName",
@@ -1252,19 +1207,12 @@ export default function ReportesPage() {
               </div>
               <div className="w-44">
                 <FormField label="Fecha Fin">
-                  <Input
-                    type="date"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                  />
+                  <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
                 </FormField>
               </div>
               <div className="w-52">
                 <FormField label="Sucursal">
-                  <Select
-                    value={pnlBranchId}
-                    onChange={(e) => setPnlBranchId(e.target.value)}
-                  >
+                  <Select value={pnlBranchId} onChange={(e) => setPnlBranchId(e.target.value)}>
                     <option value="">Todas las sucursales</option>
                     {branches.map((b) => (
                       <option key={b.id} value={b.id}>
@@ -1351,16 +1299,39 @@ export default function ReportesPage() {
                         bold
                       />
                       <tr>
-                        <td colSpan={3} className="py-2 pl-4 text-xs font-semibold uppercase text-gray-400">
+                        <td
+                          colSpan={3}
+                          className="py-2 pl-4 text-xs font-semibold uppercase text-gray-400"
+                        >
                           Gastos Operativos
                         </td>
                       </tr>
-                      <PnlRow label="Nomina y mano de obra" amount={pnlData.operatingExpenses.labor} indent />
+                      <PnlRow
+                        label="Nomina y mano de obra"
+                        amount={pnlData.operatingExpenses.labor}
+                        indent
+                      />
                       <PnlRow label="Renta" amount={pnlData.operatingExpenses.rent} indent />
-                      <PnlRow label="Servicios (luz/agua/gas)" amount={pnlData.operatingExpenses.utilities} indent />
-                      <PnlRow label="Marketing" amount={pnlData.operatingExpenses.marketing} indent />
-                      <PnlRow label="Mantenimiento" amount={pnlData.operatingExpenses.maintenance} indent />
-                      <PnlRow label="Otros gastos" amount={pnlData.operatingExpenses.other} indent />
+                      <PnlRow
+                        label="Servicios (luz/agua/gas)"
+                        amount={pnlData.operatingExpenses.utilities}
+                        indent
+                      />
+                      <PnlRow
+                        label="Marketing"
+                        amount={pnlData.operatingExpenses.marketing}
+                        indent
+                      />
+                      <PnlRow
+                        label="Mantenimiento"
+                        amount={pnlData.operatingExpenses.maintenance}
+                        indent
+                      />
+                      <PnlRow
+                        label="Otros gastos"
+                        amount={pnlData.operatingExpenses.other}
+                        indent
+                      />
                       <PnlRow
                         label="Total Gastos Operativos"
                         amount={pnlData.operatingExpenses.total}
@@ -1423,9 +1394,7 @@ export default function ReportesPage() {
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="name" tick={{ fontSize: 12 }} />
                       <YAxis tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
-                      <Tooltip
-                        formatter={(value: number) => formatMXN(value)}
-                      />
+                      <Tooltip formatter={(value: number) => formatMXN(value)} />
                       <Bar dataKey="value" radius={[4, 4, 0, 0]}>
                         {[
                           { name: "Ingresos", fill: "#22c55e" },
@@ -1528,7 +1497,13 @@ export default function ReportesPage() {
                       </div>
                       <div className="border-t border-gray-200 pt-2 flex justify-between text-sm font-semibold">
                         <span>Flujo operativo neto</span>
-                        <span className={cashFlowData.operatingActivities.netOperating >= 0 ? "text-green-700" : "text-red-700"}>
+                        <span
+                          className={
+                            cashFlowData.operatingActivities.netOperating >= 0
+                              ? "text-green-700"
+                              : "text-red-700"
+                          }
+                        >
                           {formatMXN(cashFlowData.operatingActivities.netOperating)}
                         </span>
                       </div>
@@ -1593,9 +1568,13 @@ export default function ReportesPage() {
                       </p>
                     </div>
                     <span className="text-2xl text-gray-400">+</span>
-                    <div className={`rounded-lg p-4 min-w-[160px] ${cashFlowData.netCashFlow >= 0 ? "bg-green-50" : "bg-red-50"}`}>
+                    <div
+                      className={`rounded-lg p-4 min-w-[160px] ${cashFlowData.netCashFlow >= 0 ? "bg-green-50" : "bg-red-50"}`}
+                    >
                       <p className="text-xs text-gray-500">Flujo Neto</p>
-                      <p className={`mt-1 text-lg font-bold ${cashFlowData.netCashFlow >= 0 ? "text-green-700" : "text-red-700"}`}>
+                      <p
+                        className={`mt-1 text-lg font-bold ${cashFlowData.netCashFlow >= 0 ? "text-green-700" : "text-red-700"}`}
+                      >
                         {formatMXN(cashFlowData.netCashFlow)}
                       </p>
                     </div>
@@ -1619,7 +1598,10 @@ export default function ReportesPage() {
                       data={[
                         { name: "Saldo Inicial", value: cashFlowData.beginningBalance },
                         { name: "Cobros", value: cashFlowData.operatingActivities.cashFromSales },
-                        { name: "Pago Proveedores", value: -cashFlowData.operatingActivities.cashToSuppliers },
+                        {
+                          name: "Pago Proveedores",
+                          value: -cashFlowData.operatingActivities.cashToSuppliers,
+                        },
                         { name: "Nomina", value: -cashFlowData.operatingActivities.cashForPayroll },
                         { name: "Saldo Final", value: cashFlowData.endingBalance },
                       ]}
@@ -1759,7 +1741,7 @@ export default function ReportesPage() {
                           outerRadius={100}
                           innerRadius={50}
                           dataKey="value"
-                          label={({ name, percent }) =>
+                          label={({ percent }) =>
                             percent > 0 ? `${(percent * 100).toFixed(0)}%` : ""
                           }
                           labelLine={false}
@@ -1773,10 +1755,26 @@ export default function ReportesPage() {
                     </ResponsiveContainer>
                     <div className="space-y-2">
                       {[
-                        { label: "Corriente (0-30 dias)", color: PIE_COLORS[0], value: agingData.buckets.current },
-                        { label: "31-60 dias", color: PIE_COLORS[1], value: agingData.buckets.days31to60 },
-                        { label: "61-90 dias", color: PIE_COLORS[2], value: agingData.buckets.days61to90 },
-                        { label: "90+ dias", color: PIE_COLORS[3], value: agingData.buckets.days90plus },
+                        {
+                          label: "Corriente (0-30 dias)",
+                          color: PIE_COLORS[0],
+                          value: agingData.buckets.current,
+                        },
+                        {
+                          label: "31-60 dias",
+                          color: PIE_COLORS[1],
+                          value: agingData.buckets.days31to60,
+                        },
+                        {
+                          label: "61-90 dias",
+                          color: PIE_COLORS[2],
+                          value: agingData.buckets.days61to90,
+                        },
+                        {
+                          label: "90+ dias",
+                          color: PIE_COLORS[3],
+                          value: agingData.buckets.days90plus,
+                        },
                       ].map((item) => (
                         <div key={item.label} className="flex items-center gap-3">
                           <div

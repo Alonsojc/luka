@@ -1,19 +1,9 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Param,
-  Body,
-  UseGuards,
-} from "@nestjs/common";
+import { Controller, Get, Post, Param, Body, UseGuards } from "@nestjs/common";
 import { ApiTags, ApiBearerAuth } from "@nestjs/swagger";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
 import { Permissions } from "../../common/decorators/roles.decorator";
-import {
-  CurrentUser,
-  JwtPayload,
-} from "../../common/decorators/current-user.decorator";
+import { CurrentUser, JwtPayload } from "../../common/decorators/current-user.decorator";
 import { DataImportService } from "./data-import.service";
 
 @ApiTags("Configuracion - Import")
@@ -59,11 +49,7 @@ export class DataImportController {
           mappings || {},
         );
       case "SUPPLIERS":
-        return this.dataImportService.importSuppliers(
-          user.organizationId,
-          user.sub,
-          csvContent,
-        );
+        return this.dataImportService.importSuppliers(user.organizationId, user.sub, csvContent);
       case "EMPLOYEES":
         return this.dataImportService.importEmployees(
           user.organizationId,
@@ -79,11 +65,7 @@ export class DataImportController {
           branchId!,
         );
       case "CUSTOMERS":
-        return this.dataImportService.importCustomers(
-          user.organizationId,
-          user.sub,
-          csvContent,
-        );
+        return this.dataImportService.importCustomers(user.organizationId, user.sub, csvContent);
       default:
         return { error: `Tipo de importacion no soportado: ${importType}` };
     }

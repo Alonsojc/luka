@@ -124,7 +124,7 @@ function diffColorClass(systemQty: number, countedQty: number | null): string {
   if (countedQty === null) return "";
   const diff = countedQty - systemQty;
   if (diff === 0) return "text-green-600";
-  const pct = systemQty !== 0 ? Math.abs(diff / systemQty) : (diff !== 0 ? 1 : 0);
+  const pct = systemQty !== 0 ? Math.abs(diff / systemQty) : diff !== 0 ? 1 : 0;
   if (pct > 0.1) return "text-red-600 font-semibold";
   return "text-yellow-600";
 }
@@ -133,7 +133,7 @@ function diffRowBg(systemQty: number, countedQty: number | null): string {
   if (countedQty === null) return "";
   const diff = countedQty - systemQty;
   if (diff === 0) return "bg-green-50";
-  const pct = systemQty !== 0 ? Math.abs(diff / systemQty) : (diff !== 0 ? 1 : 0);
+  const pct = systemQty !== 0 ? Math.abs(diff / systemQty) : diff !== 0 ? 1 : 0;
   if (pct > 0.1) return "bg-red-50";
   return "bg-yellow-50";
 }
@@ -161,7 +161,9 @@ export default function ConteoFisicoPage() {
   const [activeCount, setActiveCount] = useState<PhysicalCount | null>(null);
   const [activeItems, setActiveItems] = useState<PhysicalCountItem[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [editedItems, setEditedItems] = useState<Map<string, { countedQuantity: string; notes: string }>>(new Map());
+  const [editedItems, setEditedItems] = useState<
+    Map<string, { countedQuantity: string; notes: string }>
+  >(new Map());
   const [saving, setSaving] = useState(false);
   const [completing, setCompleting] = useState(false);
 
@@ -266,7 +268,8 @@ export default function ConteoFisicoPage() {
       if (!next.has(itemId)) {
         const item = activeItems.find((i) => i.id === itemId);
         if (item) {
-          existing.countedQuantity = item.countedQuantity !== null ? String(toNum(item.countedQuantity)) : "";
+          existing.countedQuantity =
+            item.countedQuantity !== null ? String(toNum(item.countedQuantity)) : "";
           existing.notes = item.notes || "";
         }
       }
@@ -309,7 +312,10 @@ export default function ConteoFisicoPage() {
     if (!activeCount) return;
     setCompleting(true);
     try {
-      const data = await authFetch<PhysicalCount>("post", `/inventarios/physical-counts/${activeCount.id}/complete`);
+      const data = await authFetch<PhysicalCount>(
+        "post",
+        `/inventarios/physical-counts/${activeCount.id}/complete`,
+      );
       setShowCompleteConfirm(false);
       setActiveCount(data);
       setActiveItems(data.items || []);
@@ -355,7 +361,9 @@ export default function ConteoFisicoPage() {
     const total = activeItems.length;
     const counted = activeItems.filter((i) => i.countedQuantity !== null).length;
     const pending = total - counted;
-    const withDiff = activeItems.filter((i) => i.difference !== null && toNum(i.difference) !== 0).length;
+    const withDiff = activeItems.filter(
+      (i) => i.difference !== null && toNum(i.difference) !== 0,
+    ).length;
     const totalAdjValue = activeItems.reduce((sum, i) => sum + toNum(i.adjustmentValue), 0);
 
     // Top 5 biggest differences
@@ -395,7 +403,9 @@ export default function ConteoFisicoPage() {
         {message && (
           <div
             className={`rounded-lg px-4 py-3 text-sm font-medium ${
-              message.type === "success" ? "bg-green-50 text-green-800 border border-green-200" : "bg-red-50 text-red-800 border border-red-200"
+              message.type === "success"
+                ? "bg-green-50 text-green-800 border border-green-200"
+                : "bg-red-50 text-red-800 border border-red-200"
             }`}
           >
             {message.text}
@@ -422,7 +432,8 @@ export default function ConteoFisicoPage() {
                 Conteo Fisico
               </h1>
               <p className="text-sm text-gray-500">
-                {activeCount.branch.name} - {formatDateTime(activeCount.countDate)} - Iniciado por {activeCount.startedBy.firstName} {activeCount.startedBy.lastName}
+                {activeCount.branch.name} - {formatDateTime(activeCount.countDate)} - Iniciado por{" "}
+                {activeCount.startedBy.firstName} {activeCount.startedBy.lastName}
               </p>
             </div>
           </div>
@@ -439,11 +450,7 @@ export default function ConteoFisicoPage() {
                   <Save className="h-4 w-4" />
                   {saving ? "Guardando..." : "Guardar Progreso"}
                 </Button>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={() => setShowCancelConfirm(true)}
-                >
+                <Button variant="destructive" size="sm" onClick={() => setShowCancelConfirm(true)}>
                   <Ban className="h-4 w-4" />
                   Cancelar
                 </Button>
@@ -498,7 +505,9 @@ export default function ConteoFisicoPage() {
               <Scale className="h-4 w-4 text-blue-500" />
               <span className="text-sm font-medium text-gray-600">Valor Ajuste</span>
             </div>
-            <p className={`text-2xl font-bold ${summaryStats.totalAdjValue < 0 ? "text-red-600" : summaryStats.totalAdjValue > 0 ? "text-green-600" : "text-gray-900"}`}>
+            <p
+              className={`text-2xl font-bold ${summaryStats.totalAdjValue < 0 ? "text-red-600" : summaryStats.totalAdjValue > 0 ? "text-green-600" : "text-gray-900"}`}
+            >
               {formatMXN(summaryStats.totalAdjValue)}
             </p>
           </div>
@@ -515,9 +524,14 @@ export default function ConteoFisicoPage() {
               <div className="space-y-1">
                 {summaryStats.topDifferences.map((item) => (
                   <div key={item.id} className="flex items-center justify-between text-xs">
-                    <span className="truncate max-w-[120px]" title={item.product.name}>{item.product.name}</span>
-                    <span className={`font-mono font-medium ${toNum(item.difference) < 0 ? "text-red-600" : "text-green-600"}`}>
-                      {toNum(item.difference) > 0 ? "+" : ""}{toNum(item.difference).toFixed(2)}
+                    <span className="truncate max-w-[120px]" title={item.product.name}>
+                      {item.product.name}
+                    </span>
+                    <span
+                      className={`font-mono font-medium ${toNum(item.difference) < 0 ? "text-red-600" : "text-green-600"}`}
+                    >
+                      {toNum(item.difference) > 0 ? "+" : ""}
+                      {toNum(item.difference).toFixed(2)}
                     </span>
                   </div>
                 ))}
@@ -554,13 +568,25 @@ export default function ConteoFisicoPage() {
               <tr className="border-b bg-gray-50">
                 <th className="text-left text-xs font-medium text-gray-500 px-4 py-3">Producto</th>
                 <th className="text-left text-xs font-medium text-gray-500 px-3 py-3 w-20">SKU</th>
-                <th className="text-left text-xs font-medium text-gray-500 px-3 py-3 w-16">Unidad</th>
-                <th className="text-right text-xs font-medium text-gray-500 px-3 py-3 w-28">Stock Sistema</th>
-                <th className="text-right text-xs font-medium text-gray-500 px-3 py-3 w-32">Conteo Real</th>
-                <th className="text-right text-xs font-medium text-gray-500 px-3 py-3 w-24">Diferencia</th>
-                <th className="text-right text-xs font-medium text-gray-500 px-3 py-3 w-28">Valor Ajuste</th>
+                <th className="text-left text-xs font-medium text-gray-500 px-3 py-3 w-16">
+                  Unidad
+                </th>
+                <th className="text-right text-xs font-medium text-gray-500 px-3 py-3 w-28">
+                  Stock Sistema
+                </th>
+                <th className="text-right text-xs font-medium text-gray-500 px-3 py-3 w-32">
+                  Conteo Real
+                </th>
+                <th className="text-right text-xs font-medium text-gray-500 px-3 py-3 w-24">
+                  Diferencia
+                </th>
+                <th className="text-right text-xs font-medium text-gray-500 px-3 py-3 w-28">
+                  Valor Ajuste
+                </th>
                 {isEditable && (
-                  <th className="text-left text-xs font-medium text-gray-500 px-3 py-3 w-36">Notas</th>
+                  <th className="text-left text-xs font-medium text-gray-500 px-3 py-3 w-36">
+                    Notas
+                  </th>
                 )}
               </tr>
             </thead>
@@ -581,7 +607,8 @@ export default function ConteoFisicoPage() {
                       ? String(toNum(item.countedQuantity))
                       : "";
                   const computedCounted = displayCounted !== "" ? parseFloat(displayCounted) : null;
-                  const computedDiff = computedCounted !== null ? computedCounted - systemQty : null;
+                  const computedDiff =
+                    computedCounted !== null ? computedCounted - systemQty : null;
                   const unitCost = toNum(item.unitCost);
                   const computedAdjValue = computedDiff !== null ? computedDiff * unitCost : null;
 
@@ -590,10 +617,18 @@ export default function ConteoFisicoPage() {
                       key={item.id}
                       className={`border-b last:border-0 transition-colors ${diffRowBg(systemQty, computedCounted)}`}
                     >
-                      <td className="px-4 py-2.5 text-sm font-medium text-gray-900">{item.product.name}</td>
-                      <td className="px-3 py-2.5 text-xs font-mono text-gray-500">{item.product.sku}</td>
-                      <td className="px-3 py-2.5 text-xs text-gray-500">{item.product.unitOfMeasure}</td>
-                      <td className="px-3 py-2.5 text-sm text-right font-mono">{systemQty.toFixed(2)}</td>
+                      <td className="px-4 py-2.5 text-sm font-medium text-gray-900">
+                        {item.product.name}
+                      </td>
+                      <td className="px-3 py-2.5 text-xs font-mono text-gray-500">
+                        {item.product.sku}
+                      </td>
+                      <td className="px-3 py-2.5 text-xs text-gray-500">
+                        {item.product.unitOfMeasure}
+                      </td>
+                      <td className="px-3 py-2.5 text-sm text-right font-mono">
+                        {systemQty.toFixed(2)}
+                      </td>
                       <td className="px-3 py-2.5 text-right">
                         {isEditable ? (
                           <input
@@ -601,17 +636,23 @@ export default function ConteoFisicoPage() {
                             step="0.01"
                             min="0"
                             value={displayCounted}
-                            onChange={(e) => handleItemChange(item.id, "countedQuantity", e.target.value)}
+                            onChange={(e) =>
+                              handleItemChange(item.id, "countedQuantity", e.target.value)
+                            }
                             className="w-24 px-2 py-1 border rounded text-sm text-right font-mono focus:outline-none focus:ring-2 focus:ring-black"
                             placeholder="0.00"
                           />
                         ) : (
                           <span className="text-sm font-mono">
-                            {item.countedQuantity !== null ? toNum(item.countedQuantity).toFixed(2) : "-"}
+                            {item.countedQuantity !== null
+                              ? toNum(item.countedQuantity).toFixed(2)
+                              : "-"}
                           </span>
                         )}
                       </td>
-                      <td className={`px-3 py-2.5 text-sm text-right font-mono ${diffColorClass(systemQty, computedCounted)}`}>
+                      <td
+                        className={`px-3 py-2.5 text-sm text-right font-mono ${diffColorClass(systemQty, computedCounted)}`}
+                      >
                         {computedDiff !== null ? (
                           <>
                             {computedDiff > 0 ? "+" : ""}
@@ -621,7 +662,9 @@ export default function ConteoFisicoPage() {
                           "-"
                         )}
                       </td>
-                      <td className={`px-3 py-2.5 text-sm text-right font-mono ${computedAdjValue !== null && computedAdjValue < 0 ? "text-red-600" : computedAdjValue !== null && computedAdjValue > 0 ? "text-green-600" : ""}`}>
+                      <td
+                        className={`px-3 py-2.5 text-sm text-right font-mono ${computedAdjValue !== null && computedAdjValue < 0 ? "text-red-600" : computedAdjValue !== null && computedAdjValue > 0 ? "text-green-600" : ""}`}
+                      >
                         {computedAdjValue !== null ? formatMXN(computedAdjValue) : "-"}
                       </td>
                       {isEditable && (
@@ -656,17 +699,26 @@ export default function ConteoFisicoPage() {
                 <div>
                   <p className="font-medium text-yellow-800">Esta accion es irreversible</p>
                   <p className="text-sm text-yellow-700 mt-1">
-                    Al finalizar el conteo, se generaran movimientos de ajuste para todos los productos con diferencias
-                    y se actualizara el inventario de la sucursal.
+                    Al finalizar el conteo, se generaran movimientos de ajuste para todos los
+                    productos con diferencias y se actualizara el inventario de la sucursal.
                   </p>
                 </div>
               </div>
             </div>
             <div className="bg-gray-50 rounded-lg p-3 space-y-1 text-sm">
-              <p><span className="font-medium">Sucursal:</span> {activeCount.branch.name}</p>
-              <p><span className="font-medium">Productos contados:</span> {summaryStats.counted}</p>
-              <p><span className="font-medium">Discrepancias:</span> {summaryStats.withDiff}</p>
-              <p><span className="font-medium">Valor total ajuste:</span> {formatMXN(summaryStats.totalAdjValue)}</p>
+              <p>
+                <span className="font-medium">Sucursal:</span> {activeCount.branch.name}
+              </p>
+              <p>
+                <span className="font-medium">Productos contados:</span> {summaryStats.counted}
+              </p>
+              <p>
+                <span className="font-medium">Discrepancias:</span> {summaryStats.withDiff}
+              </p>
+              <p>
+                <span className="font-medium">Valor total ajuste:</span>{" "}
+                {formatMXN(summaryStats.totalAdjValue)}
+              </p>
             </div>
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => setShowCompleteConfirm(false)}>
@@ -688,8 +740,8 @@ export default function ConteoFisicoPage() {
         >
           <div className="space-y-4">
             <p className="text-sm text-gray-600">
-              Se cancelara este conteo fisico. No se generaran ajustes de inventario.
-              Los datos capturados se perderan.
+              Se cancelara este conteo fisico. No se generaran ajustes de inventario. Los datos
+              capturados se perderan.
             </p>
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => setShowCancelConfirm(false)}>
@@ -716,7 +768,9 @@ export default function ConteoFisicoPage() {
       {message && (
         <div
           className={`rounded-lg px-4 py-3 text-sm font-medium ${
-            message.type === "success" ? "bg-green-50 text-green-800 border border-green-200" : "bg-red-50 text-red-800 border border-red-200"
+            message.type === "success"
+              ? "bg-green-50 text-green-800 border border-green-200"
+              : "bg-red-50 text-red-800 border border-red-200"
           }`}
         >
           {message.text}
@@ -784,9 +838,7 @@ export default function ConteoFisicoPage() {
           {
             key: "branch",
             header: "Sucursal",
-            render: (row: PhysicalCount) => (
-              <span className="font-medium">{row.branch.name}</span>
-            ),
+            render: (row: PhysicalCount) => <span className="font-medium">{row.branch.name}</span>,
           },
           {
             key: "status",
@@ -806,7 +858,11 @@ export default function ConteoFisicoPage() {
             header: "Discrepancias",
             render: (row: PhysicalCount) =>
               row.status === "COMPLETED" ? (
-                <span className={row.totalDiscrepancies > 0 ? "text-red-600 font-medium" : "text-green-600"}>
+                <span
+                  className={
+                    row.totalDiscrepancies > 0 ? "text-red-600 font-medium" : "text-green-600"
+                  }
+                >
                   {row.totalDiscrepancies}
                 </span>
               ) : (
@@ -818,7 +874,9 @@ export default function ConteoFisicoPage() {
             header: "Valor Ajuste",
             render: (row: PhysicalCount) =>
               row.status === "COMPLETED" && row.totalAdjustmentValue !== null ? (
-                <span className={`font-mono ${toNum(row.totalAdjustmentValue) < 0 ? "text-red-600" : "text-green-600"}`}>
+                <span
+                  className={`font-mono ${toNum(row.totalAdjustmentValue) < 0 ? "text-red-600" : "text-green-600"}`}
+                >
                   {formatMXN(toNum(row.totalAdjustmentValue))}
                 </span>
               ) : (
@@ -828,8 +886,7 @@ export default function ConteoFisicoPage() {
           {
             key: "startedBy",
             header: "Iniciado por",
-            render: (row: PhysicalCount) =>
-              `${row.startedBy.firstName} ${row.startedBy.lastName}`,
+            render: (row: PhysicalCount) => `${row.startedBy.firstName} ${row.startedBy.lastName}`,
           },
         ]}
         data={counts}

@@ -11,8 +11,7 @@ interface BeforeInstallPromptEvent extends Event {
 const DISMISSED_KEY = "luka-pwa-install-dismissed";
 
 export function PWAInstallPrompt() {
-  const [deferredPrompt, setDeferredPrompt] =
-    useState<BeforeInstallPromptEvent | null>(null);
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -49,9 +48,7 @@ export function PWAInstallPrompt() {
     <div className="fixed bottom-0 left-0 right-0 z-50 flex items-center justify-between gap-4 bg-black px-4 py-3 shadow-lg sm:px-6">
       <div className="flex items-center gap-3 text-white">
         <Download className="h-5 w-5 flex-shrink-0" />
-        <span className="text-sm font-medium">
-          Instalar Luka System en tu dispositivo
-        </span>
+        <span className="text-sm font-medium">Instalar Luka System en tu dispositivo</span>
       </div>
       <div className="flex items-center gap-2">
         <button

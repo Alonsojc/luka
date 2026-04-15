@@ -1,21 +1,9 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Patch,
-  Delete,
-  Param,
-  Body,
-  UseGuards,
-} from "@nestjs/common";
+import { Controller, Get, Post, Patch, Delete, Param, Body, UseGuards } from "@nestjs/common";
 import { ApiTags, ApiBearerAuth } from "@nestjs/swagger";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
 import { Roles } from "../../common/decorators/roles.decorator";
-import {
-  CurrentUser,
-  JwtPayload,
-} from "../../common/decorators/current-user.decorator";
+import { CurrentUser, JwtPayload } from "../../common/decorators/current-user.decorator";
 import { LegalEntitiesService } from "./legal-entities.service";
 import { CreateLegalEntityDto } from "./dto/create-legal-entity.dto";
 import { UpdateLegalEntityDto } from "./dto/update-legal-entity.dto";
@@ -39,10 +27,7 @@ export class LegalEntitiesController {
 
   @Post()
   @Roles("owner")
-  create(
-    @CurrentUser() user: JwtPayload,
-    @Body() dto: CreateLegalEntityDto,
-  ) {
+  create(@CurrentUser() user: JwtPayload, @Body() dto: CreateLegalEntityDto) {
     return this.legalEntitiesService.create(user.organizationId, dto);
   }
 
@@ -74,11 +59,7 @@ export class LegalEntitiesController {
     @Param("id") id: string,
     @Param("branchId") branchId: string,
   ) {
-    return this.legalEntitiesService.assignBranch(
-      user.organizationId,
-      id,
-      branchId,
-    );
+    return this.legalEntitiesService.assignBranch(user.organizationId, id, branchId);
   }
 
   @Delete(":id/branches/:branchId")
@@ -88,10 +69,6 @@ export class LegalEntitiesController {
     @Param("id") id: string,
     @Param("branchId") branchId: string,
   ) {
-    return this.legalEntitiesService.unassignBranch(
-      user.organizationId,
-      id,
-      branchId,
-    );
+    return this.legalEntitiesService.unassignBranch(user.organizationId, id, branchId);
   }
 }

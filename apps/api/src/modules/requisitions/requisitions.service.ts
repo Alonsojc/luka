@@ -1,18 +1,8 @@
-import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-} from "@nestjs/common";
+import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
 import { PrismaService } from "../../common/prisma/prisma.service";
 import { AuditService } from "../audit/audit.service";
-import {
-  CreateRequisitionDto,
-  UpdateRequisitionDto,
-} from "./dto/create-requisition.dto";
-import {
-  ApproveRequisitionDto,
-  RejectRequisitionDto,
-} from "./dto/approve-requisition.dto";
+import { CreateRequisitionDto, UpdateRequisitionDto } from "./dto/create-requisition.dto";
+import { ApproveRequisitionDto, RejectRequisitionDto } from "./dto/approve-requisition.dto";
 
 const REQUISITION_INCLUDE = {
   requestingBranch: { select: { id: true, name: true, code: true } },
@@ -113,11 +103,7 @@ export class RequisitionsService {
     return requisition;
   }
 
-  async create(
-    userId: string,
-    organizationId: string,
-    dto: CreateRequisitionDto,
-  ) {
+  async create(userId: string, organizationId: string, dto: CreateRequisitionDto) {
     // Validate requesting branch belongs to the organization
     const requestingBranch = await this.prisma.branch.findFirst({
       where: { id: dto.requestingBranchId, organizationId },
@@ -153,9 +139,7 @@ export class RequisitionsService {
       where: { id: { in: productIds }, organizationId },
     });
     if (products.length !== productIds.length) {
-      throw new BadRequestException(
-        "Uno o mas productos no existen en la organizacion",
-      );
+      throw new BadRequestException("Uno o mas productos no existen en la organizacion");
     }
 
     const status = dto.status || "DRAFT";
@@ -197,18 +181,11 @@ export class RequisitionsService {
     return requisition;
   }
 
-  async update(
-    id: string,
-    userId: string,
-    organizationId: string,
-    dto: UpdateRequisitionDto,
-  ) {
+  async update(id: string, userId: string, organizationId: string, dto: UpdateRequisitionDto) {
     const requisition = await this.findOne(id, organizationId);
 
     if (requisition.status !== "DRAFT") {
-      throw new BadRequestException(
-        "Solo se pueden editar requisiciones en borrador",
-      );
+      throw new BadRequestException("Solo se pueden editar requisiciones en borrador");
     }
 
     // If items are provided, replace all items
@@ -228,9 +205,7 @@ export class RequisitionsService {
         where: { id: { in: productIds }, organizationId },
       });
       if (products.length !== productIds.length) {
-        throw new BadRequestException(
-          "Uno o mas productos no existen en la organizacion",
-        );
+        throw new BadRequestException("Uno o mas productos no existen en la organizacion");
       }
 
       // Delete existing items and create new ones
@@ -290,12 +265,7 @@ export class RequisitionsService {
     return updated;
   }
 
-  async approve(
-    id: string,
-    userId: string,
-    organizationId: string,
-    dto: ApproveRequisitionDto,
-  ) {
+  async approve(id: string, userId: string, organizationId: string, dto: ApproveRequisitionDto) {
     const requisition = await this.findOne(id, organizationId);
     this.validateTransition(requisition.status, "APPROVED");
 
@@ -349,12 +319,7 @@ export class RequisitionsService {
     return updated;
   }
 
-  async reject(
-    id: string,
-    userId: string,
-    organizationId: string,
-    dto: RejectRequisitionDto,
-  ) {
+  async reject(id: string, userId: string, organizationId: string, dto: RejectRequisitionDto) {
     const requisition = await this.findOne(id, organizationId);
     this.validateTransition(requisition.status, "REJECTED");
 
@@ -386,9 +351,7 @@ export class RequisitionsService {
     this.validateTransition(requisition.status, "FULFILLED");
 
     if (!requisition.fulfillingBranchId) {
-      throw new BadRequestException(
-        "No se ha asignado una sucursal de surtido",
-      );
+      throw new BadRequestException("No se ha asignado una sucursal de surtido");
     }
 
     // Create an InterBranchTransfer from the requisition
@@ -456,10 +419,7 @@ export class RequisitionsService {
   async getSummary(organizationId: string, branchId?: string) {
     const baseWhere: any = { organizationId };
     if (branchId) {
-      baseWhere.OR = [
-        { requestingBranchId: branchId },
-        { fulfillingBranchId: branchId },
-      ];
+      baseWhere.OR = [{ requestingBranchId: branchId }, { fulfillingBranchId: branchId }];
     }
 
     const statuses = [

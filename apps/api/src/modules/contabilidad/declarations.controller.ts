@@ -1,19 +1,9 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Query,
-  UseGuards,
-} from "@nestjs/common";
+import { Controller, Get, Post, Body, Query, UseGuards } from "@nestjs/common";
 import { ApiTags, ApiBearerAuth } from "@nestjs/swagger";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
 import { Permissions } from "../../common/decorators/roles.decorator";
-import {
-  CurrentUser,
-  JwtPayload,
-} from "../../common/decorators/current-user.decorator";
+import { CurrentUser, JwtPayload } from "../../common/decorators/current-user.decorator";
 import { DeclarationsService } from "./declarations.service";
 
 @ApiTags("Contabilidad - Declaraciones")
@@ -67,14 +57,8 @@ export class DeclarationsController {
 
   @Get("annual")
   @Permissions("contabilidad:view")
-  getAnnual(
-    @CurrentUser() user: JwtPayload,
-    @Query("year") year: string,
-  ) {
-    return this.declarationsService.getAnnualSummary(
-      user.organizationId,
-      Number(year),
-    );
+  getAnnual(@CurrentUser() user: JwtPayload, @Query("year") year: string) {
+    return this.declarationsService.getAnnualSummary(user.organizationId, Number(year));
   }
 
   @Post("mark-filed")

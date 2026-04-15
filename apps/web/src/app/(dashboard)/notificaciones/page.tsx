@@ -193,9 +193,7 @@ export default function NotificacionesPage() {
   const [branches, setBranches] = useState<Branch[]>([]);
 
   const isAdmin =
-    user?.roles?.some(
-      (r) => r.roleName === "ADMIN" || r.roleName === "OWNER",
-    ) || false;
+    user?.roles?.some((r) => r.roleName === "ADMIN" || r.roleName === "OWNER") || false;
 
   // --- Fetch notifications ---
   const fetchNotifications = useCallback(async () => {
@@ -336,9 +334,7 @@ export default function NotificacionesPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Notificaciones</h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Centro de notificaciones ({total} total)
-          </p>
+          <p className="text-sm text-gray-500 mt-1">Centro de notificaciones ({total} total)</p>
         </div>
       </div>
 
@@ -419,9 +415,7 @@ export default function NotificacionesPage() {
           ) : notifications.length === 0 ? (
             <div className="rounded-lg border border-gray-200 bg-white py-12 text-center">
               <Bell className="mx-auto h-10 w-10 text-gray-300" />
-              <p className="mt-3 text-sm text-gray-500">
-                No hay notificaciones
-              </p>
+              <p className="mt-3 text-sm text-gray-500">No hay notificaciones</p>
             </div>
           ) : (
             <div className="space-y-2">
@@ -463,12 +457,8 @@ export default function NotificacionesPage() {
                             <span className="h-2 w-2 flex-shrink-0 rounded-full bg-blue-500" />
                           )}
                         </div>
-                        <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">
-                          {n.message}
-                        </p>
-                        <p className="text-[10px] text-gray-400 mt-1">
-                          {timeAgo(n.createdAt)}
-                        </p>
+                        <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{n.message}</p>
+                        <p className="text-[10px] text-gray-400 mt-1">{timeAgo(n.createdAt)}</p>
                       </div>
                     </div>
                   </button>
@@ -511,15 +501,10 @@ export default function NotificacionesPage() {
         <div className="grid gap-6 lg:grid-cols-2">
           {/* Form */}
           <div className="rounded-lg border border-gray-200 bg-white p-6 space-y-4">
-            <h2 className="text-lg font-semibold text-gray-900">
-              Enviar Notificacion
-            </h2>
+            <h2 className="text-lg font-semibold text-gray-900">Enviar Notificacion</h2>
 
             <FormField label="Destinatario" required>
-              <Select
-                value={recipientType}
-                onChange={(e) => setRecipientType(e.target.value)}
-              >
+              <Select value={recipientType} onChange={(e) => setRecipientType(e.target.value)}>
                 {RECIPIENT_TYPES.map((rt) => (
                   <option key={rt.value} value={rt.value}>
                     {rt.label}
@@ -530,10 +515,7 @@ export default function NotificacionesPage() {
 
             {recipientType === "user" && (
               <FormField label="Usuario" required>
-                <Select
-                  value={selectedUserId}
-                  onChange={(e) => setSelectedUserId(e.target.value)}
-                >
+                <Select value={selectedUserId} onChange={(e) => setSelectedUserId(e.target.value)}>
                   <option value="">Seleccionar usuario...</option>
                   {users.map((u) => (
                     <option key={u.id} value={u.id}>
@@ -578,10 +560,7 @@ export default function NotificacionesPage() {
 
             <div className="grid grid-cols-2 gap-4">
               <FormField label="Tipo" required>
-                <Select
-                  value={sendType}
-                  onChange={(e) => setSendType(e.target.value)}
-                >
+                <Select value={sendType} onChange={(e) => setSendType(e.target.value)}>
                   {NOTIFICATION_TYPES.filter((t) => t.value).map((t) => (
                     <option key={t.value} value={t.value}>
                       {t.label}
@@ -590,10 +569,7 @@ export default function NotificacionesPage() {
                 </Select>
               </FormField>
               <FormField label="Severidad" required>
-                <Select
-                  value={sendSeverity}
-                  onChange={(e) => setSendSeverity(e.target.value)}
-                >
+                <Select value={sendSeverity} onChange={(e) => setSendSeverity(e.target.value)}>
                   {SEVERITY_OPTIONS.map((s) => (
                     <option key={s.value} value={s.value}>
                       {s.label}
@@ -635,9 +611,7 @@ export default function NotificacionesPage() {
 
           {/* Preview */}
           <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-gray-900">
-              Vista Previa
-            </h2>
+            <h2 className="text-lg font-semibold text-gray-900">Vista Previa</h2>
             <div
               className={`rounded-lg border bg-white border-l-4 ${severityBorderColor(sendSeverity)}`}
             >
@@ -662,14 +636,8 @@ export default function NotificacionesPage() {
                   <p className="text-xs text-gray-500 mt-0.5">
                     {sendMessage || "Mensaje de la notificacion"}
                   </p>
-                  {sendLink && (
-                    <p className="text-[10px] text-blue-500 mt-1">
-                      {sendLink}
-                    </p>
-                  )}
-                  <p className="text-[10px] text-gray-400 mt-1">
-                    hace un momento
-                  </p>
+                  {sendLink && <p className="text-[10px] text-blue-500 mt-1">{sendLink}</p>}
+                  <p className="text-[10px] text-gray-400 mt-1">hace un momento</p>
                 </div>
               </div>
             </div>
@@ -681,15 +649,12 @@ export default function NotificacionesPage() {
                   (users.find((u) => u.id === selectedUserId)
                     ? `${users.find((u) => u.id === selectedUserId)!.firstName} ${users.find((u) => u.id === selectedUserId)!.lastName}`
                     : "Sin seleccionar")}
-                {recipientType === "role" &&
-                  (selectedRoleName || "Sin seleccionar")}
+                {recipientType === "role" && (selectedRoleName || "Sin seleccionar")}
                 {recipientType === "branch" &&
-                  (branches.find((b) => b.id === selectedBranchId)?.name ||
-                    "Sin seleccionar")}
+                  (branches.find((b) => b.id === selectedBranchId)?.name || "Sin seleccionar")}
               </p>
               <p className="text-xs text-gray-500 mt-1">
-                <strong>Tipo:</strong>{" "}
-                {NOTIFICATION_TYPES.find((t) => t.value === sendType)?.label}
+                <strong>Tipo:</strong> {NOTIFICATION_TYPES.find((t) => t.value === sendType)?.label}
               </p>
             </div>
           </div>

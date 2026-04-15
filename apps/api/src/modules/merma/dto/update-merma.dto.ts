@@ -1,11 +1,4 @@
-import {
-  IsString,
-  IsOptional,
-  IsNumber,
-  IsIn,
-  Min,
-  IsDateString,
-} from "class-validator";
+import { IsString, IsOptional, IsNumber, IsIn, Min, IsDateString } from "class-validator";
 
 export class UpdateMermaDto {
   @IsOptional()

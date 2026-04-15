@@ -21,9 +21,19 @@ function daysAgo(days: number): Date {
 // SAT product/service codes for poke & restaurant
 const SAT_PRODUCTS = [
   { clave: "90101500", desc: "Servicios de restaurante", unidad: "E48", unitName: "Servicio" },
-  { clave: "50202301", desc: "Alimentos preparados - Bowl de poke", unidad: "H87", unitName: "Pieza" },
+  {
+    clave: "50202301",
+    desc: "Alimentos preparados - Bowl de poke",
+    unidad: "H87",
+    unitName: "Pieza",
+  },
   { clave: "50202301", desc: "Alimentos preparados - Ensalada", unidad: "H87", unitName: "Pieza" },
-  { clave: "50202301", desc: "Alimentos preparados - Burrito bowl", unidad: "H87", unitName: "Pieza" },
+  {
+    clave: "50202301",
+    desc: "Alimentos preparados - Burrito bowl",
+    unidad: "H87",
+    unitName: "Pieza",
+  },
   { clave: "50202301", desc: "Postre del dia", unidad: "H87", unitName: "Pieza" },
   { clave: "50202301", desc: "Bebida natural", unidad: "H87", unitName: "Pieza" },
   { clave: "50202301", desc: "Proteina extra (salmon/atun)", unidad: "KGM", unitName: "Kilogramo" },
@@ -31,7 +41,12 @@ const SAT_PRODUCTS = [
   { clave: "50161500", desc: "Salsa de soya", unidad: "LTR", unitName: "Litro" },
   { clave: "50151500", desc: "Aguacate / Guacamole", unidad: "KGM", unitName: "Kilogramo" },
   { clave: "78101800", desc: "Servicio de delivery", unidad: "E48", unitName: "Servicio" },
-  { clave: "80141600", desc: "Servicio de catering corporativo", unidad: "E48", unitName: "Evento" },
+  {
+    clave: "80141600",
+    desc: "Servicio de catering corporativo",
+    unidad: "E48",
+    unitName: "Evento",
+  },
 ];
 
 // Client data for receivers
@@ -39,8 +54,18 @@ const RECEIVERS = [
   { rfc: "XAXX010101000", name: "Publico en general", regimen: "616", usoCfdi: "S01" },
   { rfc: "GOLA850312HDF", name: "Laura Gomez Reyes", regimen: "612", usoCfdi: "G03" },
   { rfc: "MARL900725QR5", name: "Roberto Martinez Lopez", regimen: "612", usoCfdi: "G03" },
-  { rfc: "ABC120301EX4", name: "Alimentos y Bebidas Corp SA de CV", regimen: "601", usoCfdi: "G03" },
-  { rfc: "SER980515TQ2", name: "Servicios Empresariales del Norte SA", regimen: "601", usoCfdi: "G01" },
+  {
+    rfc: "ABC120301EX4",
+    name: "Alimentos y Bebidas Corp SA de CV",
+    regimen: "601",
+    usoCfdi: "G03",
+  },
+  {
+    rfc: "SER980515TQ2",
+    name: "Servicios Empresariales del Norte SA",
+    regimen: "601",
+    usoCfdi: "G01",
+  },
   { rfc: "TEC200110MX7", name: "Tecnologia y Logistica SA de CV", regimen: "601", usoCfdi: "G03" },
   { rfc: "HOT191201AB3", name: "Hotel Boutique Reforma SA de CV", regimen: "601", usoCfdi: "G01" },
   { rfc: "CON180601CD2", name: "Consultores Asociados SC", regimen: "601", usoCfdi: "G01" },
@@ -56,16 +81,18 @@ const PAYMENT_FORMS = [
 ];
 
 async function main() {
-  console.log("=== Seed Finance — CFDIs ===\n");
+  console.warn("=== Seed Finance — CFDIs ===\n");
 
   const org = await prisma.organization.findFirstOrThrow({ where: { rfc: "LUK240101AAA" } });
-  const branches = await prisma.branch.findMany({ where: { organizationId: org.id, isActive: true } });
+  const branches = await prisma.branch.findMany({
+    where: { organizationId: org.id, isActive: true },
+  });
   const admin = await prisma.user.findFirstOrThrow({ where: { email: "admin@lukapoke.com" } });
 
   // Check existing
   const existingCfdis = await prisma.cFDI.count({ where: { organizationId: org.id } });
   if (existingCfdis > 0) {
-    console.log(`  ${existingCfdis} CFDIs already exist — skipping`);
+    console.warn(`  ${existingCfdis} CFDIs already exist — skipping`);
     return;
   }
 
@@ -76,7 +103,7 @@ async function main() {
   // ------------------------------------------------------------------
   // INGRESO invoices (35) — the main revenue invoices
   // ------------------------------------------------------------------
-  console.log("Creating INGRESO CFDIs...");
+  console.warn("Creating INGRESO CFDIs...");
   for (let i = 0; i < 35; i++) {
     const receiver = pick(RECEIVERS);
     const branch = pick(storeBranches);
@@ -114,7 +141,15 @@ async function main() {
         amount,
         discount: 0,
         taxDetails: {
-          traslados: [{ impuesto: "002", tipoFactor: "Tasa", tasaOCuota: "0.160000", base: amount, importe: parseFloat((amount * 0.16).toFixed(2)) }],
+          traslados: [
+            {
+              impuesto: "002",
+              tipoFactor: "Tasa",
+              tasaOCuota: "0.160000",
+              base: amount,
+              importe: parseFloat((amount * 0.16).toFixed(2)),
+            },
+          ],
         },
       });
     }
@@ -163,12 +198,12 @@ async function main() {
     });
     cfdiCount++;
   }
-  console.log(`  INGRESO CFDIs: ${cfdiCount}`);
+  console.warn(`  INGRESO CFDIs: ${cfdiCount}`);
 
   // ------------------------------------------------------------------
   // EGRESO (credit notes) — 8 linked to random INGRESO
   // ------------------------------------------------------------------
-  console.log("Creating EGRESO CFDIs (notas de credito)...");
+  console.warn("Creating EGRESO CFDIs (notas de credito)...");
   const stampedIngresos = await prisma.cFDI.findMany({
     where: { organizationId: org.id, cfdiType: "INGRESO", status: "STAMPED" },
     take: 8,
@@ -206,36 +241,48 @@ async function main() {
         stampedAt: daysAgo(randInt(1, 30)),
         createdById: admin.id,
         concepts: {
-          create: [{
-            satClaveProdServ: "84111506",
-            quantity: 1,
-            unitOfMeasure: "Actividad",
-            satClaveUnidad: "ACT",
-            description: "Nota de credito - devolucion parcial",
-            unitPrice: ncSubtotal,
-            amount: ncSubtotal,
-            discount: 0,
-            taxDetails: {
-              traslados: [{ impuesto: "002", tipoFactor: "Tasa", tasaOCuota: "0.160000", base: ncSubtotal, importe: ncIva }],
+          create: [
+            {
+              satClaveProdServ: "84111506",
+              quantity: 1,
+              unitOfMeasure: "Actividad",
+              satClaveUnidad: "ACT",
+              description: "Nota de credito - devolucion parcial",
+              unitPrice: ncSubtotal,
+              amount: ncSubtotal,
+              discount: 0,
+              taxDetails: {
+                traslados: [
+                  {
+                    impuesto: "002",
+                    tipoFactor: "Tasa",
+                    tasaOCuota: "0.160000",
+                    base: ncSubtotal,
+                    importe: ncIva,
+                  },
+                ],
+              },
             },
-          }],
+          ],
         },
         relatedCfdis: {
-          create: [{
-            relatedCfdiUuid: parent.uuid!,
-            relationshipType: "01", // Nota de credito
-          }],
+          create: [
+            {
+              relatedCfdiUuid: parent.uuid!,
+              relationshipType: "01", // Nota de credito
+            },
+          ],
         },
       },
     });
     egresoCount++;
   }
-  console.log(`  EGRESO CFDIs: ${egresoCount}`);
+  console.warn(`  EGRESO CFDIs: ${egresoCount}`);
 
   // ------------------------------------------------------------------
   // PAGO (payment complements) — 5
   // ------------------------------------------------------------------
-  console.log("Creating PAGO CFDIs (complementos de pago)...");
+  console.warn("Creating PAGO CFDIs (complementos de pago)...");
   const ppdIngresos = await prisma.cFDI.findMany({
     where: { organizationId: org.id, cfdiType: "INGRESO", status: "STAMPED", paymentMethod: "PPD" },
     take: 5,
@@ -276,31 +323,36 @@ async function main() {
             paymentForm: pick(["03", "04", "28"]),
             currency: "MXN",
             amount: paymentAmount,
-            relatedDocuments: JSON.stringify([{
-              uuid: parent.uuid,
-              serie: parent.series,
-              folio: parent.folio,
-              parcialidad: 1,
-              saldoAnterior: Number(parent.total),
-              importePagado: paymentAmount,
-              saldoInsoluto: parseFloat((Number(parent.total) - paymentAmount).toFixed(2)),
-            }]),
+            relatedDocuments: JSON.stringify([
+              {
+                uuid: parent.uuid,
+                serie: parent.series,
+                folio: parent.folio,
+                parcialidad: 1,
+                saldoAnterior: Number(parent.total),
+                importePagado: paymentAmount,
+                saldoInsoluto: parseFloat((Number(parent.total) - paymentAmount).toFixed(2)),
+              },
+            ]),
           },
         },
       },
     });
     pagoCount++;
   }
-  console.log(`  PAGO CFDIs: ${pagoCount}`);
+  console.warn(`  PAGO CFDIs: ${pagoCount}`);
 
   // ------------------------------------------------------------------
   // Fiscal Periods (if missing)
   // ------------------------------------------------------------------
   const existingFP = await prisma.fiscalPeriod.count({ where: { organizationId: org.id } });
   if (existingFP === 0) {
-    console.log("\nCreating Fiscal Periods...");
+    console.warn("\nCreating Fiscal Periods...");
     const months = [
-      { y: 2026, m: 1 }, { y: 2026, m: 2 }, { y: 2026, m: 3 }, { y: 2026, m: 4 },
+      { y: 2026, m: 1 },
+      { y: 2026, m: 2 },
+      { y: 2026, m: 3 },
+      { y: 2026, m: 4 },
     ];
     for (const { y, m } of months) {
       await prisma.fiscalPeriod.create({
@@ -313,14 +365,14 @@ async function main() {
         },
       });
     }
-    console.log("  Fiscal periods created: 4 (Jan-Apr 2026)");
+    console.warn("  Fiscal periods created: 4 (Jan-Apr 2026)");
   }
 
   // ------------------------------------------------------------------
   // Summary
   // ------------------------------------------------------------------
-  console.log("\n=== Finance Seed Complete ===");
-  console.log({
+  console.warn("\n=== Finance Seed Complete ===");
+  console.warn({
     "INGRESO CFDIs": cfdiCount,
     "EGRESO CFDIs (notas de credito)": egresoCount,
     "PAGO CFDIs (complementos)": pagoCount,

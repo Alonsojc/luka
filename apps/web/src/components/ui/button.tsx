@@ -33,7 +33,7 @@ export function Button({
         "inline-flex items-center justify-center gap-2 font-medium rounded-md transition-all disabled:opacity-50 disabled:cursor-not-allowed",
         VARIANTS[variant],
         SIZES[size],
-        className
+        className,
       )}
       disabled={disabled}
       {...props}

@@ -1,20 +1,9 @@
-import {
-  Controller,
-  Get,
-  Put,
-  Post,
-  Param,
-  Body,
-  UseGuards,
-} from "@nestjs/common";
+import { Controller, Get, Put, Post, Param, Body, UseGuards } from "@nestjs/common";
 import { ApiTags, ApiBearerAuth } from "@nestjs/swagger";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
 import { Permissions } from "../../common/decorators/roles.decorator";
-import {
-  CurrentUser,
-  JwtPayload,
-} from "../../common/decorators/current-user.decorator";
+import { CurrentUser, JwtPayload } from "../../common/decorators/current-user.decorator";
 import { WorkyService } from "./worky.service";
 
 @ApiTags("Nomina - Worky Integration")
@@ -62,11 +51,7 @@ export class WorkyController {
     @CurrentUser() user: JwtPayload,
     @Body() body: { csvContent: string; branchId: string },
   ) {
-    return this.workyService.importFromCsv(
-      user.organizationId,
-      body.csvContent,
-      body.branchId,
-    );
+    return this.workyService.importFromCsv(user.organizationId, body.csvContent, body.branchId);
   }
 
   @Get("sync/history")
@@ -77,10 +62,7 @@ export class WorkyController {
 
   @Get("sync/:id")
   @Permissions("nomina:view")
-  getSyncDetail(
-    @CurrentUser() user: JwtPayload,
-    @Param("id") id: string,
-  ) {
+  getSyncDetail(@CurrentUser() user: JwtPayload, @Param("id") id: string) {
     return this.workyService.getSyncDetail(user.organizationId, id);
   }
 }

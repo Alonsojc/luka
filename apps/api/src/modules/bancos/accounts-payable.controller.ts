@@ -1,20 +1,9 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Param,
-  Body,
-  Query,
-  UseGuards,
-} from "@nestjs/common";
+import { Controller, Get, Post, Param, Body, Query, UseGuards } from "@nestjs/common";
 import { ApiTags, ApiBearerAuth } from "@nestjs/swagger";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
 import { Permissions } from "../../common/decorators/roles.decorator";
-import {
-  CurrentUser,
-  JwtPayload,
-} from "../../common/decorators/current-user.decorator";
+import { CurrentUser, JwtPayload } from "../../common/decorators/current-user.decorator";
 import { AccountsPayableService } from "./accounts-payable.service";
 
 @ApiTags("Bancos - Cuentas por Pagar")
@@ -80,10 +69,6 @@ export class AccountsPayableController {
       reference?: string;
     },
   ) {
-    return this.accountsPayableService.registerPayment(
-      user.organizationId,
-      id,
-      body,
-    );
+    return this.accountsPayableService.registerPayment(user.organizationId, id, body);
   }
 }

@@ -1,20 +1,9 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Patch,
-  Param,
-  Body,
-  UseGuards,
-} from "@nestjs/common";
+import { Controller, Get, Post, Patch, Param, Body, UseGuards } from "@nestjs/common";
 import { ApiTags, ApiBearerAuth } from "@nestjs/swagger";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
 import { Permissions } from "../../common/decorators/roles.decorator";
-import {
-  CurrentUser,
-  JwtPayload,
-} from "../../common/decorators/current-user.decorator";
+import { CurrentUser, JwtPayload } from "../../common/decorators/current-user.decorator";
 import { JournalEntriesService } from "./journal-entries.service";
 
 @ApiTags("Contabilidad - Polizas")
@@ -56,11 +45,7 @@ export class JournalEntriesController {
       }>;
     },
   ) {
-    return this.journalEntriesService.create(
-      user.organizationId,
-      user.sub,
-      body,
-    );
+    return this.journalEntriesService.create(user.organizationId, user.sub, body);
   }
 
   @Patch(":id")
@@ -85,11 +70,7 @@ export class JournalEntriesController {
   @Patch(":id/post")
   @Permissions("contabilidad:edit")
   post(@CurrentUser() user: JwtPayload, @Param("id") id: string) {
-    return this.journalEntriesService.post(
-      user.organizationId,
-      id,
-      user.sub,
-    );
+    return this.journalEntriesService.post(user.organizationId, id, user.sub);
   }
 
   @Patch(":id/reverse")

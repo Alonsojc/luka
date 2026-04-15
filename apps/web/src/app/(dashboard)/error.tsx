@@ -17,9 +17,7 @@ export default function DashboardError({
         <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-muted">
           <AlertTriangle className="h-8 w-8 text-foreground" />
         </div>
-        <h2 className="mb-2 text-xl font-semibold text-foreground">
-          Algo salio mal
-        </h2>
+        <h2 className="mb-2 text-xl font-semibold text-foreground">Algo salio mal</h2>
         <p className="mb-6 text-sm text-muted-foreground">
           {error.message || "Ocurrio un error inesperado. Por favor intenta de nuevo."}
         </p>

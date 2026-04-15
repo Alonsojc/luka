@@ -1,11 +1,7 @@
-import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-} from "@nestjs/common";
+import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
 import { PrismaService } from "../../common/prisma/prisma.service";
 import { Prisma } from "@prisma/client";
-type Decimal = Prisma.Decimal;
+const Decimal = Prisma.Decimal;
 
 @Injectable()
 export class PhysicalCountService {

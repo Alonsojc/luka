@@ -24,10 +24,7 @@ describe("BudgetService", () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        BudgetService,
-        { provide: PrismaService, useValue: mockPrisma },
-      ],
+      providers: [BudgetService, { provide: PrismaService, useValue: mockPrisma }],
     }).compile();
 
     service = module.get<BudgetService>(BudgetService);
@@ -158,11 +155,7 @@ describe("BudgetService", () => {
     });
 
     it("should mark status as UNDER when actual <= budget", async () => {
-      setupComparisonMocks(
-        [{ category: "LABOR", budgetAmount: 50000 }],
-        40000,
-        0,
-      );
+      setupComparisonMocks([{ category: "LABOR", budgetAmount: 50000 }], 40000, 0);
 
       const result = await service.getComparison("org-1", "b1", 2026, 4);
 
@@ -171,11 +164,7 @@ describe("BudgetService", () => {
     });
 
     it("should mark status as OVER when actual > budget", async () => {
-      setupComparisonMocks(
-        [{ category: "LABOR", budgetAmount: 40000 }],
-        55000,
-        0,
-      );
+      setupComparisonMocks([{ category: "LABOR", budgetAmount: 40000 }], 55000, 0);
 
       const result = await service.getComparison("org-1", "b1", 2026, 4);
 
@@ -184,11 +173,7 @@ describe("BudgetService", () => {
     });
 
     it("should calculate variancePct correctly", async () => {
-      setupComparisonMocks(
-        [{ category: "LABOR", budgetAmount: 100000 }],
-        75000,
-        0,
-      );
+      setupComparisonMocks([{ category: "LABOR", budgetAmount: 100000 }], 75000, 0);
 
       const result = await service.getComparison("org-1", "b1", 2026, 4);
 
@@ -276,12 +261,7 @@ describe("BudgetService", () => {
       ]);
       mockPrisma.branchBudget.upsert.mockResolvedValue({});
 
-      const result = await service.copyBudgetFromPreviousYear(
-        "org-1",
-        "b1",
-        2025,
-        2026,
-      );
+      const result = await service.copyBudgetFromPreviousYear("org-1", "b1", 2025, 2026);
 
       expect(result.count).toBe(2);
       expect(mockPrisma.branchBudget.upsert).toHaveBeenCalledTimes(2);
@@ -308,12 +288,7 @@ describe("BudgetService", () => {
     it("should return count 0 when source year has no budgets", async () => {
       mockPrisma.branchBudget.findMany.mockResolvedValue([]);
 
-      const result = await service.copyBudgetFromPreviousYear(
-        "org-1",
-        "b1",
-        2020,
-        2026,
-      );
+      const result = await service.copyBudgetFromPreviousYear("org-1", "b1", 2020, 2026);
 
       expect(result.count).toBe(0);
       expect(result.message).toContain("No budgets found");
