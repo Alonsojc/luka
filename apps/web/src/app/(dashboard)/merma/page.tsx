@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Plus,
   Search,
@@ -27,7 +27,9 @@ import {
   Line,
   Legend,
 } from "recharts";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
+import { useApiQuery } from "@/hooks/use-api-query";
 import { DataTable } from "@/components/ui/data-table";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
@@ -215,27 +217,45 @@ function fmtCompact(v: number): string {
 
 export default function MermaPage() {
   const { authFetch, loading: authLoading } = useAuth();
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<TabKey>("registro");
 
-  // ---- Shared data ----
-  const [branches, setBranches] = useState<Branch[]>([]);
-  const [products, setProducts] = useState<Product[]>([]);
+  // ---- Shared data (React Query) ----
+  const { data: branches = [] } = useApiQuery<Branch[]>("/branches", ["branches"]);
+  const { data: products = [] } = useApiQuery<Product[]>(
+    "/inventarios/products",
+    ["merma-products"],
+  );
 
   // ---- Registro tab state ----
-  const [wasteLogs, setWasteLogs] = useState<WasteLog[]>([]);
-  const [pagination, setPagination] = useState<Pagination>({
-    page: 1,
-    limit: 20,
-    total: 0,
-    totalPages: 0,
-  });
-  const [listLoading, setListLoading] = useState(false);
   const [filterBranch, setFilterBranch] = useState("");
   const [filterReason, setFilterReason] = useState("");
   const [filterDateFrom, setFilterDateFrom] = useState("");
   const [filterDateTo, setFilterDateTo] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+
+  // Build waste logs query string
+  const wasteQueryString = useMemo(() => {
+    const params = new URLSearchParams();
+    params.set("page", String(currentPage));
+    params.set("limit", "20");
+    if (filterBranch) params.set("branchId", filterBranch);
+    if (filterReason) params.set("reason", filterReason);
+    if (filterDateFrom) params.set("dateFrom", filterDateFrom);
+    if (filterDateTo) params.set("dateTo", filterDateTo);
+    if (searchTerm) params.set("search", searchTerm);
+    return params.toString();
+  }, [currentPage, filterBranch, filterReason, filterDateFrom, filterDateTo, searchTerm]);
+
+  // Waste logs (React Query)
+  const { data: wasteResponse, isLoading: listLoading } = useApiQuery<WasteListResponse>(
+    `/merma?${wasteQueryString}`,
+    ["merma-logs", wasteQueryString],
+    { enabled: activeTab === "registro" },
+  );
+  const wasteLogs = wasteResponse?.data ?? [];
+  const pagination = wasteResponse?.pagination ?? { page: 1, limit: 20, total: 0, totalPages: 0 };
 
   // ---- Modal state ----
   const [modalOpen, setModalOpen] = useState(false);
@@ -246,105 +266,20 @@ export default function MermaPage() {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  // ---- Dashboard tab state ----
-  const [summary, setSummary] = useState<SummaryData | null>(null);
-  const [summaryLoading, setSummaryLoading] = useState(false);
+  // ---- Dashboard tab state (React Query) ----
   const [dashBranch, setDashBranch] = useState("");
 
-  // =======================================================================
-  // Data-fetching
-  // =======================================================================
+  const summaryQueryString = useMemo(() => {
+    const params = new URLSearchParams();
+    if (dashBranch) params.set("branchId", dashBranch);
+    return params.toString();
+  }, [dashBranch]);
 
-  const fetchBranches = useCallback(async () => {
-    try {
-      const data = await authFetch<Branch[]>("get", "/branches");
-      setBranches(data);
-    } catch {
-      /* handled by authFetch */
-    }
-  }, [authFetch]);
-
-  const fetchProducts = useCallback(async () => {
-    try {
-      const data = await authFetch<Product[]>("get", "/inventarios/products");
-      setProducts(
-        data.map((p) => ({
-          id: p.id,
-          sku: p.sku,
-          name: p.name,
-          unitOfMeasure: p.unitOfMeasure,
-        })),
-      );
-    } catch {
-      /* handled by authFetch */
-    }
-  }, [authFetch]);
-
-  const fetchWasteLogs = useCallback(async () => {
-    setListLoading(true);
-    try {
-      const params = new URLSearchParams();
-      params.set("page", String(currentPage));
-      params.set("limit", "20");
-      if (filterBranch) params.set("branchId", filterBranch);
-      if (filterReason) params.set("reason", filterReason);
-      if (filterDateFrom) params.set("dateFrom", filterDateFrom);
-      if (filterDateTo) params.set("dateTo", filterDateTo);
-      if (searchTerm) params.set("search", searchTerm);
-
-      const res = await authFetch<WasteListResponse>(
-        "get",
-        `/merma?${params.toString()}`,
-      );
-      setWasteLogs(res.data);
-      setPagination(res.pagination);
-    } catch {
-      /* handled by authFetch */
-    } finally {
-      setListLoading(false);
-    }
-  }, [
-    authFetch,
-    currentPage,
-    filterBranch,
-    filterReason,
-    filterDateFrom,
-    filterDateTo,
-    searchTerm,
-  ]);
-
-  const fetchSummary = useCallback(async () => {
-    setSummaryLoading(true);
-    try {
-      const params = new URLSearchParams();
-      if (dashBranch) params.set("branchId", dashBranch);
-      const res = await authFetch<SummaryData>(
-        "get",
-        `/merma/summary?${params.toString()}`,
-      );
-      setSummary(res);
-    } catch {
-      /* handled by authFetch */
-    } finally {
-      setSummaryLoading(false);
-    }
-  }, [authFetch, dashBranch]);
-
-  // ---- Initial load ----
-  useEffect(() => {
-    if (!authLoading) {
-      fetchBranches();
-      fetchProducts();
-    }
-  }, [authLoading, fetchBranches, fetchProducts]);
-
-  useEffect(() => {
-    if (!authLoading && activeTab === "registro") fetchWasteLogs();
-  }, [authLoading, activeTab, fetchWasteLogs]);
-
-  useEffect(() => {
-    if (!authLoading && activeTab === "dashboard") fetchSummary();
-  }, [authLoading, activeTab, fetchSummary]);
+  const { data: summary, isLoading: summaryLoading } = useApiQuery<SummaryData>(
+    `/merma/summary?${summaryQueryString}`,
+    ["merma-summary", summaryQueryString],
+    { enabled: activeTab === "dashboard" },
+  );
 
   // Reset page on filter change
   useEffect(() => {
@@ -369,7 +304,7 @@ export default function MermaPage() {
       });
       setModalOpen(false);
       setForm({ ...EMPTY_FORM });
-      fetchWasteLogs();
+      queryClient.invalidateQueries({ queryKey: ["merma-logs"] });
     } catch {
       /* handled by authFetch */
     } finally {
@@ -383,7 +318,7 @@ export default function MermaPage() {
       await authFetch("delete", `/merma/${deletingId}`);
       setDeleteConfirmOpen(false);
       setDeletingId(null);
-      fetchWasteLogs();
+      queryClient.invalidateQueries({ queryKey: ["merma-logs"] });
     } catch {
       /* handled by authFetch */
     }
