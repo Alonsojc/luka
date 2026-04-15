@@ -54,10 +54,10 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - name: Generate Prisma client
-        run: pnpm --filter @luka/database prisma generate
+        run: pnpm --filter @luka/database generate
 
       - name: Run migrations
-        run: pnpm --filter @luka/database prisma migrate deploy
+        run: pnpm --filter @luka/database migrate:deploy
         env:
           DATABASE_URL: postgresql://luka:luka_test@localhost:5432/luka_test?schema=public
 
@@ -96,7 +96,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - name: Generate Prisma client
-        run: pnpm --filter @luka/database prisma generate
+        run: pnpm --filter @luka/database generate
 
       - name: Build API
         run: pnpm --filter @luka/api build
