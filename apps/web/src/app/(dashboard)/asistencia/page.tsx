@@ -63,7 +63,7 @@ function getInitials(first: string, last: string): string {
 }
 
 export default function AsistenciaPage() {
-  const { authFetch, loading: authLoading } = useAuth();
+  const { authFetch } = useAuth();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("Checador");
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Bell,
   Plus,
@@ -20,7 +20,9 @@ import {
   Eye,
   MessageSquare,
 } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
+import { useApiQuery } from "@/hooks/use-api-query";
 import { useToast } from "@/components/ui/toast";
 import { DataTable } from "@/components/ui/data-table";
 import { Modal } from "@/components/ui/modal";
@@ -153,12 +155,17 @@ const STATUS_VARIANT: Record<string, "green" | "red" | "yellow" | "gray" | "blue
 export default function AlertasPage() {
   const { authFetch, loading: authLoading } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const [tab, setTab] = useState<Tab>("Reglas de Alerta");
 
-  // Rules state
-  const [rules, setRules] = useState<AlertRule[]>([]);
-  const [rulesLoading, setRulesLoading] = useState(true);
+  // Rules (React Query) - endpoint returns { data: AlertRule[] }
+  const { data: rulesResponse, isLoading: rulesLoading } = useApiQuery<{ data: AlertRule[] }>(
+    "/whatsapp/rules",
+    ["alert-rules"],
+  );
+  const rules = rulesResponse?.data ?? [];
+
   const [ruleModal, setRuleModal] = useState(false);
   const [editingRule, setEditingRule] = useState<AlertRule | null>(null);
   const [ruleForm, setRuleForm] = useState({
@@ -174,18 +181,40 @@ export default function AlertasPage() {
   const [previewModal, setPreviewModal] = useState(false);
   const [previewMessage, setPreviewMessage] = useState("");
 
-  // Logs state
-  const [logs, setLogs] = useState<AlertLog[]>([]);
-  const [logsLoading, setLogsLoading] = useState(false);
+  // Logs (React Query)
   const [logsPage, setLogsPage] = useState(1);
-  const [logsTotalPages, setLogsTotalPages] = useState(1);
-  const [logsTotal, setLogsTotal] = useState(0);
   const [logFilterRule, setLogFilterRule] = useState("");
   const [logFilterStatus, setLogFilterStatus] = useState("");
 
-  // Config state
-  const [config, setConfig] = useState<WhatsAppConfig | null>(null);
-  const [configLoading, setConfigLoading] = useState(false);
+  const logsQueryString = useMemo(() => {
+    const params = new URLSearchParams();
+    params.set("page", String(logsPage));
+    params.set("limit", "25");
+    if (logFilterRule) params.set("ruleId", logFilterRule);
+    if (logFilterStatus) params.set("status", logFilterStatus);
+    return params.toString();
+  }, [logsPage, logFilterRule, logFilterStatus]);
+
+  const { data: logsResponse, isLoading: logsLoading } = useApiQuery<{
+    data: AlertLog[];
+    total: number;
+    page: number;
+    totalPages: number;
+  }>(
+    `/whatsapp/logs?${logsQueryString}`,
+    ["alert-logs", logsQueryString],
+    { enabled: tab === "Historial" },
+  );
+  const logs = logsResponse?.data ?? [];
+  const logsTotalPages = logsResponse?.totalPages ?? 1;
+  const logsTotal = logsResponse?.total ?? 0;
+
+  // Config (React Query)
+  const { data: config, isLoading: configLoading } = useApiQuery<WhatsAppConfig>(
+    "/whatsapp/config",
+    ["whatsapp-config"],
+    { enabled: tab === "Configuracion" },
+  );
   const [configForm, setConfigForm] = useState({
     provider: "mock",
     apiKey: "",
@@ -195,100 +224,27 @@ export default function AlertasPage() {
   });
   const [configSaving, setConfigSaving] = useState(false);
 
-  // Templates
-  const [templates, setTemplates] = useState<Record<string, string>>({});
+  // Sync configForm when config data arrives
+  useEffect(() => {
+    if (config) {
+      setConfigForm({
+        provider: config.provider || "mock",
+        apiKey: config.apiKey || "",
+        apiSecret: config.apiSecret || "",
+        phoneNumberId: config.phoneNumberId || "",
+        isActive: config.isActive ?? false,
+      });
+    }
+  }, [config]);
+
+  // Templates (React Query)
+  const { data: templates = {} } = useApiQuery<Record<string, string>>(
+    "/whatsapp/templates",
+    ["whatsapp-templates"],
+  );
 
   // Checking alerts
   const [checking, setChecking] = useState(false);
-
-  // -------------------------------------------------------------------------
-  // Data fetching
-  // -------------------------------------------------------------------------
-
-  const fetchRules = useCallback(async () => {
-    setRulesLoading(true);
-    try {
-      const res = await authFetch<{ data: AlertRule[] }>("get", "/whatsapp/rules");
-      setRules(res.data || []);
-    } catch {
-      toast("Error al cargar reglas", "error");
-    } finally {
-      setRulesLoading(false);
-    }
-  }, [authFetch, toast]);
-
-  const fetchLogs = useCallback(async () => {
-    setLogsLoading(true);
-    try {
-      const params = new URLSearchParams();
-      params.set("page", String(logsPage));
-      params.set("limit", "25");
-      if (logFilterRule) params.set("ruleId", logFilterRule);
-      if (logFilterStatus) params.set("status", logFilterStatus);
-
-      const res = await authFetch<{
-        data: AlertLog[];
-        total: number;
-        page: number;
-        totalPages: number;
-      }>("get", `/whatsapp/logs?${params.toString()}`);
-
-      setLogs(res.data || []);
-      setLogsTotalPages(res.totalPages || 1);
-      setLogsTotal(res.total || 0);
-    } catch {
-      toast("Error al cargar historial", "error");
-    } finally {
-      setLogsLoading(false);
-    }
-  }, [authFetch, toast, logsPage, logFilterRule, logFilterStatus]);
-
-  const fetchConfig = useCallback(async () => {
-    setConfigLoading(true);
-    try {
-      const res = await authFetch<WhatsAppConfig>("get", "/whatsapp/config");
-      setConfig(res);
-      setConfigForm({
-        provider: res.provider || "mock",
-        apiKey: res.apiKey || "",
-        apiSecret: res.apiSecret || "",
-        phoneNumberId: res.phoneNumberId || "",
-        isActive: res.isActive ?? false,
-      });
-    } catch {
-      toast("Error al cargar configuracion", "error");
-    } finally {
-      setConfigLoading(false);
-    }
-  }, [authFetch, toast]);
-
-  const fetchTemplates = useCallback(async () => {
-    try {
-      const res = await authFetch<Record<string, string>>(
-        "get",
-        "/whatsapp/templates",
-      );
-      setTemplates(res);
-    } catch {
-      // silent
-    }
-  }, [authFetch]);
-
-  useEffect(() => {
-    if (authLoading) return;
-    fetchRules();
-    fetchTemplates();
-  }, [authLoading, fetchRules, fetchTemplates]);
-
-  useEffect(() => {
-    if (authLoading) return;
-    if (tab === "Historial") fetchLogs();
-  }, [authLoading, tab, fetchLogs]);
-
-  useEffect(() => {
-    if (authLoading) return;
-    if (tab === "Configuracion") fetchConfig();
-  }, [authLoading, tab, fetchConfig]);
 
   // -------------------------------------------------------------------------
   // Rule CRUD
@@ -361,7 +317,7 @@ export default function AlertasPage() {
       }
 
       setRuleModal(false);
-      fetchRules();
+      queryClient.invalidateQueries({ queryKey: ["alert-rules"] });
     } catch {
       toast("Error al guardar regla", "error");
     } finally {
@@ -375,7 +331,7 @@ export default function AlertasPage() {
         isActive: !rule.isActive,
       });
       toast(rule.isActive ? "Regla desactivada" : "Regla activada");
-      fetchRules();
+      queryClient.invalidateQueries({ queryKey: ["alert-rules"] });
     } catch {
       toast("Error al cambiar estado", "error");
     }
@@ -386,7 +342,7 @@ export default function AlertasPage() {
     try {
       await authFetch("delete", `/whatsapp/rules/${rule.id}`);
       toast("Regla desactivada");
-      fetchRules();
+      queryClient.invalidateQueries({ queryKey: ["alert-rules"] });
     } catch {
       toast("Error al desactivar regla", "error");
     }
@@ -436,8 +392,8 @@ export default function AlertasPage() {
           : "Sin alertas pendientes",
         total > 0 ? "success" : "info",
       );
-      fetchRules();
-      if (tab === "Historial") fetchLogs();
+      queryClient.invalidateQueries({ queryKey: ["alert-rules"] });
+      if (tab === "Historial") queryClient.invalidateQueries({ queryKey: ["alert-logs"] });
     } catch {
       toast("Error al verificar alertas", "error");
     } finally {
@@ -454,7 +410,7 @@ export default function AlertasPage() {
     try {
       await authFetch("put", "/whatsapp/config", configForm);
       toast("Configuracion guardada");
-      fetchConfig();
+      queryClient.invalidateQueries({ queryKey: ["whatsapp-config"] });
     } catch {
       toast("Error al guardar configuracion", "error");
     } finally {

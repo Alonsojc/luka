@@ -27,7 +27,6 @@ import {
 } from "recharts";
 import { generateFinancialPDF } from "@/lib/pdf-generator";
 import { useAuth } from "@/hooks/use-auth";
-import { useToast } from "@/components/ui/toast";
 import { useApiQuery } from "@/hooks/use-api-query";
 import { DataTable } from "@/components/ui/data-table";
 import { Button } from "@/components/ui/button";
@@ -159,7 +158,6 @@ function getDefaultDateRange(): { startDate: string; endDate: string } {
 
 export default function InversionistasPage() {
   const { loading: authLoading } = useAuth();
-  const { toast } = useToast();
   const queryClient = useQueryClient();
 
   // --- state ----------------------------------------------------------------
