@@ -52,18 +52,18 @@ jobs:
           corepack enable
           corepack install
 
-      - run: pnpm install --frozen-lockfile
+      - run: corepack pnpm install --frozen-lockfile
 
       - name: Generate Prisma client
-        run: pnpm --filter @luka/database generate
+        run: corepack pnpm --filter @luka/database generate
 
       - name: Run migrations
-        run: pnpm --filter @luka/database migrate:deploy
+        run: corepack pnpm --filter @luka/database migrate:deploy
         env:
           DATABASE_URL: postgresql://luka:luka_test@localhost:5432/luka_test?schema=public
 
       - name: Run API tests
-        run: pnpm --filter @luka/api test
+        run: corepack pnpm --filter @luka/api test
         env:
           DATABASE_URL: postgresql://luka:luka_test@localhost:5432/luka_test?schema=public
           JWT_SECRET: test-secret-minimum-32-characters-long
@@ -72,10 +72,10 @@ jobs:
           REDIS_PORT: 6379
 
       - name: Type check frontend
-        run: pnpm --filter @luka/web exec tsc --noEmit
+        run: corepack pnpm --filter @luka/web exec tsc --noEmit
 
       - name: Security audit
-        run: pnpm audit --audit-level=high || true
+        run: corepack pnpm audit --audit-level=high || true
 
   build:
     needs: test
@@ -93,16 +93,16 @@ jobs:
           corepack enable
           corepack install
 
-      - run: pnpm install --frozen-lockfile
+      - run: corepack pnpm install --frozen-lockfile
 
       - name: Generate Prisma client
-        run: pnpm --filter @luka/database generate
+        run: corepack pnpm --filter @luka/database generate
 
       - name: Build API
-        run: pnpm --filter @luka/api build
+        run: corepack pnpm --filter @luka/api build
 
       - name: Build Web
-        run: pnpm --filter @luka/web build
+        run: corepack pnpm --filter @luka/web build
         env:
           NEXT_PUBLIC_API_URL: /api
 
