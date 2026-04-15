@@ -157,12 +157,15 @@ jobs:
           API_PORT: 3001
           NODE_ENV: test
         run: |
-          # Start API in background
-          nohup node apps/api/dist/main.js > /tmp/api.log 2>&1 &
+          # Start API via pnpm (resolves node_modules correctly)
+          cd apps/api && nohup pnpm start > /tmp/api.log 2>&1 &
+          cd ../..
           echo "API PID: $!"
 
-          # Start Web in background (standalone output nests under apps/web/)
-          nohup node apps/web/.next/standalone/apps/web/server.js > /tmp/web.log 2>&1 &
+          # Start Web standalone (has its own node_modules bundled)
+          cd apps/web/.next/standalone
+          nohup node apps/web/server.js > /tmp/web.log 2>&1 &
+          cd ../../../..
           echo "Web PID: $!"
 
           # Wait for API
