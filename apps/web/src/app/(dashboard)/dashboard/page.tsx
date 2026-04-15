@@ -3,7 +3,6 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useApiQuery } from "@/hooks/use-api-query";
-import { useToast } from "@/components/ui/toast";
 import { hasRole } from "@/lib/auth";
 import { DateRangePicker, type DateRange } from "@/components/dashboard/date-range-picker";
 import {
@@ -1131,7 +1130,6 @@ function getDefaultDateRange(): DateRange {
 
 export default function DashboardPage() {
   const { user, loading: authLoading } = useAuth();
-  const { toast } = useToast();
 
   const [currentView, setCurrentView] = useState<DashboardView>("investor");
   const [showSwitcher, setShowSwitcher] = useState(false);
