@@ -2,9 +2,16 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { Test, TestingModule } from "@nestjs/testing";
 import { HealthController } from "./health.controller";
 import { PrismaService } from "../../common/prisma/prisma.service";
+import { CacheService } from "../../common/cache/cache.service";
 
 const mockPrisma = {
   $queryRaw: async () => [{ "?column?": 1 }],
+};
+
+const mockCache = {
+  get: async () => null,
+  set: async () => undefined,
+  del: async () => undefined,
 };
 
 describe("HealthController", () => {
@@ -15,6 +22,7 @@ describe("HealthController", () => {
       controllers: [HealthController],
       providers: [
         { provide: PrismaService, useValue: mockPrisma },
+        { provide: CacheService, useValue: mockCache },
       ],
     }).compile();
 
