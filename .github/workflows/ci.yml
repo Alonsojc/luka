@@ -151,13 +151,17 @@ jobs:
           API_PORT: 3001
           NODE_ENV: test
         run: |
-          # Start API in background (cd into package for pnpm node_modules resolution)
-          (cd apps/api && nohup node dist/main.js > /tmp/api.log 2>&1) &
+          # Start API in background
+          cd apps/api
+          nohup node dist/main.js > /tmp/api.log 2>&1 &
           echo "API PID: $!"
+          cd ../..
 
           # Start Web in background
-          (cd apps/web && nohup npx next start -p 3000 > /tmp/web.log 2>&1) &
+          cd apps/web
+          nohup npx next start -p 3000 > /tmp/web.log 2>&1 &
           echo "Web PID: $!"
+          cd ../..
 
           # Wait for API
           echo "Waiting for API on :3001..."
