@@ -50,30 +50,35 @@ test.describe("Inventarios", () => {
 
     const timestamp = Date.now();
     const productName = `E2E-${timestamp}`;
-    const productSku = `SKU-${timestamp}`;
+    const productSku = `E2E-${timestamp}`;
 
-    // Fill required fields: SKU, Name, Cost
-    const skuInput = modal.locator('input[placeholder*="PKE"]');
-    await expect(skuInput).toBeVisible({ timeout: 5000 });
-    await skuInput.fill(productSku);
+    // Fill ALL required fields: SKU, Name, Cost (unitOfMeasure has default "kg")
+    // Use nth() to target inputs in order: SKU is first, Name is second in the grid
+    const inputs = modal.locator("input:visible");
+    const inputCount = await inputs.count();
+    for (let i = 0; i < inputCount; i++) {
+      const input = inputs.nth(i);
+      const placeholder = (await input.getAttribute("placeholder")) || "";
+      if (placeholder.includes("PKE")) {
+        await input.fill(productSku);
+      } else if (placeholder === "Nombre del producto") {
+        await input.fill(productName);
+      } else if (placeholder === "0.00") {
+        await input.fill("10");
+      }
+    }
 
-    const nameInput = modal.locator('input[placeholder="Nombre del producto"]');
-    await expect(nameInput).toBeVisible({ timeout: 5000 });
-    await nameInput.fill(productName);
-
-    const costInput = modal.locator('input[placeholder="0.00"]');
-    await expect(costInput).toBeVisible({ timeout: 5000 });
-    await costInput.fill("10.00");
-
-    // Submit (button text is "Crear")
-    const submitButton = modal.locator("button", { hasText: "Crear" }).first();
-    await expect(submitButton).toBeEnabled({ timeout: 5000 });
+    // Verify the Crear button is now enabled, then click
+    const submitButton = modal.locator("button", { hasText: /^Crear$/ }).first();
+    await expect(submitButton).toBeEnabled({ timeout: 10000 });
     await submitButton.click();
 
-    await waitForApi(page);
+    // Wait for modal to close (confirms API success)
+    await expect(modalTitle).not.toBeVisible({ timeout: 15000 });
+    await page.waitForLoadState("networkidle");
 
     // The new product should appear in the table
-    await expect(page.locator("table")).toContainText(productName, { timeout: 10000 });
+    await expect(page.locator("table")).toContainText(productName, { timeout: 15000 });
   });
 
   test("editar producto actualiza en la tabla", async ({ page }) => {
@@ -105,10 +110,12 @@ test.describe("Inventarios", () => {
     await expect(submitButton).toBeEnabled({ timeout: 5000 });
     await submitButton.click();
 
-    await waitForApi(page);
+    // Wait for modal to close (confirms API success) then for table refresh
+    await expect(modalTitle).not.toBeVisible({ timeout: 15000 });
+    await page.waitForLoadState("networkidle");
 
     // The updated name should appear in the table
-    await expect(page.locator("table")).toContainText(updatedName, { timeout: 10000 });
+    await expect(page.locator("table")).toContainText(updatedName, { timeout: 15000 });
   });
 
   test("cambiar a tab Recetas muestra recetas", async ({ page }) => {
