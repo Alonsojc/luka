@@ -44,12 +44,11 @@ test.describe("Inventarios", () => {
     // Wait for the table to load
     await page.waitForSelector("table", { timeout: 15000 });
 
-    // Click "Nuevo Producto" button
-    const addButton = page.locator("button", { hasText: "Nuevo Producto" }).first();
-    if (await addButton.isVisible()) {
+    // Click "Nuevo Producto" or "+" button
+    const addButton = page.getByRole("button", { name: /Nuevo Producto/i }).first();
+    if (await addButton.isVisible().catch(() => false)) {
       await addButton.click();
     } else {
-      // Some layouts use just an icon button with Plus
       await page
         .locator("button")
         .filter({ has: page.locator("svg.lucide-plus") })
@@ -122,19 +121,9 @@ test.describe("Inventarios", () => {
 
     // Click the edit button on the first row
     const firstRow = page.locator("table").first().locator("tbody tr").first();
-    const firstRowEditButton = firstRow
-      .locator("button")
-      .filter({
-        has: page.locator("svg.lucide-pencil"),
-      })
-      .first();
-
-    if (await firstRowEditButton.isVisible()) {
-      await firstRowEditButton.click();
-    } else {
-      // Try clicking the first row's action button
-      await firstRow.locator("button").first().click();
-    }
+    await expect(firstRow).toBeVisible({ timeout: 15000 });
+    const editButton = firstRow.locator("button").first();
+    await editButton.click();
 
     // The edit modal should appear
     const modal = page.locator('[role="dialog"]');
