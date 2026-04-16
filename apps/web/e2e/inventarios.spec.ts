@@ -56,58 +56,25 @@ test.describe("Inventarios", () => {
         .click();
     }
 
-    // The modal should appear
-    const modal = page.locator('[role="dialog"]');
-    await expect(modal).toBeVisible({ timeout: 5000 });
+    // The modal should appear (custom Modal component, uses h2 for title)
+    const modalTitle = page.locator("h2", { hasText: "Nuevo Producto" });
+    await expect(modalTitle).toBeVisible({ timeout: 10000 });
+    const modal = page.locator(".fixed.inset-0 .bg-white").first();
 
     // Fill in the product form
     const timestamp = Date.now();
     const productName = `Producto Test E2E ${timestamp}`;
-    const productSku = `TEST-${timestamp}`;
 
-    // Fill name
-    await modal.locator("input").filter({ hasText: "" }).first().waitFor();
-    const nameInput = modal
-      .locator('label:has-text("Nombre") + input, label:has-text("Nombre") ~ input')
-      .first();
-    if (await nameInput.isVisible()) {
-      await nameInput.fill(productName);
-    } else {
-      // Fallback: fill the first text input in the modal
-      const inputs = modal.locator('input[type="text"], input:not([type])');
-      const count = await inputs.count();
-      for (let i = 0; i < count; i++) {
-        const input = inputs.nth(i);
-        const placeholder = await input.getAttribute("placeholder");
-        const id = await input.getAttribute("id");
-        if (id?.includes("name") || placeholder?.toLowerCase().includes("nombre")) {
-          await input.fill(productName);
-          break;
-        }
-      }
-    }
-
-    // Fill SKU
-    const _skuInput = modal.locator("input").filter({ hasText: "" });
-    const allInputs = modal.locator("input");
-    const inputCount = await allInputs.count();
-    for (let i = 0; i < inputCount; i++) {
-      const input = allInputs.nth(i);
-      const id = await input.getAttribute("id");
-      const placeholder = await input.getAttribute("placeholder");
-      if (id?.toLowerCase().includes("sku") || placeholder?.toLowerCase().includes("sku")) {
-        await input.fill(productSku);
-        break;
-      }
-    }
+    // Fill the first visible text input (Name field)
+    const nameInput = modal.locator("input").first();
+    await nameInput.fill(productName);
 
     // Submit the form
     const submitButton = modal
       .locator('button[type="submit"], button:has-text("Guardar"), button:has-text("Crear")')
       .first();
-    if (await submitButton.isVisible()) {
-      await submitButton.click();
-    }
+    await expect(submitButton).toBeVisible({ timeout: 5000 });
+    await submitButton.click();
 
     await waitForApi(page);
 
@@ -125,9 +92,10 @@ test.describe("Inventarios", () => {
     const editButton = firstRow.locator("button").first();
     await editButton.click();
 
-    // The edit modal should appear
-    const modal = page.locator('[role="dialog"]');
-    await expect(modal).toBeVisible({ timeout: 5000 });
+    // The edit modal should appear (custom Modal, uses h2 for title)
+    const modalTitle = page.locator("h2", { hasText: "Editar Producto" });
+    await expect(modalTitle).toBeVisible({ timeout: 10000 });
+    const modal = page.locator(".fixed.inset-0 .bg-white").first();
 
     // Update the product name
     const timestamp = Date.now();
@@ -141,9 +109,8 @@ test.describe("Inventarios", () => {
     const submitButton = modal
       .locator('button[type="submit"], button:has-text("Guardar"), button:has-text("Actualizar")')
       .first();
-    if (await submitButton.isVisible()) {
-      await submitButton.click();
-    }
+    await expect(submitButton).toBeVisible({ timeout: 5000 });
+    await submitButton.click();
 
     await waitForApi(page);
 

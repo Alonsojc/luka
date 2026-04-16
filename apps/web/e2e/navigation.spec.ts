@@ -33,12 +33,12 @@ test.describe("Navegacion", () => {
       }
 
       await expect(navLink).toBeVisible({ timeout: 5000 });
-      await navLink.click();
+      await navLink.click({ force: true }); // section header can overlap during expand animation
       await expect(page).toHaveURL(item.urlPattern, { timeout: 15000 });
 
       // Navigate back to dashboard
       const dashLink = page.locator("aside a", { hasText: "Dashboard" }).first();
-      await dashLink.click();
+      await dashLink.click({ force: true });
       await expect(page).toHaveURL(/\/dashboard/, { timeout: 10000 });
     }
   });

@@ -4,7 +4,9 @@ import { type Page, expect } from "@playwright/test";
  * Navigates to a given path and waits for the page to finish loading.
  */
 export async function navigateTo(page: Page, path: string) {
-  await page.goto(path, { waitUntil: "domcontentloaded" });
+  await page.goto(path);
+  // Wait for React to hydrate and resolve any auth loading state
+  await page.waitForSelector("h1, table, button", { timeout: 15000 });
 }
 
 /**
