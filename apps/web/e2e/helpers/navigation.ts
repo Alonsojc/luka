@@ -4,7 +4,17 @@ import { type Page, expect } from "@playwright/test";
  * Navigates to a given path and waits for the page to finish loading.
  */
 export async function navigateTo(page: Page, path: string) {
-  await page.goto(path, { waitUntil: "networkidle" });
+  await page.goto(path, { waitUntil: "domcontentloaded" });
+  await page.waitForLoadState("networkidle");
+
+  // Auth/session hydration can briefly bounce through /login; ensure we end up
+  // on the requested app route before continuing with page assertions.
+  await expect(page).not.toHaveURL(/\/login(?:\?|$)/, { timeout: 15000 });
+
+  // Important: use :visible to avoid matching hidden mobile-only buttons first.
+  await expect(page.locator("h1:visible, table:visible, button:visible").first()).toBeVisible({
+    timeout: 15000,
+  });
 }
 
 /**
