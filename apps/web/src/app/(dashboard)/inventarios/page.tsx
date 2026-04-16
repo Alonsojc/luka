@@ -273,13 +273,11 @@ const TABS = [
 type TabKey = (typeof TABS)[number]["key"];
 
 const UNIT_OPTIONS = [
-  { value: "kg", label: "Kilogramo (kg)" },
-  { value: "g", label: "Gramo (g)" },
-  { value: "lt", label: "Litro (lt)" },
-  { value: "ml", label: "Mililitro (ml)" },
-  { value: "pza", label: "Pieza (pza)" },
-  { value: "paq", label: "Paquete (paq)" },
-  { value: "caja", label: "Caja" },
+  { value: "KG", label: "Kilogramo (kg)" },
+  { value: "LT", label: "Litro (lt)" },
+  { value: "PIEZA", label: "Pieza (pza)" },
+  { value: "PAQUETE", label: "Paquete (paq)" },
+  { value: "CAJA", label: "Caja" },
 ];
 
 const TRANSFER_STATUS_STYLES: Record<Transfer["status"], string> = {
@@ -339,7 +337,7 @@ const EMPTY_PRODUCT_FORM = {
   name: "",
   description: "",
   categoryId: "",
-  unitOfMeasure: "kg",
+  unitOfMeasure: "KG",
   costPerUnit: "",
   satClaveProdServ: "",
   satClaveUnidad: "",
@@ -351,7 +349,7 @@ type ProductForm = typeof EMPTY_PRODUCT_FORM;
 const EMPTY_RECIPE_INGREDIENT = {
   productId: "",
   quantity: "",
-  unitOfMeasure: "kg",
+  unitOfMeasure: "KG",
   wastePercentage: "0",
 };
 
