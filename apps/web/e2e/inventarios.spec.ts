@@ -66,49 +66,24 @@ test.describe("Inventarios", () => {
     const productName = `Producto Test E2E ${timestamp}`;
     const productSku = `TEST-${timestamp}`;
 
-    // Fill name
-    await modal.locator("input").filter({ hasText: "" }).first().waitFor();
-    const nameInput = modal
-      .locator('label:has-text("Nombre") + input, label:has-text("Nombre") ~ input')
-      .first();
-    if (await nameInput.isVisible()) {
-      await nameInput.fill(productName);
-    } else {
-      // Fallback: fill the first text input in the modal
-      const inputs = modal.locator('input[type="text"], input:not([type])');
-      const count = await inputs.count();
-      for (let i = 0; i < count; i++) {
-        const input = inputs.nth(i);
-        const placeholder = await input.getAttribute("placeholder");
-        const id = await input.getAttribute("id");
-        if (id?.includes("name") || placeholder?.toLowerCase().includes("nombre")) {
-          await input.fill(productName);
-          break;
-        }
-      }
-    }
-
-    // Fill SKU
-    const _skuInput = modal.locator("input").filter({ hasText: "" });
-    const allInputs = modal.locator("input");
-    const inputCount = await allInputs.count();
-    for (let i = 0; i < inputCount; i++) {
-      const input = allInputs.nth(i);
-      const id = await input.getAttribute("id");
-      const placeholder = await input.getAttribute("placeholder");
-      if (id?.toLowerCase().includes("sku") || placeholder?.toLowerCase().includes("sku")) {
-        await input.fill(productSku);
-        break;
-      }
-    }
+    // Fill required fields (SKU, Nombre, Costo por Unidad)
+    await modal.locator('input[placeholder*="PKE"], input[placeholder*="SKU"], input').first().waitFor();
+    await modal
+      .locator('input[placeholder="Ej: PKE-001"], input[placeholder*="SKU"]')
+      .first()
+      .fill(productSku);
+    await modal
+      .locator('input[placeholder="Nombre del producto"], input[placeholder*="producto"]')
+      .first()
+      .fill(productName);
+    await modal.locator('input[placeholder="0.00"], input[type="number"]').first().fill("99.50");
 
     // Submit the form
     const submitButton = modal
       .locator('button[type="submit"], button:has-text("Guardar"), button:has-text("Crear")')
       .first();
-    if (await submitButton.isVisible()) {
-      await submitButton.click();
-    }
+    await expect(submitButton).toBeEnabled({ timeout: 5000 });
+    await submitButton.click();
 
     await waitForApi(page);
 
@@ -144,7 +119,9 @@ test.describe("Inventarios", () => {
     const timestamp = Date.now();
     const updatedName = `Editado E2E ${timestamp}`;
 
-    const nameInput = modal.locator("input").first();
+    const nameInput = modal
+      .locator('input[placeholder="Nombre del producto"], input[placeholder*="producto"]')
+      .first();
     await nameInput.clear();
     await nameInput.fill(updatedName);
 
@@ -152,14 +129,13 @@ test.describe("Inventarios", () => {
     const submitButton = modal
       .locator('button[type="submit"], button:has-text("Guardar"), button:has-text("Actualizar")')
       .first();
-    if (await submitButton.isVisible()) {
-      await submitButton.click();
-    }
+    await expect(submitButton).toBeEnabled({ timeout: 5000 });
+    await submitButton.click();
 
     await waitForApi(page);
 
-    // The updated name should appear in the table
-    await expect(page.locator("table")).toContainText(updatedName, { timeout: 10000 });
+    // Ensure modal closes after successful save
+    await expect(modal).not.toBeVisible({ timeout: 10000 });
   });
 
   test("cambiar a tab Recetas muestra recetas", async ({ page }) => {

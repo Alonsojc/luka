@@ -10,6 +10,9 @@ export async function navigateTo(page: Page, path: string) {
   // Auth/session hydration can briefly bounce through /login; ensure we end up
   // on the requested app route before continuing with page assertions.
   await expect(page).not.toHaveURL(/\/login(?:\?|$)/, { timeout: 15000 });
+  await expect(page).toHaveURL(new RegExp(`${path.replace(/\//g, "\\/")}(?:\\?|$)`), {
+    timeout: 15000,
+  });
 
   // Important: use :visible to avoid matching hidden mobile-only buttons first.
   await expect(page.locator("h1:visible, table:visible, button:visible").first()).toBeVisible({
