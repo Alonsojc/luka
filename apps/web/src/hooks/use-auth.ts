@@ -7,8 +7,8 @@ import { api, ApiError } from "@/lib/api-client";
 
 export function useAuth() {
   const router = useRouter();
-  const [user, setUser] = useState<AuthUser | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<AuthUser | null>(() => getUser());
+  const [loading, setLoading] = useState(() => !getUser());
 
   useEffect(() => {
     const u = getUser();

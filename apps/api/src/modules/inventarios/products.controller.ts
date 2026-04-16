@@ -7,6 +7,7 @@ import { Permissions } from "../../common/decorators/roles.decorator";
 import { CurrentUser, JwtPayload } from "../../common/decorators/current-user.decorator";
 import { ProductsService } from "./products.service";
 import { CreateProductDto } from "./dto/create-product.dto";
+import { UpdateProductDto } from "./dto/update-product.dto";
 
 @ApiTags("Inventarios - Productos")
 @ApiBearerAuth()
@@ -77,19 +78,7 @@ export class ProductsController {
   update(
     @CurrentUser() user: JwtPayload,
     @Param("id") id: string,
-    @Body()
-    body: {
-      sku?: string;
-      name?: string;
-      description?: string;
-      categoryId?: string;
-      unitOfMeasure?: string;
-      costPerUnit?: number;
-      satClaveProdServ?: string;
-      satClaveUnidad?: string;
-      imageUrl?: string;
-      isActive?: boolean;
-    },
+    @Body() body: UpdateProductDto,
   ) {
     return this.productsService.update(user.organizationId, id, body, user);
   }
