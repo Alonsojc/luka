@@ -96,7 +96,8 @@ test.describe("Inventarios", () => {
     // Click the edit button on the first row
     const firstRow = page.locator("table").first().locator("tbody tr").first();
     await expect(firstRow).toBeVisible({ timeout: 15000 });
-    const editButton = firstRow.locator("button").first();
+    const editButton = firstRow.locator('button[title="Editar"]');
+    await expect(editButton).toBeVisible({ timeout: 5000 });
     await editButton.click();
 
     // The edit modal should appear (custom Modal, uses h2 for title)
