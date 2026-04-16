@@ -280,6 +280,24 @@ const UNIT_OPTIONS = [
   { value: "CAJA", label: "Caja" },
 ];
 
+// Normalize legacy lowercase unit values to the DTO's required uppercase enum.
+// Existing seed/demo products use lowercase ("kg", "pza", "lt") which the API now rejects.
+function normalizeUnit(unit: string): string {
+  const map: Record<string, string> = {
+    kg: "KG",
+    g: "KG",
+    lt: "LT",
+    ml: "LT",
+    pza: "PIEZA",
+    pieza: "PIEZA",
+    paq: "PAQUETE",
+    paquete: "PAQUETE",
+    caja: "CAJA",
+  };
+  const normalized = map[unit?.toLowerCase()] || unit?.toUpperCase();
+  return ["KG", "LT", "PIEZA", "PAQUETE", "CAJA"].includes(normalized) ? normalized : "PIEZA";
+}
+
 const TRANSFER_STATUS_STYLES: Record<Transfer["status"], string> = {
   PENDING: "bg-yellow-100 text-yellow-800",
   APPROVED: "bg-blue-100 text-blue-800",
@@ -980,7 +998,7 @@ export default function InventariosPage() {
       name: product.name,
       description: product.description ?? "",
       categoryId: product.categoryId ?? "",
-      unitOfMeasure: product.unitOfMeasure,
+      unitOfMeasure: normalizeUnit(product.unitOfMeasure),
       costPerUnit: String(product.costPerUnit),
       satClaveProdServ: product.satClaveProdServ ?? "",
       satClaveUnidad: product.satClaveUnidad ?? "",
@@ -1003,7 +1021,7 @@ export default function InventariosPage() {
         name: productForm.name,
         description: productForm.description || undefined,
         categoryId: productForm.categoryId || undefined,
-        unitOfMeasure: productForm.unitOfMeasure,
+        unitOfMeasure: normalizeUnit(productForm.unitOfMeasure),
         costPerUnit: parseFloat(productForm.costPerUnit),
         satClaveProdServ: productForm.satClaveProdServ || undefined,
         satClaveUnidad: productForm.satClaveUnidad || undefined,

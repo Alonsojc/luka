@@ -77,7 +77,11 @@ test.describe("Inventarios", () => {
     await expect(modalTitle).not.toBeVisible({ timeout: 15000 });
     await page.waitForLoadState("networkidle");
 
-    // The new product should appear in the table
+    // Search for the new product (it may not be on page 1 of the sorted table)
+    const searchInput = page.locator('input[placeholder*="Buscar"]');
+    await searchInput.fill(productName);
+    await page.waitForTimeout(500); // debounce
+
     await expect(page.locator("table")).toContainText(productName, { timeout: 15000 });
   });
 
