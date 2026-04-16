@@ -21,7 +21,7 @@ test.describe("Modulos Operaciones", () => {
 
   test("Requisiciones - muestra lista de requisiciones", async ({ page }) => {
     await page.goto("/requisiciones");
-    await expect(page.locator("h1")).toContainText("Requisiciones");
+    await expect(page.locator("h1").first()).toContainText("Requisiciones", { timeout: 15000 });
   });
 
   test("POS Corntech - muestra ventas sincronizadas", async ({ page }) => {

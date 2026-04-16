@@ -8,8 +8,8 @@ test.describe("Dashboard", () => {
   });
 
   test("muestra tarjetas de estadisticas", async ({ page }) => {
-    // Verify known stat labels are present on the dashboard
-    const labels = ["Sucursales", "Productos", "Empleados"];
+    // Verify known stat labels are present on the investor dashboard
+    const labels = ["Ingresos", "Gastos", "Caja"];
     for (const label of labels) {
       await expect(page.locator(`text=${label}`).first()).toBeVisible({ timeout: 15000 });
     }

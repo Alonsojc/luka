@@ -44,8 +44,8 @@ test.describe("Inventarios", () => {
     // Wait for the table to load
     await page.waitForSelector("table", { timeout: 15000 });
 
-    // Click "Nuevo Producto" button (the Plus icon button)
-    const addButton = page.locator("button", { hasText: /Nuevo Producto|Agregar/i });
+    // Click "Nuevo Producto" button
+    const addButton = page.locator("button", { hasText: "Nuevo Producto" }).first();
     if (await addButton.isVisible()) {
       await addButton.click();
     } else {
@@ -121,19 +121,19 @@ test.describe("Inventarios", () => {
     await page.waitForSelector("table tbody tr", { timeout: 15000 });
 
     // Click the edit button on the first row
-    const firstRowEditButton = page
-      .locator("table tbody tr")
-      .first()
+    const firstRow = page.locator("table").first().locator("tbody tr").first();
+    const firstRowEditButton = firstRow
       .locator("button")
       .filter({
         has: page.locator("svg.lucide-pencil"),
-      });
+      })
+      .first();
 
     if (await firstRowEditButton.isVisible()) {
       await firstRowEditButton.click();
     } else {
       // Try clicking the first row's action button
-      await page.locator("table tbody tr").first().locator("button").first().click();
+      await firstRow.locator("button").first().click();
     }
 
     // The edit modal should appear
