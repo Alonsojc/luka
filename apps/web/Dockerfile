@@ -1,5 +1,5 @@
 # Multi-stage build for Next.js
-FROM node:20-alpine AS base
+FROM node:22-alpine AS base
 RUN corepack enable && corepack prepare pnpm@9.15.0 --activate
 
 # Install dependencies
@@ -27,7 +27,7 @@ ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 RUN pnpm --filter @luka/web build
 
 # Production
-FROM node:20-alpine AS runner
+FROM node:22-alpine AS runner
 WORKDIR /app
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs

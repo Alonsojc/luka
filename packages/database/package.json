@@ -5,8 +5,8 @@
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "scripts": {
-    "postinstall": "prisma generate",
-    "generate": "prisma generate",
+    "postinstall": "prisma generate --schema=./prisma/schema.prisma || true",
+    "generate": "prisma generate --schema=./prisma/schema.prisma",
     "migrate": "prisma migrate dev",
     "migrate:deploy": "prisma migrate deploy",
     "seed": "tsx prisma/seed.ts",

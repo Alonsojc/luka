@@ -52,10 +52,6 @@ describe("ProductsService", () => {
       providers: [
         ProductsService,
         { provide: PrismaService, useValue: mockPrisma },
-        {
-          provide: CacheService,
-          useValue: { get: vi.fn(), set: vi.fn(), del: vi.fn(), invalidatePattern: vi.fn() },
-        },
         { provide: CacheService, useValue: mockCacheService },
         { provide: AuditService, useValue: mockAuditService },
       ],
