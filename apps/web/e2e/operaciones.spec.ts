@@ -3,12 +3,25 @@ import { navigateTo } from "./helpers/navigation";
 
 test.describe("Modulos Operaciones", () => {
   test("Sucursales - lista las 10 sucursales", async ({ page }) => {
-    await navigateTo(page, "/sucursales");
-    await expect(page.locator("h1").first()).toContainText("Sucursales");
+    const branchesResponsePromise = page.waitForResponse(
+      (response) =>
+        response.request().method() === "GET" &&
+        /\/api\/branches(?:\?|$)/.test(response.url()),
+    );
 
-    // The branch list can render via the shared DataTable in different layouts;
-    // assert seeded content instead of a literal <table> tag.
-    await expect(page.getByText("Luka Polanco").first()).toBeVisible({ timeout: 15000 });
+    await navigateTo(page, "/sucursales");
+    const branchesResponse = await branchesResponsePromise;
+    expect(branchesResponse.ok()).toBeTruthy();
+
+    const branches = (await branchesResponse.json()) as Array<{ id: string }>;
+    expect(Array.isArray(branches)).toBeTruthy();
+    expect(branches.length).toBeGreaterThan(0);
+
+    await expect(page.locator("h1").first()).toContainText("Sucursales");
+    await expect(page.getByText("Filtrar por Razon Social:")).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole("button", { name: /Nueva Sucursal/i })).toBeVisible({
+      timeout: 15000,
+    });
   });
 
   test("Merma - muestra registro de merma", async ({ page }) => {
