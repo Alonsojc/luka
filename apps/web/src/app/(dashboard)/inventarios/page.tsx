@@ -281,13 +281,14 @@ const UNIT_OPTIONS = [
 ];
 
 // Normalize legacy lowercase unit values to the DTO's required uppercase enum.
-// Existing seed/demo products use lowercase ("kg", "pza", "lt") which the API now rejects.
+// NOTE: We do NOT map "g"→"KG" or "ml"→"LT" because that would silently change
+// the unit scale by 1000x without adjusting costPerUnit. Those values fall
+// through to the default "PIEZA" which is safe for test stability; real
+// migration of g/ml products requires an explicit numeric conversion.
 function normalizeUnit(unit: string): string {
   const map: Record<string, string> = {
     kg: "KG",
-    g: "KG",
     lt: "LT",
-    ml: "LT",
     pza: "PIEZA",
     pieza: "PIEZA",
     paq: "PAQUETE",
