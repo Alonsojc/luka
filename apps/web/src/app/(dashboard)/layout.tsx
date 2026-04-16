@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef, useMemo } from "react";
+import { useEffect, useLayoutEffect, useState, useCallback, useRef, useMemo } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { getUser, clearAuth, type AuthUser } from "@/lib/auth";
 import { canAccessRoute } from "@/lib/permissions";
@@ -46,6 +46,14 @@ import {
   Monitor,
 } from "lucide-react";
 import { useTheme } from "@/hooks/use-theme";
+
+/**
+ * Safe version of useLayoutEffect that falls back to useEffect during SSR.
+ * useLayoutEffect fires synchronously before paint on the client, which
+ * prevents the flash of unauthenticated content.
+ */
+const useIsomorphicLayoutEffect =
+  typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
 const NAV_SECTIONS = [
   {
@@ -152,7 +160,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const notificationsRef = useRef<HTMLDivElement>(null);
   const { theme, toggleTheme } = useTheme();
 
-  useEffect(() => {
+  // useLayoutEffect resolves user state synchronously before paint, preventing
+  // children from seeing a flash of null (no user → return null below).
+  // Falls back to useEffect during SSR where useLayoutEffect warns.
+  useIsomorphicLayoutEffect(() => {
     const u = getUser();
     if (!u) {
       router.replace("/login");

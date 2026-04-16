@@ -215,7 +215,6 @@ export default function ComprasPage() {
   // -----------------------------------------------------------------------
 
   const fetchAll = useCallback(async () => {
-    if (authLoading) return;
     setLoadingData(true);
     setError(null);
     try {
@@ -234,11 +233,12 @@ export default function ComprasPage() {
     } finally {
       setLoadingData(false);
     }
-  }, [authFetch, authLoading]);
+  }, [authFetch]);
 
   useEffect(() => {
+    if (authLoading) return;
     fetchAll();
-  }, [fetchAll]);
+  }, [authLoading, fetchAll]);
 
   // -----------------------------------------------------------------------
   // Supplier CRUD
@@ -753,9 +753,7 @@ export default function ComprasPage() {
   // Render
   // -----------------------------------------------------------------------
 
-  if (authLoading) {
-    return <div className="p-8 text-center text-gray-400">Cargando...</div>;
-  }
+  if (authLoading) return null;
 
   return (
     <div>
