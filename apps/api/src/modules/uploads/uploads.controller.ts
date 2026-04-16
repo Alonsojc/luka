@@ -4,12 +4,14 @@ import { ApiTags, ApiBearerAuth } from "@nestjs/swagger";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
 import { SkipAudit } from "../../common/decorators/skip-audit.decorator";
+import { SkipCsrf } from "../../common/decorators/skip-csrf.decorator";
 import { UploadsService, MAX_FILE_SIZE } from "./uploads.service";
 
 @ApiTags("Uploads")
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard)
 @SkipAudit()
+@SkipCsrf() // Frontend uploads use raw FormData fetch without the api client's CSRF header
 @Controller("uploads")
 export class UploadsController {
   constructor(private uploadsService: UploadsService) {}
