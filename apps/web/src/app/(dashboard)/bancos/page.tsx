@@ -29,7 +29,7 @@ import {
 } from "lucide-react";
 import { exportToCSV } from "@/lib/export-csv";
 import { safeNum } from "@luka/shared";
-import type { BankAccount, Transaction, Branch, Supplier } from "@luka/shared";
+import type { BankAccount, Transaction, Branch, Supplier, PaginatedResponse } from "@luka/shared";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -93,6 +93,10 @@ interface MatchCandidate {
   supplier?: { id: string; name: string } | null;
   customer?: { id: string; name: string } | null;
   branch?: { id: string; name: string } | null;
+}
+
+function unwrapListResponse<T>(response: T[] | PaginatedResponse<T>): T[] {
+  return Array.isArray(response) ? response : response.data;
 }
 
 // ---------------------------------------------------------------------------
@@ -323,8 +327,8 @@ export default function BancosPage() {
   const fetchPayables = useCallback(async () => {
     setPayablesLoading(true);
     try {
-      const data = await authFetch<Payable[]>("get", "/bancos/payable");
-      setPayables(data);
+      const data = await authFetch<Payable[] | PaginatedResponse<Payable>>("get", "/bancos/payable");
+      setPayables(unwrapListResponse(data));
     } catch (err) {
       toast(err instanceof Error ? err.message : "Error al cargar datos", "error");
     } finally {
@@ -335,8 +339,11 @@ export default function BancosPage() {
   const fetchReceivables = useCallback(async () => {
     setReceivablesLoading(true);
     try {
-      const data = await authFetch<Receivable[]>("get", "/bancos/receivable");
-      setReceivables(data);
+      const data = await authFetch<Receivable[] | PaginatedResponse<Receivable>>(
+        "get",
+        "/bancos/receivable",
+      );
+      setReceivables(unwrapListResponse(data));
     } catch (err) {
       toast(err instanceof Error ? err.message : "Error al cargar datos", "error");
     } finally {

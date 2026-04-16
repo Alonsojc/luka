@@ -4,7 +4,13 @@ import Redis from "ioredis";
 @Injectable()
 export class CacheService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(CacheService.name);
-  private client: Redis;
+  private client: Redis | null = null;
+  private available = false;
+
+  private disableCache() {
+    this.available = false;
+    this.client?.disconnect();
+  }
 
   async onModuleInit() {
     this.client = new Redis({
@@ -16,8 +22,10 @@ export class CacheService implements OnModuleInit, OnModuleDestroy {
 
     try {
       await this.client.connect();
+      this.available = true;
       this.logger.log("Redis cache connected");
     } catch (err) {
+      this.disableCache();
       this.logger.warn(`Redis cache unavailable — caching disabled: ${err}`);
     }
   }
@@ -28,42 +36,47 @@ export class CacheService implements OnModuleInit, OnModuleDestroy {
 
   /** Get a cached value. Returns null on miss or if Redis is down. */
   async get<T>(key: string): Promise<T | null> {
+    if (!this.available || !this.client) return null;
     try {
       const raw = await this.client.get(key);
       if (!raw) return null;
       return JSON.parse(raw) as T;
     } catch {
+      this.disableCache();
       return null;
     }
   }
 
   /** Set a cached value with TTL in seconds. */
   async set(key: string, value: unknown, ttlSeconds: number): Promise<void> {
+    if (!this.available || !this.client) return;
     try {
       await this.client.set(key, JSON.stringify(value), "EX", ttlSeconds);
     } catch {
-      // Cache write failure is non-critical
+      this.disableCache();
     }
   }
 
   /** Delete a cached key (or pattern via invalidatePattern). */
   async del(key: string): Promise<void> {
+    if (!this.available || !this.client) return;
     try {
       await this.client.del(key);
     } catch {
-      // Non-critical
+      this.disableCache();
     }
   }
 
   /** Invalidate all keys matching a prefix (e.g. "products:org123:*"). */
   async invalidatePattern(pattern: string): Promise<void> {
+    if (!this.available || !this.client) return;
     try {
       const keys = await this.client.keys(pattern);
       if (keys.length > 0) {
         await this.client.del(...keys);
       }
     } catch {
-      // Non-critical
+      this.disableCache();
     }
   }
 }
