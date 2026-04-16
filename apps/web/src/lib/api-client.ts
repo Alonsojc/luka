@@ -59,8 +59,10 @@ async function request<T>(path: string, options: ApiOptions = {}): Promise<T> {
     credentials: "include", // Send httpOnly cookies automatically
   });
 
-  // 401 — attempt refresh once and retry
-  if (res.status === 401 && !path.includes("/auth/refresh")) {
+  // 401 — attempt refresh once and retry.
+  // Skip for login (401 = wrong credentials) and refresh (avoid infinite loop).
+  // Keep for logout so expired tokens still get refreshed and server-side revocation runs.
+  if (res.status === 401 && !path.includes("/auth/login") && !path.includes("/auth/refresh")) {
     if (!refreshPromise) {
       refreshPromise = refreshAccessToken().finally(() => {
         refreshPromise = null;

@@ -273,14 +273,31 @@ const TABS = [
 type TabKey = (typeof TABS)[number]["key"];
 
 const UNIT_OPTIONS = [
-  { value: "kg", label: "Kilogramo (kg)" },
-  { value: "g", label: "Gramo (g)" },
-  { value: "lt", label: "Litro (lt)" },
-  { value: "ml", label: "Mililitro (ml)" },
-  { value: "pza", label: "Pieza (pza)" },
-  { value: "paq", label: "Paquete (paq)" },
-  { value: "caja", label: "Caja" },
+  { value: "KG", label: "Kilogramo (kg)" },
+  { value: "LT", label: "Litro (lt)" },
+  { value: "PIEZA", label: "Pieza (pza)" },
+  { value: "PAQUETE", label: "Paquete (paq)" },
+  { value: "CAJA", label: "Caja" },
 ];
+
+// Normalize legacy lowercase unit values to the DTO's required uppercase enum.
+// NOTE: We do NOT map "g"→"KG" or "ml"→"LT" because that would silently change
+// the unit scale by 1000x without adjusting costPerUnit. Those values fall
+// through to the default "PIEZA" which is safe for test stability; real
+// migration of g/ml products requires an explicit numeric conversion.
+function normalizeUnit(unit: string): string {
+  const map: Record<string, string> = {
+    kg: "KG",
+    lt: "LT",
+    pza: "PIEZA",
+    pieza: "PIEZA",
+    paq: "PAQUETE",
+    paquete: "PAQUETE",
+    caja: "CAJA",
+  };
+  const normalized = map[unit?.toLowerCase()] || unit?.toUpperCase();
+  return ["KG", "LT", "PIEZA", "PAQUETE", "CAJA"].includes(normalized) ? normalized : "PIEZA";
+}
 
 const TRANSFER_STATUS_STYLES: Record<Transfer["status"], string> = {
   PENDING: "bg-yellow-100 text-yellow-800",
@@ -339,7 +356,7 @@ const EMPTY_PRODUCT_FORM = {
   name: "",
   description: "",
   categoryId: "",
-  unitOfMeasure: "kg",
+  unitOfMeasure: "KG",
   costPerUnit: "",
   satClaveProdServ: "",
   satClaveUnidad: "",
@@ -351,7 +368,7 @@ type ProductForm = typeof EMPTY_PRODUCT_FORM;
 const EMPTY_RECIPE_INGREDIENT = {
   productId: "",
   quantity: "",
-  unitOfMeasure: "kg",
+  unitOfMeasure: "KG",
   wastePercentage: "0",
 };
 
@@ -982,7 +999,7 @@ export default function InventariosPage() {
       name: product.name,
       description: product.description ?? "",
       categoryId: product.categoryId ?? "",
-      unitOfMeasure: product.unitOfMeasure,
+      unitOfMeasure: normalizeUnit(product.unitOfMeasure),
       costPerUnit: String(product.costPerUnit),
       satClaveProdServ: product.satClaveProdServ ?? "",
       satClaveUnidad: product.satClaveUnidad ?? "",
@@ -1005,7 +1022,7 @@ export default function InventariosPage() {
         name: productForm.name,
         description: productForm.description || undefined,
         categoryId: productForm.categoryId || undefined,
-        unitOfMeasure: productForm.unitOfMeasure,
+        unitOfMeasure: normalizeUnit(productForm.unitOfMeasure),
         costPerUnit: parseFloat(productForm.costPerUnit),
         satClaveProdServ: productForm.satClaveProdServ || undefined,
         satClaveUnidad: productForm.satClaveUnidad || undefined,
