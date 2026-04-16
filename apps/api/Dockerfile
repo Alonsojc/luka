@@ -7,7 +7,9 @@ FROM base AS deps
 WORKDIR /app
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
 COPY apps/api/package.json ./apps/api/
+COPY apps/web/package.json ./apps/web/
 COPY packages/database/package.json ./packages/database/
+COPY packages/database/prisma ./packages/database/prisma/
 COPY packages/shared/package.json ./packages/shared/
 RUN pnpm install --frozen-lockfile --prod=false
 
@@ -39,8 +41,7 @@ COPY --from=builder /app/apps/api/dist ./dist
 COPY --from=builder /app/apps/api/package.json ./package.json
 COPY --from=builder /app/apps/api/node_modules ./node_modules
 
-# Copy Prisma client and schema
-COPY --from=builder /app/packages/database/node_modules/.prisma ./node_modules/.prisma
+# Copy Prisma schema (generated client lives under node_modules/.pnpm)
 COPY --from=builder /app/packages/database/prisma ./prisma
 
 # Copy workspace dependencies that are resolved at runtime

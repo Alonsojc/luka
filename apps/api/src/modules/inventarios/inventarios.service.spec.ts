@@ -4,6 +4,7 @@ import { NotFoundException } from "@nestjs/common";
 import { ProductsService } from "./products.service";
 import { InventoryService } from "./inventory.service";
 import { PrismaService } from "../../common/prisma/prisma.service";
+import { CacheService } from "../../common/cache/cache.service";
 import { AuditService } from "../audit/audit.service";
 
 // ---------------------------------------------------------------------------
@@ -34,6 +35,12 @@ const mockAuditService = {
   log: vi.fn().mockResolvedValue(undefined),
 };
 
+const mockCacheService = {
+  get: vi.fn(),
+  set: vi.fn().mockResolvedValue(undefined),
+  del: vi.fn().mockResolvedValue(undefined),
+};
+
 // ---------------------------------------------------------------------------
 // ProductsService
 // ---------------------------------------------------------------------------
@@ -45,6 +52,7 @@ describe("ProductsService", () => {
       providers: [
         ProductsService,
         { provide: PrismaService, useValue: mockPrisma },
+        { provide: CacheService, useValue: mockCacheService },
         { provide: AuditService, useValue: mockAuditService },
       ],
     }).compile();
@@ -72,7 +80,7 @@ describe("ProductsService", () => {
 
       expect(result).toEqual(mockProducts);
       expect(mockPrisma.product.findMany).toHaveBeenCalledWith({
-        where: { organizationId: "org-1" },
+        where: { organizationId: "org-1", isActive: true },
         include: {
           category: true,
           presentations: {
@@ -81,6 +89,8 @@ describe("ProductsService", () => {
           },
         },
         orderBy: { name: "asc" },
+        skip: 0,
+        take: 100,
       });
     });
 
