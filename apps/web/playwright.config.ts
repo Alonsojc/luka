@@ -14,13 +14,24 @@ export default defineConfig({
     navigationTimeout: 30000,
   },
   projects: [
+    // Setup: authenticates once and saves storage state for "app" tests
+    {
+      name: "setup",
+      testMatch: /\.setup\.ts/,
+    },
+    // Auth tests: fresh context, no pre-existing auth
     {
       name: "auth",
       testMatch: /auth\.spec\.ts/,
     },
+    // App tests: reuse auth from setup project (no per-test login)
     {
       name: "app",
-      testIgnore: /auth\.spec\.ts/,
+      testIgnore: /auth\.spec\.ts|\.setup\.ts/,
+      dependencies: ["setup"],
+      use: {
+        storageState: "e2e/.auth/user.json",
+      },
     },
   ],
   webServer: undefined,
