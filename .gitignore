@@ -11,4 +11,4 @@ coverage/
 *.log
 /uploads/
 test-results/
-e2e/.auth/
+**/e2e/.auth/
