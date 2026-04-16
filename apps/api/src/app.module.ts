@@ -21,7 +21,6 @@ import { NotificationsModule } from "./modules/notifications/notifications.modul
 import { UsersModule } from "./modules/users/users.module";
 import { HealthModule } from "./modules/health/health.module";
 import { AuditModule } from "./modules/audit/audit.module";
-import { UploadsModule } from "./modules/uploads/uploads.module";
 import { MermaModule } from "./modules/merma/merma.module";
 import { LoyaltyModule } from "./modules/loyalty/loyalty.module";
 import { DeliveryModule } from "./modules/delivery/delivery.module";
@@ -63,7 +62,6 @@ import { GlobalExceptionFilter } from "./common/filters/global-exception.filter"
     UsersModule,
     HealthModule,
     AuditModule,
-    UploadsModule,
     MermaModule,
     LoyaltyModule,
     DeliveryModule,
