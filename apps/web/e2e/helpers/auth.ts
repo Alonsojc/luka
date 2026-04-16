@@ -48,7 +48,7 @@ export async function loginViaApi(page: Page) {
  * redirect back to the login page.
  */
 export async function logout(page: Page) {
-  const logoutBtn = page.locator("button").filter({ hasText: /cerrar sesion/i });
+  const logoutBtn = page.locator('button[title="Cerrar sesion"]');
   await logoutBtn.click();
   await page.waitForURL("**/login", { timeout: 15000 });
 }
