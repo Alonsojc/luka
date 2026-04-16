@@ -3,7 +3,9 @@ import { test, expect } from "./fixtures";
 test.describe("Modulos Financieros", () => {
   test("Bancos - muestra cuentas bancarias", async ({ page }) => {
     await page.goto("/bancos");
-    await expect(page.locator("h1").first()).toBeVisible({ timeout: 15000 });
+    // Wait for the page to finish loading (auth + data hydration)
+    await page.waitForLoadState("networkidle");
+    await expect(page.locator("h1").first()).toBeVisible({ timeout: 20000 });
     await expect(page.getByText("Cuentas Bancarias", { exact: true }).first()).toBeVisible({ timeout: 15000 });
   });
 

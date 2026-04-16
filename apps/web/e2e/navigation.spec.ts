@@ -33,12 +33,14 @@ test.describe("Navegacion", () => {
       }
 
       await expect(navLink).toBeVisible({ timeout: 5000 });
-      await navLink.click({ force: true }); // section header can overlap during expand animation
+      // Use evaluate to dispatch click directly, bypassing the section
+      // header button that overlaps nav links during expand animation
+      await navLink.evaluate((el) => (el as HTMLElement).click());
       await expect(page).toHaveURL(item.urlPattern, { timeout: 15000 });
 
       // Navigate back to dashboard
       const dashLink = page.locator("aside a", { hasText: "Dashboard" }).first();
-      await dashLink.click({ force: true });
+      await dashLink.evaluate((el) => (el as HTMLElement).click());
       await expect(page).toHaveURL(/\/dashboard/, { timeout: 10000 });
     }
   });
