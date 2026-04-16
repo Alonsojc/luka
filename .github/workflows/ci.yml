@@ -43,7 +43,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v5
 
       - uses: actions/setup-node@v5
         with:
@@ -114,7 +114,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v5
 
       - uses: actions/setup-node@v5
         with:
@@ -160,7 +160,7 @@ jobs:
 
           # Start Web in background
           cd apps/web
-          nohup npx next start -p 3000 > /tmp/web.log 2>&1 &
+          nohup npx next start -p 3002 > /tmp/web.log 2>&1 &
           echo "Web PID: $!"
           cd ../..
 
@@ -180,9 +180,9 @@ jobs:
           done
 
           # Wait for Web
-          echo "Waiting for Web on :3000..."
+          echo "Waiting for Web on :3002..."
           for i in $(seq 1 30); do
-            if curl -sf http://localhost:3000 > /dev/null 2>&1; then
+            if curl -sf http://localhost:3002 > /dev/null 2>&1; then
               echo "Web is up after ${i}s!"
               break
             fi
@@ -202,7 +202,7 @@ jobs:
       - name: Run Playwright E2E tests
         run: pnpm --filter @luka/web test:e2e
         env:
-          PLAYWRIGHT_BASE_URL: http://localhost:3000
+          PLAYWRIGHT_BASE_URL: http://localhost:3002
 
       - name: Upload test results
         if: always()
@@ -220,7 +220,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v5
 
       - uses: actions/setup-node@v5
         with:
