@@ -5,8 +5,8 @@ import { type Page, expect } from "@playwright/test";
  */
 export async function navigateTo(page: Page, path: string) {
   await page.goto(path);
-  // Wait for React to hydrate and resolve any auth loading state
-  await page.waitForSelector("h1, table, button", { timeout: 15000 });
+  // Default waitUntil:"load" ensures HTML+resources are ready.
+  // Individual test assertions handle waiting for specific content.
 }
 
 /**
