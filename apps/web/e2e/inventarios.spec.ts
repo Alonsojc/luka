@@ -65,9 +65,16 @@ test.describe("Inventarios", () => {
     const timestamp = Date.now();
     const productName = `Producto Test E2E ${timestamp}`;
 
-    // Fill the first visible text input (Name field)
-    const nameInput = modal.locator("input").first();
+    // Fill the product name field explicitly (first input can be a hidden file upload)
+    const nameInput = modal.locator('input[placeholder="Nombre del producto"]');
+    await expect(nameInput).toBeVisible({ timeout: 5000 });
     await nameInput.fill(productName);
+
+    // Fill SKU
+    const skuInput = modal.locator('input[placeholder="SKU opcional"]');
+    if (await skuInput.isVisible().catch(() => false)) {
+      await skuInput.fill(`TEST-${timestamp}`);
+    }
 
     // Submit the form
     const submitButton = modal
@@ -101,7 +108,8 @@ test.describe("Inventarios", () => {
     const timestamp = Date.now();
     const updatedName = `Editado E2E ${timestamp}`;
 
-    const nameInput = modal.locator("input").first();
+    const nameInput = modal.locator('input[placeholder="Nombre del producto"]');
+    await expect(nameInput).toBeVisible({ timeout: 5000 });
     await nameInput.clear();
     await nameInput.fill(updatedName);
 
