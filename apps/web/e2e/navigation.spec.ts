@@ -3,26 +3,6 @@ import { test, expect } from "./fixtures";
 // The sidebar sections and items defined in the dashboard layout
 const EXPECTED_SECTIONS = ["OPERACIONES", "FINANZAS", "ANALYTICS", "CLIENTES", "SISTEMA"];
 
-async function expandSidebarSection(page: import("@playwright/test").Page, sectionName: string) {
-  const link = page.locator("aside a", { hasText: sectionName }).first();
-  if (await link.isVisible().catch(() => false)) return; // already expanded
-
-  // Find and click the section header button
-  const sectionBtn = page.locator("aside button", { hasText: sectionName.split(" ")[0] });
-  // Try each section until we find the right one
-  for (const section of EXPECTED_SECTIONS) {
-    const btn = page.locator("aside button", { hasText: section });
-    if (await btn.isVisible().catch(() => false)) {
-      // Check if the nav item would be in this section
-      await btn.click();
-      await page.waitForTimeout(300);
-      if (await link.isVisible().catch(() => false)) return;
-      // If not found, click again to re-collapse
-      await btn.click();
-      await page.waitForTimeout(200);
-    }
-  }
-}
 
 test.describe("Navegacion", () => {
   test("sidebar muestra todas las secciones esperadas", async ({ page }) => {

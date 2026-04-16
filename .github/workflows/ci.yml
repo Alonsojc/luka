@@ -195,7 +195,7 @@ jobs:
           done
 
       - name: Seed test data
-        run: pnpm db:seed
+        run: pnpm db:seed && pnpm --filter @luka/database seed:demo
         env:
           DATABASE_URL: postgresql://luka:luka_test@localhost:5432/luka_test?schema=public
 
