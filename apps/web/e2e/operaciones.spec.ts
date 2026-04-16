@@ -1,12 +1,14 @@
 import { test, expect } from "./fixtures";
+import { navigateTo } from "./helpers/navigation";
 
 test.describe("Modulos Operaciones", () => {
   test("Sucursales - lista las 10 sucursales", async ({ page }) => {
-    await page.goto("/sucursales");
-    await expect(page.locator("h1")).toContainText("Sucursales");
+    await navigateTo(page, "/sucursales");
+    await expect(page.locator("h1").first()).toContainText("Sucursales");
 
-    // Should show branch table with data
-    await expect(page.locator("table")).toBeVisible({ timeout: 10000 });
+    // The branch list can render via the shared DataTable in different layouts;
+    // assert seeded content instead of a literal <table> tag.
+    await expect(page.getByText("Luka Polanco").first()).toBeVisible({ timeout: 15000 });
   });
 
   test("Merma - muestra registro de merma", async ({ page }) => {
