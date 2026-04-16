@@ -3,25 +3,19 @@ import { navigateTo } from "./helpers/navigation";
 
 test.describe("Modulos Operaciones", () => {
   test("Sucursales - lista las 10 sucursales", async ({ page }) => {
-    const branchesResponsePromise = page.waitForResponse(
-      (response) =>
-        response.request().method() === "GET" &&
-        /\/api\/branches(?:\?|$)/.test(response.url()),
-    );
-
     await navigateTo(page, "/sucursales");
-    const branchesResponse = await branchesResponsePromise;
-    expect(branchesResponse.ok()).toBeTruthy();
-
-    const branches = (await branchesResponse.json()) as Array<{ id: string }>;
-    expect(Array.isArray(branches)).toBeTruthy();
-    expect(branches.length).toBeGreaterThan(0);
-
     await expect(page.locator("h1").first()).toContainText("Sucursales");
     await expect(page.getByText("Filtrar por Razon Social:")).toBeVisible({ timeout: 15000 });
     await expect(page.getByRole("button", { name: /Nueva Sucursal/i })).toBeVisible({
       timeout: 15000,
     });
+
+    // The app fixture loads /dashboard first, and both the layout and dashboard
+    // can request /branches before this page does. Assert the rendered table
+    // state instead of racing a shared background fetch.
+    const firstRow = page.locator("tbody tr").first();
+    await expect(firstRow).toBeVisible({ timeout: 15000 });
+    await expect(page.getByText("No hay datos")).toHaveCount(0);
   });
 
   test("Merma - muestra registro de merma", async ({ page }) => {
