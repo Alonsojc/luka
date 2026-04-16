@@ -59,8 +59,8 @@ async function request<T>(path: string, options: ApiOptions = {}): Promise<T> {
     credentials: "include", // Send httpOnly cookies automatically
   });
 
-  // 401 — attempt refresh once and retry
-  if (res.status === 401 && !path.includes("/auth/refresh")) {
+  // 401 — attempt refresh once and retry (skip for auth endpoints which handle their own errors)
+  if (res.status === 401 && !path.startsWith("/auth/")) {
     if (!refreshPromise) {
       refreshPromise = refreshAccessToken().finally(() => {
         refreshPromise = null;

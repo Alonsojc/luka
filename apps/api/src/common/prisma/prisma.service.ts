@@ -114,14 +114,14 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
 
     return new Proxy(this, {
       get(target: any, prop: string | symbol, receiver: any) {
-        // PrismaService's own instance properties and prototype methods first
-        if (
-          Object.prototype.hasOwnProperty.call(target, prop) ||
-          Object.prototype.hasOwnProperty.call(PrismaService.prototype, prop)
-        ) {
+        // PrismaService's own prototype methods (setTenantOrgId, lifecycle, etc.)
+        // take priority — but NOT PrismaClient's own properties like model
+        // delegates, which must go through the extended client for tenant filtering.
+        if (Object.prototype.hasOwnProperty.call(PrismaService.prototype, prop)) {
           return Reflect.get(target, prop, receiver);
         }
-        // Delegate model delegates, $connect, $transaction, etc. to extended client
+        // Everything else — model delegates, $connect, $transaction, etc. —
+        // goes through the extended client so the query extension applies.
         const value = (extended as any)[prop];
         return typeof value === "function" ? value.bind(extended) : value;
       },
