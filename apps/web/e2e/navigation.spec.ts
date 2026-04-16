@@ -82,8 +82,8 @@ test.describe("Navegacion", () => {
     await inventariosLink.click();
     await expect(page).toHaveURL(/\/inventarios/, { timeout: 15000 });
 
-    // The active link should be highlighted
-    await expect(inventariosLink).toHaveClass(/bg-white/, { timeout: 5000 });
+    // The active link should be highlighted (bg-white/15, not just hover:bg-white/10)
+    await expect(inventariosLink).toHaveClass(/bg-white\/15/, { timeout: 5000 });
 
     // Dashboard should NOT be highlighted
     const dashboardLink = page.locator("aside a", { hasText: "Dashboard" }).first();
