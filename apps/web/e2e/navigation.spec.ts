@@ -1,10 +1,15 @@
 import { test, expect } from "./fixtures";
+import { navigateTo } from "./helpers/navigation";
 
 // The sidebar sections and items defined in the dashboard layout
 const EXPECTED_SECTIONS = ["OPERACIONES", "FINANZAS", "ANALYTICS", "CLIENTES", "SISTEMA"];
 
 
 test.describe("Navegacion", () => {
+  test.beforeEach(async ({ page }) => {
+    await navigateTo(page, "/dashboard");
+  });
+
   test("sidebar muestra todas las secciones esperadas", async ({ page }) => {
     const sidebar = page.locator("aside");
     await expect(sidebar).toBeVisible();
