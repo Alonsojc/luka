@@ -17,3 +17,4 @@ Mover el contexto de tenant a `AsyncLocalStorage` y abrirlo desde un interceptor
 - El guardrail sigue centralizado en Prisma y no depende de recordar filtros manuales en cada servicio.
 - Las pruebas de concurrencia validan que dos requests solapados no hereden el tenant incorrecto.
 - Los jobs o tareas fuera del ciclo HTTP no reciben tenant implícito; deben seguir pasando `organizationId` de forma explicita cuando corresponda.
+- Seguimiento PR 1.2: las requests autenticadas ahora fallan rapido si intentan leer modelos tenant-scoped sin `organizationId` implícito o explícito.

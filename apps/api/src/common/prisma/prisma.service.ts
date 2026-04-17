@@ -1,6 +1,7 @@
 import { Injectable, OnModuleInit, OnModuleDestroy } from "@nestjs/common";
 import { PrismaClient } from "@luka/database";
 import { TenantContextService } from "../tenant/tenant-context.service";
+import { TenantContextStore } from "../tenant/tenant-context.service";
 
 /**
  * Models that have an organizationId column and should be automatically
@@ -74,17 +75,46 @@ const FILTERED_OPERATIONS = new Set([
   "groupBy",
 ]);
 
+export class MissingTenantContextError extends Error {
+  constructor(model: string, operation: string) {
+    super(
+      `Missing tenant context for ${model}.${operation}. Authenticated requests must provide organizationId implicitly or explicitly.`,
+    );
+    this.name = "MissingTenantContextError";
+  }
+}
+
+function hasExplicitOrganizationId(args: Record<string, unknown> | undefined) {
+  if (!args?.where || typeof args.where !== "object") {
+    return false;
+  }
+
+  return Boolean((args.where as Record<string, unknown>).organizationId);
+}
+
 export function applyTenantScopeToArgs(
   model: string | undefined,
   operation: string | undefined,
   args: Record<string, unknown> | undefined,
-  tenantId: string | undefined,
+  tenantContext: TenantContextStore | undefined,
 ) {
-  if (!model || !operation || !tenantId) {
+  if (!model || !operation) {
     return args;
   }
 
   if (!ORG_SCOPED_MODELS.has(model) || !FILTERED_OPERATIONS.has(operation)) {
+    return args;
+  }
+
+  if (hasExplicitOrganizationId(args)) {
+    return args;
+  }
+
+  const tenantId = tenantContext?.organizationId;
+  if (!tenantId) {
+    if (tenantContext?.requireTenant) {
+      throw new MissingTenantContextError(model, operation);
+    }
     return args;
   }
 
@@ -94,11 +124,6 @@ export function applyTenantScopeToArgs(
       ? { ...(nextArgs.where as Record<string, unknown>) }
       : {};
 
-  if (where.organizationId) {
-    nextArgs.where = where;
-    return nextArgs;
-  }
-
   nextArgs.where = {
     ...where,
     organizationId: tenantId,
@@ -106,12 +131,12 @@ export function applyTenantScopeToArgs(
   return nextArgs;
 }
 
-export function createTenantQueryExtension(getOrganizationId: () => string | undefined) {
+export function createTenantQueryExtension(getTenantContext: () => TenantContextStore | undefined) {
   return {
     query: {
       $allModels: {
         async $allOperations({ model, operation, args, query }: any) {
-          const scopedArgs = applyTenantScopeToArgs(model, operation, args, getOrganizationId());
+          const scopedArgs = applyTenantScopeToArgs(model, operation, args, getTenantContext());
           return query(scopedArgs);
         },
       },
@@ -132,7 +157,7 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
     // client while PrismaService's own API (lifecycle hooks, etc.) stays on
     // the original instance.
     const extended = (this as PrismaClient).$extends(
-      createTenantQueryExtension(() => this.tenantContext.getOrganizationId()),
+      createTenantQueryExtension(() => this.tenantContext.getStore()),
     );
 
     return new Proxy(this, {
