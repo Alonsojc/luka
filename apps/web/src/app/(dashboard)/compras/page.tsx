@@ -27,7 +27,7 @@ import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { FormField, Input, Select, Textarea } from "@/components/ui/form-field";
 import { formatMXN } from "@luka/shared";
-import type { Supplier, Product, Branch, PurchaseOrder } from "@luka/shared";
+import type { Supplier, Product, Branch, PurchaseOrder, PaginatedResponse } from "@luka/shared";
 
 // Local line-item shape used in the create/edit modal
 interface LineItem {
@@ -119,6 +119,10 @@ const STATUS_VARIANT: Record<string, string> = {
 
 function num(v: string | number): number {
   return typeof v === "string" ? parseFloat(v) || 0 : isNaN(v) ? 0 : v;
+}
+
+function unwrapListResponse<T>(response: T[] | PaginatedResponse<T>): T[] {
+  return Array.isArray(response) ? response : response.data;
 }
 
 let _keyCounter = 0;
@@ -215,18 +219,17 @@ export default function ComprasPage() {
   // -----------------------------------------------------------------------
 
   const fetchAll = useCallback(async () => {
-    if (authLoading) return;
     setLoadingData(true);
     setError(null);
     try {
       const [s, o, b, p] = await Promise.all([
         authFetch<Supplier[]>("get", "/compras/suppliers"),
-        authFetch<PurchaseOrder[]>("get", "/compras/purchase-orders"),
+        authFetch<PurchaseOrder[] | PaginatedResponse<PurchaseOrder>>("get", "/compras/purchase-orders"),
         authFetch<Branch[]>("get", "/branches"),
         authFetch<Product[]>("get", "/inventarios/products"),
       ]);
       setSuppliers(s);
-      setOrders(o);
+      setOrders(unwrapListResponse(o));
       setBranches(b);
       setProducts(p);
     } catch (err: any) {
@@ -234,11 +237,12 @@ export default function ComprasPage() {
     } finally {
       setLoadingData(false);
     }
-  }, [authFetch, authLoading]);
+  }, [authFetch]);
 
   useEffect(() => {
+    if (authLoading) return;
     fetchAll();
-  }, [fetchAll]);
+  }, [authLoading, fetchAll]);
 
   // -----------------------------------------------------------------------
   // Supplier CRUD
@@ -551,8 +555,11 @@ export default function ComprasPage() {
       setGenerateResult(result);
       setShowPreview(false);
       // Refresh orders list
-      const updatedOrders = await authFetch<PurchaseOrder[]>("get", "/compras/purchase-orders");
-      setOrders(updatedOrders);
+      const updatedOrders = await authFetch<PurchaseOrder[] | PaginatedResponse<PurchaseOrder>>(
+        "get",
+        "/compras/purchase-orders",
+      );
+      setOrders(unwrapListResponse(updatedOrders));
       // Refresh alerts
       await fetchReorderAlerts(reorderBranchId);
     } catch (err: any) {
@@ -753,9 +760,7 @@ export default function ComprasPage() {
   // Render
   // -----------------------------------------------------------------------
 
-  if (authLoading) {
-    return <div className="p-8 text-center text-gray-400">Cargando...</div>;
-  }
+  if (authLoading) return null;
 
   return (
     <div>

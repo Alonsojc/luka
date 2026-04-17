@@ -1,25 +1,9 @@
 import { test, expect } from "./fixtures";
+import { navigateTo } from "./helpers/navigation";
 
-// TODO: Compras page stays on "Cargando..." in CI — authLoading never resolves
-// despite working auth (other pages load fine). Needs investigation of the
-// component's useAuth/fetchAll dependency cycle.
 test.describe("Compras", () => {
-  // eslint-disable-next-line @typescript-eslint/no-empty-function
-  test.fixme(true, "Compras page auth hydration issue in CI — authLoading never resolves");
   test.beforeEach(async ({ page }) => {
-    // Use sidebar navigation (client-side) instead of page.goto to avoid
-    // auth hydration timing issues that keep the page stuck on "Cargando..."
-    const sectionBtn = page.locator("aside button", { hasText: "OPERACIONES" });
-    if (await sectionBtn.isVisible().catch(() => false)) {
-      await sectionBtn.click();
-      await page.waitForTimeout(400);
-    }
-    const comprasLink = page.locator("aside a", { hasText: "Compras" }).first();
-    await expect(comprasLink).toBeVisible({ timeout: 5000 });
-    await comprasLink.evaluate((el) => (el as HTMLElement).click());
-    await expect(page).toHaveURL(/\/compras/, { timeout: 15000 });
-    // Wait for page content to render (tabs)
-    await expect(page.locator("h1").first()).toBeVisible({ timeout: 15000 });
+    await navigateTo(page, "/compras");
   });
 
   test("carga lista de proveedores", async ({ page }) => {
@@ -27,28 +11,26 @@ test.describe("Compras", () => {
     await expect(proveedoresTab).toBeVisible({ timeout: 15000 });
     await proveedoresTab.evaluate((el) => (el as HTMLElement).click());
 
-    // Wait for content — table or empty state
     await page.waitForTimeout(1000);
     const hasTable = await page.locator("table").first().isVisible().catch(() => false);
-    const hasContent = await page.locator("h1").first().isVisible().catch(() => false);
+    const hasContent = await page.locator("text=/Proveedores|proveedor/i").first().isVisible().catch(() => false);
     expect(hasTable || hasContent).toBeTruthy();
   });
 
   test("cambiar a tab Ordenes de Compra", async ({ page }) => {
-    // "Ordenes de Compra" is the default tab — verify content
+    // "Ordenes de Compra" is the default tab
     const hasTable = await page.locator("table").first().isVisible().catch(() => false);
-    const hasContent = await page.locator("h1").first().isVisible().catch(() => false);
-    expect(hasTable || hasContent).toBeTruthy();
+    const hasContent = await page.locator("text=/Ordenes|orden/i").first().isVisible().catch(() => false);
+    const hasH1 = await page.locator("h1").first().isVisible().catch(() => false);
+    expect(hasTable || hasContent || hasH1).toBeTruthy();
   });
 
   test("tabla de ordenes de compra muestra datos", async ({ page }) => {
-    // Default tab shows orders — check for table or empty state
     const table = page.locator("table").first();
     const hasTable = await table.isVisible().catch(() => false);
     if (hasTable) {
       const header = table.locator("thead");
       await expect(header).toBeVisible();
     }
-    // If no table, the page rendered (h1 visible from beforeEach) which is sufficient
   });
 });

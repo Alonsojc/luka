@@ -40,7 +40,10 @@ import { GlobalExceptionFilter } from "./common/filters/global-exception.filter"
     ThrottlerModule.forRoot([
       {
         ttl: 60000, // 1 minute window
-        limit: 100, // 100 requests per minute globally
+        // E2E runs exercise many routes in rapid succession from the same test
+        // user/browser context, so use a higher ceiling there to avoid false
+        // 429s while preserving the normal production/dev limit.
+        limit: process.env.NODE_ENV === "test" ? 1000 : 100,
       },
     ]),
     ScheduleModule.forRoot(),
