@@ -1,5 +1,6 @@
 import { Injectable, OnModuleInit, OnModuleDestroy } from "@nestjs/common";
 import { PrismaClient } from "@luka/database";
+import { TenantContextService } from "../tenant/tenant-context.service";
 
 /**
  * Models that have an organizationId column and should be automatically
@@ -73,12 +74,54 @@ const FILTERED_OPERATIONS = new Set([
   "groupBy",
 ]);
 
-/** Shared mutable ref so the $extends closure can read the current tenant ID. */
-const tenantCtx: { orgId?: string } = { orgId: undefined };
+export function applyTenantScopeToArgs(
+  model: string | undefined,
+  operation: string | undefined,
+  args: Record<string, unknown> | undefined,
+  tenantId: string | undefined,
+) {
+  if (!model || !operation || !tenantId) {
+    return args;
+  }
+
+  if (!ORG_SCOPED_MODELS.has(model) || !FILTERED_OPERATIONS.has(operation)) {
+    return args;
+  }
+
+  const nextArgs = { ...(args ?? {}) };
+  const where =
+    nextArgs.where && typeof nextArgs.where === "object"
+      ? { ...(nextArgs.where as Record<string, unknown>) }
+      : {};
+
+  if (where.organizationId) {
+    nextArgs.where = where;
+    return nextArgs;
+  }
+
+  nextArgs.where = {
+    ...where,
+    organizationId: tenantId,
+  };
+  return nextArgs;
+}
+
+export function createTenantQueryExtension(getOrganizationId: () => string | undefined) {
+  return {
+    query: {
+      $allModels: {
+        async $allOperations({ model, operation, args, query }: any) {
+          const scopedArgs = applyTenantScopeToArgs(model, operation, args, getOrganizationId());
+          return query(scopedArgs);
+        },
+      },
+    },
+  };
+}
 
 @Injectable()
 export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
-  constructor() {
+  constructor(private readonly tenantContext: TenantContextService) {
     super({
       log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
     });
@@ -86,35 +129,15 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
     // Prisma v6 removed $use() middleware. Use $extends with the query
     // component instead. $extends returns a new client instance, so we wrap
     // access via Proxy so that model delegates transparently use the extended
-    // client while PrismaService's own API (setTenantOrgId, lifecycle hooks)
-    // stays on the original instance.
-    const extended = (this as PrismaClient).$extends({
-      query: {
-        $allModels: {
-          async $allOperations({ model, operation, args, query }: any) {
-            if (
-              model &&
-              ORG_SCOPED_MODELS.has(model) &&
-              operation &&
-              FILTERED_OPERATIONS.has(operation)
-            ) {
-              const tenantId = tenantCtx.orgId;
-              if (tenantId) {
-                args.where = args.where || {};
-                if (!args.where.organizationId) {
-                  args.where.organizationId = tenantId;
-                }
-              }
-            }
-            return query(args);
-          },
-        },
-      },
-    });
+    // client while PrismaService's own API (lifecycle hooks, etc.) stays on
+    // the original instance.
+    const extended = (this as PrismaClient).$extends(
+      createTenantQueryExtension(() => this.tenantContext.getOrganizationId()),
+    );
 
     return new Proxy(this, {
       get(target: any, prop: string | symbol, receiver: any) {
-        // PrismaService's own prototype methods (setTenantOrgId, lifecycle, etc.)
+        // PrismaService's own prototype methods (lifecycle, etc.)
         // take priority — but NOT PrismaClient's own properties like model
         // delegates, which must go through the extended client for tenant filtering.
         if (Object.prototype.hasOwnProperty.call(PrismaService.prototype, prop)) {
@@ -126,16 +149,6 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
         return typeof value === "function" ? value.bind(extended) : value;
       },
     }) as this;
-  }
-
-  /** Set the tenant organization ID for all subsequent queries in this request. */
-  setTenantOrgId(orgId: string) {
-    tenantCtx.orgId = orgId;
-  }
-
-  /** Clear the tenant context (e.g. for system-level operations). */
-  clearTenantOrgId() {
-    tenantCtx.orgId = undefined;
   }
 
   async onModuleInit() {

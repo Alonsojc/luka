@@ -1,33 +1,37 @@
 import { Injectable, NestInterceptor, ExecutionContext, CallHandler } from "@nestjs/common";
-import { Observable, tap } from "rxjs";
-import { PrismaService } from "../prisma/prisma.service";
+import { Observable } from "rxjs";
 import { JwtPayload } from "../decorators/current-user.decorator";
+import { TenantContextService } from "../tenant/tenant-context.service";
 
 /**
- * Sets the tenant organization ID on PrismaService for every authenticated
- * request, and clears it after the response is sent.
+ * Opens a per-request AsyncLocalStorage context so downstream Prisma queries
+ * can resolve the correct tenant without relying on shared mutable state.
  *
- * This works with the Prisma middleware in PrismaService to automatically
+ * This works with the Prisma query extension in PrismaService to automatically
  * scope all read queries to the current user's organization, preventing
  * cross-tenant data leaks even if a service forgets to filter by orgId.
  */
 @Injectable()
 export class TenantInterceptor implements NestInterceptor {
-  constructor(private prisma: PrismaService) {}
+  constructor(private readonly tenantContext: TenantContextService) {}
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     const request = context.switchToHttp().getRequest();
     const user = request.user as JwtPayload | undefined;
+    const organizationId = user?.organizationId;
 
-    if (user?.organizationId) {
-      this.prisma.setTenantOrgId(user.organizationId);
-    }
+    return new Observable((subscriber) => {
+      let innerSubscription: { unsubscribe(): void } | undefined;
 
-    return next.handle().pipe(
-      tap({
-        next: () => this.prisma.clearTenantOrgId(),
-        error: () => this.prisma.clearTenantOrgId(),
-      }),
-    );
+      this.tenantContext.run({ organizationId }, () => {
+        innerSubscription = next.handle().subscribe({
+          next: (value) => subscriber.next(value),
+          error: (error) => subscriber.error(error),
+          complete: () => subscriber.complete(),
+        });
+      });
+
+      return () => innerSubscription?.unsubscribe();
+    });
   }
 }
