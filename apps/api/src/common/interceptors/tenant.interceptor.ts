@@ -19,11 +19,12 @@ export class TenantInterceptor implements NestInterceptor {
     const request = context.switchToHttp().getRequest();
     const user = request.user as JwtPayload | undefined;
     const organizationId = user?.organizationId;
+    const requireTenant = Boolean(user);
 
     return new Observable((subscriber) => {
       let innerSubscription: { unsubscribe(): void } | undefined;
 
-      this.tenantContext.run({ organizationId }, () => {
+      this.tenantContext.run({ organizationId, requireTenant }, () => {
         innerSubscription = next.handle().subscribe({
           next: (value) => subscriber.next(value),
           error: (error) => subscriber.error(error),

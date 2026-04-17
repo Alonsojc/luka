@@ -1,11 +1,20 @@
 import { describe, expect, it } from "vitest";
 import { TenantContextService } from "../tenant/tenant-context.service";
-import { applyTenantScopeToArgs, createTenantQueryExtension } from "./prisma.service";
+import {
+  applyTenantScopeToArgs,
+  createTenantQueryExtension,
+  MissingTenantContextError,
+} from "./prisma.service";
 
 describe("Prisma tenant scoping", () => {
   it("injects organizationId into scoped read queries", () => {
     expect(
-      applyTenantScopeToArgs("branch", "findMany", { where: { isActive: true } }, "org-1"),
+      applyTenantScopeToArgs(
+        "branch",
+        "findMany",
+        { where: { isActive: true } },
+        { organizationId: "org-1", requireTenant: true },
+      ),
     ).toEqual({
       where: {
         isActive: true,
@@ -20,7 +29,7 @@ describe("Prisma tenant scoping", () => {
         "branch",
         "findMany",
         { where: { organizationId: "org-explicit", isActive: true } },
-        "org-1",
+        { organizationId: "org-1", requireTenant: true },
       ),
     ).toEqual({
       where: {
@@ -31,11 +40,17 @@ describe("Prisma tenant scoping", () => {
   });
 
   it("does not scope writes or non-tenant models", () => {
-    expect(applyTenantScopeToArgs("branch", "create", { data: { name: "Sucursal" } }, "org-1")).toEqual(
-      { data: { name: "Sucursal" } },
-    );
     expect(
-      applyTenantScopeToArgs("userBranchRole", "findMany", { where: { userId: "user-1" } }, "org-1"),
+      applyTenantScopeToArgs("branch", "create", { data: { name: "Sucursal" } }, {
+        organizationId: "org-1",
+        requireTenant: true,
+      }),
+    ).toEqual({ data: { name: "Sucursal" } });
+    expect(
+      applyTenantScopeToArgs("userBranchRole", "findMany", { where: { userId: "user-1" } }, {
+        organizationId: "org-1",
+        requireTenant: true,
+      }),
     ).toEqual({
       where: {
         userId: "user-1",
@@ -43,13 +58,40 @@ describe("Prisma tenant scoping", () => {
     });
   });
 
+  it("fails fast when an authenticated request loses tenant context", () => {
+    expect(() =>
+      applyTenantScopeToArgs(
+        "branch",
+        "findMany",
+        { where: { isActive: true } },
+        { requireTenant: true },
+      ),
+    ).toThrow(MissingTenantContextError);
+  });
+
+  it("allows explicit organizationId filters even if implicit context is missing", () => {
+    expect(
+      applyTenantScopeToArgs(
+        "branch",
+        "findMany",
+        { where: { organizationId: "org-explicit", isActive: true } },
+        { requireTenant: true },
+      ),
+    ).toEqual({
+      where: {
+        organizationId: "org-explicit",
+        isActive: true,
+      },
+    });
+  });
+
   it("keeps concurrent requests isolated by AsyncLocalStorage", async () => {
     const tenantContext = new TenantContextService();
-    const extension = createTenantQueryExtension(() => tenantContext.getOrganizationId());
+    const extension = createTenantQueryExtension(() => tenantContext.getStore());
     const operation = extension.query.$allModels.$allOperations;
 
     const runConcurrentQuery = (organizationId: string, delayMs: number) =>
-      tenantContext.run({ organizationId }, async () => {
+      tenantContext.run({ organizationId, requireTenant: true }, async () => {
         await new Promise((resolve) => setTimeout(resolve, delayMs));
 
         return operation({
@@ -68,5 +110,15 @@ describe("Prisma tenant scoping", () => {
 
     expect(first).toBe("org-1");
     expect(second).toBe("org-2");
+  });
+
+  it("does not block non-authenticated flows with no tenant context", () => {
+    expect(
+      applyTenantScopeToArgs("branch", "findMany", { where: { isActive: true } }, undefined),
+    ).toEqual({
+      where: {
+        isActive: true,
+      },
+    });
   });
 });

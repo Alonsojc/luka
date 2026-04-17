@@ -20,7 +20,9 @@ describe("TenantInterceptor", () => {
     handle: () =>
       new Observable<string>((subscriber) => {
         setTimeout(() => {
-          subscriber.next(tenantContext.getOrganizationId() ?? "missing");
+          subscriber.next(
+            `${tenantContext.getOrganizationId() ?? "missing"}:${tenantContext.isTenantRequired()}`,
+          );
           subscriber.complete();
         }, delayMs);
       }),
@@ -42,7 +44,7 @@ describe("TenantInterceptor", () => {
       ),
     );
 
-    expect(result).toBe("org-1");
+    expect(result).toBe("org-1:true");
   });
 
   it("keeps concurrent requests isolated", async () => {
@@ -67,7 +69,16 @@ describe("TenantInterceptor", () => {
       runRequest("org-2", 5),
     ]);
 
-    expect(first).toBe("org-1");
-    expect(second).toBe("org-2");
+    expect(first).toBe("org-1:true");
+    expect(second).toBe("org-2:true");
+  });
+
+  it("does not require tenant for public requests", async () => {
+    const tenantContext = new TenantContextService();
+    const interceptor = new TenantInterceptor(tenantContext);
+
+    const result = await lastValueFrom(interceptor.intercept(createContext(undefined), createHandler(tenantContext, 0)));
+
+    expect(result).toBe("missing:false");
   });
 });
