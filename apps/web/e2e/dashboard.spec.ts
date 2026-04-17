@@ -1,6 +1,10 @@
 import { test, expect } from "./fixtures";
 
 test.describe("Dashboard", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto("/dashboard");
+  });
+
   test("muestra mensaje de bienvenida con nombre del usuario", async ({ page }) => {
     const heading = page.locator("h1");
     await expect(heading).toBeVisible();

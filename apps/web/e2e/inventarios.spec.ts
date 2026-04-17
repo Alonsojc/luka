@@ -85,10 +85,7 @@ test.describe("Inventarios", () => {
     await expect(page.locator("table")).toContainText(productName, { timeout: 15000 });
   });
 
-  // TODO: PATCH still fails in CI for reasons not visible from test output.
-  // The form values and unit normalization look correct, but modal never
-  // closes (indicating the API rejected the PATCH). Needs API log inspection.
-  test.fixme("editar producto actualiza en la tabla", async ({ page }) => {
+  test("editar producto actualiza en la tabla", async ({ page }) => {
     await page.waitForSelector("table tbody tr", { timeout: 15000 });
 
     // Click edit on the first row
@@ -121,7 +118,13 @@ test.describe("Inventarios", () => {
     await expect(modalTitle).not.toBeVisible({ timeout: 15000 });
     await page.waitForLoadState("networkidle");
 
-    // The updated name should appear in the table
+    // Search for the updated name since sorting/pagination can move it off page 1.
+    const searchInput = page.locator('input[placeholder*="Buscar"]');
+    await expect(searchInput).toBeVisible({ timeout: 5000 });
+    await searchInput.fill(updatedName);
+    await page.waitForTimeout(500);
+
+    // The updated name should appear in the filtered table
     await expect(page.locator("table")).toContainText(updatedName, { timeout: 15000 });
   });
 

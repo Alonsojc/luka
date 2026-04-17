@@ -1,12 +1,21 @@
 import { test, expect } from "./fixtures";
+import { navigateTo } from "./helpers/navigation";
 
 test.describe("Modulos Operaciones", () => {
   test("Sucursales - lista las 10 sucursales", async ({ page }) => {
-    await page.goto("/sucursales");
-    await expect(page.locator("h1")).toContainText("Sucursales");
+    await navigateTo(page, "/sucursales");
+    await expect(page.locator("h1").first()).toContainText("Sucursales");
+    await expect(page.getByText("Filtrar por Razon Social:")).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole("button", { name: /Nueva Sucursal/i })).toBeVisible({
+      timeout: 15000,
+    });
 
-    // Should show branch table with data
-    await expect(page.locator("table")).toBeVisible({ timeout: 10000 });
+    // The app fixture loads /dashboard first, and both the layout and dashboard
+    // can request /branches before this page does. Assert the rendered table
+    // state instead of racing a shared background fetch.
+    const firstRow = page.locator("tbody tr").first();
+    await expect(firstRow).toBeVisible({ timeout: 15000 });
+    await expect(page.getByText("No hay datos")).toHaveCount(0);
   });
 
   test("Merma - muestra registro de merma", async ({ page }) => {
