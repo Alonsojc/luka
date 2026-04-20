@@ -6,6 +6,11 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Luka Poke House - Sistema de Gestion",
   description: "ERP para cadena de pokes Luka",
+  icons: {
+    icon: "/luka-logo.png",
+    shortcut: "/luka-logo.png",
+    apple: "/luka-logo.png",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
