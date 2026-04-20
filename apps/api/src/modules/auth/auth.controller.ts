@@ -92,8 +92,8 @@ export class AuthController {
     await this.authService.logout(user.sub);
 
     // Clear auth cookies
-    res.cookie(ACCESS_COOKIE_NAME, "", clearCookieOptions("/api"));
-    res.cookie(REFRESH_COOKIE_NAME, "", clearCookieOptions("/api/auth/refresh"));
+    res.cookie(ACCESS_COOKIE_NAME, "", clearCookieOptions("/"));
+    res.cookie(REFRESH_COOKIE_NAME, "", clearCookieOptions("/"));
 
     return { message: "Sesion cerrada" };
   }

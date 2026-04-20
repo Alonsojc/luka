@@ -13,7 +13,7 @@ const BASE: CookieOptions = {
 export const ACCESS_COOKIE_NAME = "luka_access";
 export const accessCookieOptions: CookieOptions = {
   ...BASE,
-  path: "/api",
+  path: "/",
   maxAge: parseExpiration(process.env.JWT_EXPIRATION || "20h"),
 };
 
@@ -21,7 +21,7 @@ export const accessCookieOptions: CookieOptions = {
 export const REFRESH_COOKIE_NAME = "luka_refresh";
 export const refreshCookieOptions: CookieOptions = {
   ...BASE,
-  path: "/api/auth/refresh",
+  path: "/",
   maxAge: parseExpiration(process.env.JWT_REFRESH_EXPIRATION || "7d"),
 };
 
