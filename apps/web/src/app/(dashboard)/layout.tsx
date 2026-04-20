@@ -337,7 +337,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         } lg:translate-x-0`}
       >
         <div className="relative flex items-center justify-center border-b border-white/10 px-3 py-4">
-          <img src="/luka-logo.png" alt="Luka" className="w-full h-auto max-h-32 object-contain" />
+          <a
+            href="/dashboard"
+            onClick={() => setSidebarOpen(false)}
+            className="block w-full"
+          >
+            <img src="/luka-logo.png" alt="Luka" className="w-full h-auto max-h-32 object-contain" />
+          </a>
           <button
             onClick={() => setSidebarOpen(false)}
             className="absolute right-3 top-3 text-white/80 hover:text-white transition-colors lg:hidden"
