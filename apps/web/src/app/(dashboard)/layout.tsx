@@ -427,7 +427,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </aside>
 
       <div className="flex flex-1 flex-col lg:pl-64">
-        <header className="sticky top-0 z-20 flex h-12 sm:h-14 items-center justify-between border-b border-border bg-card px-3 sm:px-4 lg:px-6 overflow-x-auto">
+        <header className="sticky top-0 z-20 flex h-12 sm:h-14 items-center justify-between border-b border-border bg-card px-3 sm:px-4 lg:px-6">
           <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             <div className="relative min-w-0">
               <button

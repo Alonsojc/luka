@@ -1076,7 +1076,7 @@ function getDefaultDateRange(): DateRange {
 export default function DashboardPage() {
   const { user, loading: authLoading } = useAuth();
 
-  const [currentView, setCurrentView] = useState<DashboardView>("investor");
+  const [currentView, setCurrentView] = useState<DashboardView>("store");
   const [showSwitcher, setShowSwitcher] = useState(false);
   const [dateRange, setDateRange] = useState<DateRange>(getDefaultDateRange);
 
