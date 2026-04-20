@@ -256,6 +256,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key !== "Escape") return;
+      if (notificationsOpen) setNotificationsOpen(false);
+      else if (branchOpen) setBranchOpen(false);
+      else if (sidebarOpen) setSidebarOpen(false);
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [notificationsOpen, branchOpen, sidebarOpen]);
+
   const severityColor = (severity: string) => {
     switch (severity) {
       case "critical":
