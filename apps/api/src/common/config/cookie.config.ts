@@ -6,7 +6,7 @@ const isProduction = process.env.NODE_ENV === "production";
 const BASE: CookieOptions = {
   httpOnly: true,
   secure: isProduction,
-  sameSite: "lax",
+  sameSite: isProduction ? "none" : "lax",
 };
 
 /** Access token cookie — short-lived, sent on every API request. */
@@ -29,7 +29,7 @@ export const refreshCookieOptions: CookieOptions = {
 export const csrfCookieOptions: CookieOptions = {
   httpOnly: false, // Must be readable by JS
   secure: isProduction,
-  sameSite: "lax",
+  sameSite: isProduction ? "none" : "lax",
   path: "/",
   maxAge: parseExpiration(process.env.JWT_EXPIRATION || "20h"),
 };
