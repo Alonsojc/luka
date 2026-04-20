@@ -325,11 +325,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         } lg:translate-x-0`}
       >
-        <div className="flex h-24 items-center justify-between border-b border-white/10 px-5">
-          <img src="/luka-logo.png" alt="Luka" className="h-16 w-auto" />
+        <div className="relative flex items-center justify-center border-b border-white/10 px-3 py-4">
+          <img src="/luka-logo.png" alt="Luka" className="w-full h-auto max-h-32 object-contain" />
           <button
             onClick={() => setSidebarOpen(false)}
-            className="text-white/80 hover:text-white transition-colors lg:hidden"
+            className="absolute right-3 top-3 text-white/80 hover:text-white transition-colors lg:hidden"
           >
             <X className="h-5 w-5" />
           </button>
