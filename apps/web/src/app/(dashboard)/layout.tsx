@@ -325,11 +325,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         } lg:translate-x-0`}
       >
-        <div className="flex h-16 items-center justify-between border-b border-white/10 px-5">
-          <img src="/luka-logo.png" alt="Luka" className="h-9 w-auto" />
+        <div className="flex h-24 items-center justify-between border-b border-white/10 px-5">
+          <img src="/luka-logo.png" alt="Luka" className="h-16 w-auto" />
           <button
             onClick={() => setSidebarOpen(false)}
-            className="text-white/60 hover:text-white transition-colors lg:hidden"
+            className="text-white/80 hover:text-white transition-colors lg:hidden"
           >
             <X className="h-5 w-5" />
           </button>
@@ -341,8 +341,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             onClick={() => setSidebarOpen(false)}
             className={`mb-4 flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
               pathname === "/dashboard"
-                ? "bg-white/15 text-white"
-                : "text-white/60 hover:bg-white/10 hover:text-white"
+                ? "bg-white/20 text-white"
+                : "text-white/85 hover:bg-white/10 hover:text-white"
             }`}
           >
             <LayoutDashboard className="h-5 w-5" />
@@ -359,14 +359,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   className="flex w-full items-center justify-between rounded-md px-3 py-1.5 group transition-colors hover:bg-white/5"
                 >
                   <span
-                    className={`text-[10px] font-semibold uppercase tracking-[0.2em] ${
-                      hasActiveItem ? "text-white/50" : "text-white/30"
-                    } group-hover:text-white/50 transition-colors`}
+                    className={`text-[11px] font-semibold uppercase tracking-[0.2em] ${
+                      hasActiveItem ? "text-white" : "text-white/70"
+                    } group-hover:text-white transition-colors`}
                   >
                     {section.label}
                   </span>
                   <ChevronDown
-                    className={`h-3 w-3 text-white/30 group-hover:text-white/50 transition-transform duration-200 ${
+                    className={`h-3 w-3 text-white/70 group-hover:text-white transition-transform duration-200 ${
                       isCollapsed ? "-rotate-90" : ""
                     }`}
                   />
@@ -387,8 +387,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                           onClick={() => setSidebarOpen(false)}
                           className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
                             isActive
-                              ? "bg-white/15 text-white"
-                              : "text-white/60 hover:bg-white/10 hover:text-white"
+                              ? "bg-white/20 text-white"
+                              : "text-white/85 hover:bg-white/10 hover:text-white"
                           }`}
                         >
                           <Icon className="h-5 w-5" />
