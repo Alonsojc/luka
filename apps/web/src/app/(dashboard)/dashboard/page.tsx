@@ -76,8 +76,8 @@ const VIEW_LABELS: Record<DashboardView, string> = {
 // Determine which dashboard view the user should see by default
 function getDefaultView(roles: Array<{ roleName: string }>): DashboardView {
   const names = roles.map((r) => r.roleName);
-  if (names.includes("owner") || names.includes("admin") || names.includes("investor"))
-    return "investor";
+  if (names.includes("owner") || names.includes("admin")) return "store";
+  if (names.includes("investor")) return "investor";
   if (names.includes("accountant")) return "accountant";
   if (names.includes("cedis_manager")) return "cedis";
   return "store";
