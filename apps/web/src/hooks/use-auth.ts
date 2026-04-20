@@ -3,7 +3,7 @@
 import { useEffect, useLayoutEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { getUser, clearAuth, type AuthUser } from "@/lib/auth";
-import { api, ApiError } from "@/lib/api-client";
+import { api, ApiError, clearTokens } from "@/lib/api-client";
 
 /**
  * Safe version of useLayoutEffect that falls back to useEffect during SSR.
@@ -48,6 +48,7 @@ export function useAuth() {
   const logout = useCallback(() => {
     api.post("/auth/logout", {}).catch(() => {});
     clearAuth();
+    clearTokens();
     router.push("/login");
   }, [router]);
 

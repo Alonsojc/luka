@@ -40,8 +40,12 @@ export class AuthController {
     const csrfToken = crypto.randomUUID();
     res.cookie(CSRF_COOKIE_NAME, csrfToken, csrfCookieOptions);
 
-    // Return user info only — tokens are not exposed to JS
-    return { user: result.user };
+    return {
+      user: result.user,
+      accessToken: result.accessToken,
+      refreshToken: result.refreshToken,
+      csrfToken,
+    };
   }
 
   @Post("refresh")
@@ -65,7 +69,10 @@ export class AuthController {
     res.cookie(ACCESS_COOKIE_NAME, result.accessToken, accessCookieOptions);
     res.cookie(REFRESH_COOKIE_NAME, result.refreshToken, refreshCookieOptions);
 
-    return { message: "Token renovado" };
+    return {
+      accessToken: result.accessToken,
+      refreshToken: result.refreshToken,
+    };
   }
 
   @Post("forgot-password")

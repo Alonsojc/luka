@@ -5,7 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { getUser, clearAuth, type AuthUser } from "@/lib/auth";
 import { canAccessRoute } from "@/lib/permissions";
 import { useRouteGuard } from "@/hooks/use-route-guard";
-import { api } from "@/lib/api-client";
+import { api, clearTokens } from "@/lib/api-client";
 import { PWAInstallPrompt } from "@/components/pwa-install-prompt";
 import { PushNotificationManager, PushToggle } from "@/components/notifications/push-manager";
 import { BottomNav } from "@/components/layout/bottom-nav";
@@ -297,7 +297,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   };
 
   const handleLogout = () => {
+    api.post("/auth/logout", {}).catch(() => {});
     clearAuth();
+    clearTokens();
     router.replace("/login");
   };
 

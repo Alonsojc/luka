@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { api } from "@/lib/api-client";
+import { api, setTokens } from "@/lib/api-client";
 import { setAuth, type AuthUser } from "@/lib/auth";
 
 export default function LoginPage() {
@@ -21,8 +21,16 @@ export default function LoginPage() {
     try {
       const res = await api.post<{
         user: AuthUser;
+        accessToken: string;
+        refreshToken: string;
+        csrfToken: string;
       }>("/auth/login", { email, password });
 
+      setTokens({
+        accessToken: res.accessToken,
+        refreshToken: res.refreshToken,
+        csrfToken: res.csrfToken,
+      });
       setAuth(res.user);
       router.push("/dashboard");
     } catch (err) {

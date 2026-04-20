@@ -1,14 +1,44 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
 
+const ACCESS_TOKEN_KEY = "luka_access_token";
+const REFRESH_TOKEN_KEY = "luka_refresh_token";
+const CSRF_TOKEN_KEY = "luka_csrf_token";
+
 interface ApiOptions extends Omit<RequestInit, "body"> {
   body?: string;
 }
 
-/** Read the CSRF token from the non-httpOnly cookie set by the server. */
-function getCsrfToken(): string | undefined {
-  if (typeof document === "undefined") return undefined;
-  const match = document.cookie.match(/(?:^|;\s*)luka_csrf=([^;]*)/);
-  return match?.[1];
+export function setTokens(tokens: {
+  accessToken: string;
+  refreshToken: string;
+  csrfToken?: string;
+}) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(ACCESS_TOKEN_KEY, tokens.accessToken);
+  localStorage.setItem(REFRESH_TOKEN_KEY, tokens.refreshToken);
+  if (tokens.csrfToken) localStorage.setItem(CSRF_TOKEN_KEY, tokens.csrfToken);
+}
+
+export function clearTokens() {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem(ACCESS_TOKEN_KEY);
+  localStorage.removeItem(REFRESH_TOKEN_KEY);
+  localStorage.removeItem(CSRF_TOKEN_KEY);
+}
+
+function getAccessToken(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem(ACCESS_TOKEN_KEY);
+}
+
+function getRefreshToken(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem(REFRESH_TOKEN_KEY);
+}
+
+function getCsrfToken(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem(CSRF_TOKEN_KEY);
 }
 
 class ApiError extends Error {
@@ -21,47 +51,59 @@ class ApiError extends Error {
   }
 }
 
-// Prevent multiple simultaneous refresh attempts
 let refreshPromise: Promise<boolean> | null = null;
 
 async function refreshAccessToken(): Promise<boolean> {
   if (typeof window === "undefined") return false;
+  const refreshToken = getRefreshToken();
+  if (!refreshToken) return false;
 
   try {
     const res = await fetch(`${API_URL}/auth/refresh`, {
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refreshToken }),
     });
 
-    return res.ok;
+    if (!res.ok) return false;
+    const data = (await res.json()) as { accessToken: string; refreshToken: string };
+    if (data.accessToken && data.refreshToken) {
+      localStorage.setItem(ACCESS_TOKEN_KEY, data.accessToken);
+      localStorage.setItem(REFRESH_TOKEN_KEY, data.refreshToken);
+      return true;
+    }
+    return false;
   } catch {
     return false;
   }
 }
 
-async function request<T>(path: string, options: ApiOptions = {}): Promise<T> {
+function buildHeaders(options: ApiOptions): Record<string, string> {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     ...(options.headers as Record<string, string>),
   };
 
-  // Attach CSRF token on mutation requests
+  const token = getAccessToken();
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+
   const method = options.method?.toUpperCase() || "GET";
   if (["POST", "PUT", "PATCH", "DELETE"].includes(method)) {
     const csrf = getCsrfToken();
     if (csrf) headers["X-CSRF-Token"] = csrf;
   }
 
+  return headers;
+}
+
+async function request<T>(path: string, options: ApiOptions = {}): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, {
     ...options,
-    headers,
-    credentials: "include", // Send httpOnly cookies automatically
+    headers: buildHeaders(options),
+    credentials: "include",
   });
 
-  // 401 — attempt refresh once and retry.
-  // Skip for login (401 = wrong credentials) and refresh (avoid infinite loop).
-  // Keep for logout so expired tokens still get refreshed and server-side revocation runs.
   if (res.status === 401 && !path.includes("/auth/login") && !path.includes("/auth/refresh")) {
     if (!refreshPromise) {
       refreshPromise = refreshAccessToken().finally(() => {
@@ -71,10 +113,9 @@ async function request<T>(path: string, options: ApiOptions = {}): Promise<T> {
     const refreshed = await refreshPromise;
 
     if (refreshed) {
-      // Retry the original request with fresh cookies
       const retryRes = await fetch(`${API_URL}${path}`, {
         ...options,
-        headers,
+        headers: buildHeaders(options),
         credentials: "include",
       });
 
@@ -84,8 +125,8 @@ async function request<T>(path: string, options: ApiOptions = {}): Promise<T> {
       }
     }
 
-    // Refresh failed — clear auth and redirect
     if (typeof window !== "undefined") {
+      clearTokens();
       localStorage.removeItem("luka_user");
       window.location.href = "/login";
     }
