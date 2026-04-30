@@ -65,13 +65,13 @@ export class RecipesController {
 
   // -- Recalculate all recipe costs --
   @Post("recalculate")
-  @Permissions("inventarios:edit")
+  @Permissions("inventarios:update")
   recalculateAll(@CurrentUser() user: JwtPayload) {
     return this.recipesService.recalculateAllCosts(user.organizationId);
   }
 
   @Patch(":id")
-  @Permissions("inventarios:edit")
+  @Permissions("inventarios:update")
   update(
     @CurrentUser() user: JwtPayload,
     @Param("id") id: string,

@@ -49,7 +49,7 @@ export class JournalEntriesController {
   }
 
   @Patch(":id")
-  @Permissions("contabilidad:edit")
+  @Permissions("contabilidad:update")
   update(
     @CurrentUser() user: JwtPayload,
     @Param("id") id: string,
@@ -68,13 +68,13 @@ export class JournalEntriesController {
   }
 
   @Patch(":id/post")
-  @Permissions("contabilidad:edit")
+  @Permissions("contabilidad:update")
   post(@CurrentUser() user: JwtPayload, @Param("id") id: string) {
     return this.journalEntriesService.post(user.organizationId, id, user.sub);
   }
 
   @Patch(":id/reverse")
-  @Permissions("contabilidad:edit")
+  @Permissions("contabilidad:update")
   reverse(@CurrentUser() user: JwtPayload, @Param("id") id: string) {
     return this.journalEntriesService.reverse(user.organizationId, id);
   }

@@ -68,7 +68,7 @@ export class FacturacionController {
   }
 
   @Patch("invoices/:id")
-  @Permissions("facturacion:edit")
+  @Permissions("facturacion:update")
   updateInvoice(
     @CurrentUser() user: JwtPayload,
     @Param("id") id: string,
@@ -82,7 +82,7 @@ export class FacturacionController {
   // -------------------------------------------------------
 
   @Post("invoices/:id/xml")
-  @Permissions("facturacion:edit")
+  @Permissions("facturacion:update")
   generateXml(@CurrentUser() user: JwtPayload, @Param("id") id: string) {
     return this.facturacionService.generateXml(user.organizationId, id);
   }
@@ -108,7 +108,7 @@ export class FacturacionController {
   // -------------------------------------------------------
 
   @Post("invoices/:id/cancel")
-  @Permissions("facturacion:edit")
+  @Permissions("facturacion:update")
   cancelInvoice(
     @CurrentUser() user: JwtPayload,
     @Param("id") id: string,

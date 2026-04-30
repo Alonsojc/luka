@@ -15,13 +15,13 @@ export class AttendanceController {
   constructor(private attendanceService: AttendanceService) {}
 
   @Post("clock-in")
-  @Permissions("nomina:edit")
+  @Permissions("nomina:update")
   clockIn(@CurrentUser() user: JwtPayload, @Body() body: { employeeId: string; branchId: string }) {
     return this.attendanceService.clockIn(user.organizationId, body.employeeId, body.branchId);
   }
 
   @Post("clock-out")
-  @Permissions("nomina:edit")
+  @Permissions("nomina:update")
   clockOut(@CurrentUser() user: JwtPayload, @Body() body: { employeeId: string }) {
     return this.attendanceService.clockOut(user.organizationId, body.employeeId);
   }
@@ -96,19 +96,19 @@ export class AttendanceController {
   }
 
   @Post("mark-absent")
-  @Permissions("nomina:edit")
+  @Permissions("nomina:update")
   markAbsent(@CurrentUser() user: JwtPayload, @Body() body: { employeeId: string; date: string }) {
     return this.attendanceService.markAbsent(user.organizationId, body.employeeId, body.date);
   }
 
   @Post("mark-holiday")
-  @Permissions("nomina:edit")
+  @Permissions("nomina:update")
   markHoliday(@CurrentUser() user: JwtPayload, @Body() body: { branchId: string; date: string }) {
     return this.attendanceService.markHoliday(user.organizationId, body.branchId, body.date);
   }
 
   @Put(":id")
-  @Permissions("nomina:edit")
+  @Permissions("nomina:update")
   editRecord(
     @CurrentUser() user: JwtPayload,
     @Param("id") id: string,

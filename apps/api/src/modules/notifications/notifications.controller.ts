@@ -45,7 +45,7 @@ export class NotificationsController {
   }
 
   @Post("send")
-  @Permissions("configuracion:edit")
+  @Permissions("configuracion:update")
   async send(
     @CurrentUser() user: JwtPayload,
     @Body()

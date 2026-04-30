@@ -33,7 +33,7 @@ export class SuppliersController {
   }
 
   @Patch(":id")
-  @Permissions("compras:edit")
+  @Permissions("compras:update")
   update(
     @CurrentUser() user: JwtPayload,
     @Param("id") id: string,

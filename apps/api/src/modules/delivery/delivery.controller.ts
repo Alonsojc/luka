@@ -56,7 +56,7 @@ export class DeliveryController {
   }
 
   @Patch("orders/:id/status")
-  @Permissions("delivery:edit")
+  @Permissions("delivery:update")
   updateOrderStatus(
     @CurrentUser() user: JwtPayload,
     @Param("id") id: string,
@@ -95,13 +95,13 @@ export class DeliveryController {
   }
 
   @Post("config")
-  @Permissions("delivery:edit")
+  @Permissions("delivery:update")
   upsertConfig(@CurrentUser() user: JwtPayload, @Body() dto: CreateDeliveryConfigDto) {
     return this.deliveryService.upsertConfig(user.organizationId, dto);
   }
 
   @Post("sync")
-  @Permissions("delivery:edit")
+  @Permissions("delivery:update")
   triggerSync(@CurrentUser() user: JwtPayload, @Body("platform") platform: string) {
     return this.deliveryService.triggerSync(user.organizationId, platform);
   }

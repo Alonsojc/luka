@@ -55,7 +55,7 @@ export class AccountsReceivableController {
   }
 
   @Post(":id/payment")
-  @Permissions("bancos:edit")
+  @Permissions("bancos:update")
   registerPayment(
     @CurrentUser() user: JwtPayload,
     @Param("id") id: string,

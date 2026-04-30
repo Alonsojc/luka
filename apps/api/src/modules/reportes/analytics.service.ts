@@ -3,6 +3,27 @@ import { PrismaService } from "../../common/prisma/prisma.service";
 import { CacheService } from "../../common/cache/cache.service";
 
 const TRENDS_TTL = 300; // 5 minutes
+type DataStatus = "OK" | "PARTIAL_DATA" | "NO_DATA";
+
+interface BranchComparisonRow {
+  name: string;
+  city: string;
+  inventoryValue: number;
+  employeeCount: number;
+  purchaseTotal: number;
+  salesTotal: number;
+  hasSalesData: boolean;
+}
+
+function getDataStatus(requiredSignals: boolean[]): DataStatus {
+  if (requiredSignals.every(Boolean)) return "OK";
+  if (requiredSignals.some(Boolean)) return "PARTIAL_DATA";
+  return "NO_DATA";
+}
+
+function round2(value: number): number {
+  return Math.round(value * 100) / 100;
+}
 
 @Injectable()
 export class AnalyticsService {
@@ -92,44 +113,38 @@ export class AnalyticsService {
       }
     }
 
-    // Generate mock data if no real sales exist
-    // Based on: 10 branches, avg ticket ~$180 MXN, ~80-120 tickets/branch/day
-    const branchCount = branches.length || 10;
-
     const sales: number[] = [];
     const expenses: number[] = [];
     const profit: number[] = [];
     const employeeCount: number[] = [];
 
     for (const range of monthRanges) {
-      let monthlySales: number;
-      let monthlyExpenses: number;
-
-      if (hasRealSales) {
-        monthlySales = salesByMonth.get(range.label) || 0;
-      } else {
-        // Mock: branches * ~100 tickets/day * 30 days * $180 avg ticket
-        const base = branchCount * 100 * 30 * 180;
-        const seasonality = 1 + 0.15 * Math.sin(((range.start.getMonth() - 2) * Math.PI) / 6);
-        const noise = 0.95 + Math.random() * 0.1;
-        monthlySales = Math.round(base * seasonality * noise);
-      }
-
-      if (hasRealExpenses) {
-        monthlyExpenses = expensesByMonth.get(range.label) || 0;
-      } else {
-        // Mock: expenses typically 55-65% of sales for food service
-        const costRatio = 0.55 + Math.random() * 0.1;
-        monthlyExpenses = Math.round(monthlySales * costRatio);
-      }
+      const monthlySales = salesByMonth.get(range.label) || 0;
+      const monthlyExpenses = expensesByMonth.get(range.label) || 0;
 
       sales.push(Math.round(monthlySales));
       expenses.push(Math.round(monthlyExpenses));
       profit.push(Math.round(monthlySales - monthlyExpenses));
-      employeeCount.push(activeEmployees || branchCount * 8);
+      employeeCount.push(activeEmployees);
     }
 
-    const result = { months, sales, expenses, profit, employeeCount };
+    const result = {
+      months,
+      sales,
+      expenses,
+      profit,
+      employeeCount,
+      dataStatus: getDataStatus([hasRealSales, hasRealExpenses]),
+      dataQuality: {
+        hasSales: hasRealSales,
+        hasExpenses: hasRealExpenses,
+        salesSources: {
+          corntech: corntechSales.length,
+          pos: posSales.length,
+        },
+        purchaseOrders: purchaseOrders.length,
+      },
+    };
     await this.cache.set(cacheKey, result, TRENDS_TTL);
     return result;
   }
@@ -147,7 +162,7 @@ export class AnalyticsService {
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
 
-    const result = [];
+    const result: BranchComparisonRow[] = [];
 
     for (const branch of branches) {
       // Inventory value
@@ -182,6 +197,7 @@ export class AnalyticsService {
           saleDate: { gte: startOfMonth, lte: endOfMonth },
         },
         _sum: { total: true },
+        _count: { id: true },
       });
 
       // Also PosSale
@@ -191,26 +207,35 @@ export class AnalyticsService {
           saleDate: { gte: startOfMonth, lte: endOfMonth },
         },
         _sum: { total: true },
+        _count: { id: true },
       });
 
       const realSales = Number(corntechAgg._sum.total || 0) + Number(posAgg._sum.total || 0);
+      const salesRecordCount = (corntechAgg._count.id || 0) + (posAgg._count.id || 0);
       const purchaseTotal = Number(poAgg._sum.total || 0);
-
-      // If no real sales, estimate from branch average
-      const salesTotal =
-        realSales > 0 ? realSales : Math.round(100 * 30 * 180 * (0.9 + Math.random() * 0.2));
 
       result.push({
         name: branch.name,
         city: branch.city,
-        inventoryValue: Math.round(inventoryValue * 100) / 100,
+        inventoryValue: round2(inventoryValue),
         employeeCount: empCount,
-        purchaseTotal: Math.round(purchaseTotal * 100) / 100,
-        salesTotal: Math.round(salesTotal * 100) / 100,
+        purchaseTotal: round2(purchaseTotal),
+        salesTotal: round2(realSales),
+        hasSalesData: salesRecordCount > 0,
       });
     }
 
-    return { branches: result };
+    const hasAnySales = result.some((branch) => branch.hasSalesData);
+    const hasAnyCosts = result.some((branch) => branch.purchaseTotal > 0);
+
+    return {
+      branches: result,
+      dataStatus: getDataStatus([hasAnySales, hasAnyCosts]),
+      dataQuality: {
+        hasSales: hasAnySales,
+        hasPurchaseOrders: hasAnyCosts,
+      },
+    };
   }
 
   // =========================================================================
@@ -228,7 +253,6 @@ export class AnalyticsService {
       select: { id: true },
     });
     const branchIds = branches.map((b) => b.id);
-    const branchCount = branches.length || 10;
 
     // --- Sales from both sources ---
     const currentCorntechSales = await this.prisma.corntechSale.aggregate({
@@ -254,6 +278,7 @@ export class AnalyticsService {
         saleDate: { gte: prevMonthStart, lte: prevMonthEnd },
       },
       _sum: { total: true },
+      _count: { id: true },
     });
     const prevPosSales = await this.prisma.posSale.aggregate({
       where: {
@@ -261,22 +286,20 @@ export class AnalyticsService {
         saleDate: { gte: prevMonthStart, lte: prevMonthEnd },
       },
       _sum: { total: true },
+      _count: { id: true },
     });
 
-    let currentMonthSales =
+    const currentMonthSales =
       Number(currentCorntechSales._sum.total || 0) + Number(currentPosSales._sum.total || 0);
-    let previousMonthSales =
+    const previousMonthSales =
       Number(prevCorntechSales._sum.total || 0) + Number(prevPosSales._sum.total || 0);
     const currentSaleCount =
       (currentCorntechSales._count.id || 0) + (currentPosSales._count.id || 0);
+    const previousSaleCount =
+      (prevCorntechSales._count.id || 0) + (prevPosSales._count.id || 0);
 
-    const hasRealSales = currentMonthSales > 0 || previousMonthSales > 0;
-
-    if (!hasRealSales) {
-      // Mock based on branch count
-      currentMonthSales = branchCount * 100 * 30 * 180;
-      previousMonthSales = Math.round(currentMonthSales * (0.92 + Math.random() * 0.08));
-    }
+    const hasCurrentSales = currentSaleCount > 0;
+    const hasPreviousSales = previousSaleCount > 0;
 
     const salesGrowth =
       previousMonthSales > 0
@@ -286,9 +309,7 @@ export class AnalyticsService {
     const averageTicket =
       currentSaleCount > 0
         ? Math.round((currentMonthSales / currentSaleCount) * 100) / 100
-        : hasRealSales
-          ? 0
-          : 180;
+        : 0;
 
     // --- Top selling products (from PosSaleItem) ---
     const topProducts = await this.prisma.posSaleItem.groupBy({
@@ -345,19 +366,9 @@ export class AnalyticsService {
         }));
     }
 
-    // If still nothing, generate mock top products
-    if (topSellingProducts.length === 0) {
-      topSellingProducts = [
-        { name: "Poke Bowl Clasico", quantity: 1850, revenue: 333000 },
-        { name: "Poke Bowl Premium", quantity: 1420, revenue: 312400 },
-        { name: "Poke Bowl Salmon", quantity: 1180, revenue: 271400 },
-        { name: "Limonada Natural", quantity: 2100, revenue: 105000 },
-        { name: "Poke Bowl Atun", quantity: 960, revenue: 220800 },
-      ];
-    }
-
     // --- Top branches by sales ---
     const branchSales: { name: string; sales: number }[] = [];
+    let branchSaleRecordCount = 0;
     const allBranches = await this.prisma.branch.findMany({
       where: { organizationId, isActive: true },
       select: { id: true, name: true },
@@ -370,6 +381,7 @@ export class AnalyticsService {
           saleDate: { gte: currentMonthStart, lte: currentMonthEnd },
         },
         _sum: { total: true },
+        _count: { id: true },
       });
       const pAgg = await this.prisma.posSale.aggregate({
         where: {
@@ -377,14 +389,13 @@ export class AnalyticsService {
           saleDate: { gte: currentMonthStart, lte: currentMonthEnd },
         },
         _sum: { total: true },
+        _count: { id: true },
       });
       const bSales = Number(cAgg._sum.total || 0) + Number(pAgg._sum.total || 0);
+      branchSaleRecordCount += (cAgg._count.id || 0) + (pAgg._count.id || 0);
       branchSales.push({
         name: br.name,
-        sales:
-          bSales > 0
-            ? Math.round(bSales * 100) / 100
-            : Math.round(100 * 30 * 180 * (0.8 + Math.random() * 0.4)),
+        sales: round2(bSales),
       });
     }
 
@@ -413,9 +424,7 @@ export class AnalyticsService {
     const inventoryTurnover =
       avgInventoryValue > 0
         ? Math.round((cogs / avgInventoryValue) * 100) / 100
-        : hasRealSales
-          ? 0
-          : 2.8;
+        : 0;
 
     // --- Cash position (bank balances) ---
     const bankAgg = await this.prisma.bankAccount.aggregate({
@@ -458,13 +467,11 @@ export class AnalyticsService {
     const employeeCostRatio =
       currentMonthSales > 0
         ? Math.round((payrollCost / currentMonthSales) * 10000) / 100
-        : hasRealSales
-          ? 0
-          : 18.5;
+        : 0;
 
     return {
-      currentMonthSales: Math.round(currentMonthSales * 100) / 100,
-      previousMonthSales: Math.round(previousMonthSales * 100) / 100,
+      currentMonthSales: round2(currentMonthSales),
+      previousMonthSales: round2(previousMonthSales),
       salesGrowth,
       averageTicket,
       topSellingProducts,
@@ -474,6 +481,23 @@ export class AnalyticsService {
       accountsPayable,
       accountsReceivable,
       employeeCostRatio,
+      dataStatus: getDataStatus([
+        hasCurrentSales,
+        hasPreviousSales,
+        topSellingProducts.length > 0,
+        branchSaleRecordCount > 0,
+      ]),
+      dataQuality: {
+        hasCurrentSales,
+        hasPreviousSales,
+        hasProductSales: topSellingProducts.length > 0,
+        hasBranchSales: branchSaleRecordCount > 0,
+        salesSources: {
+          currentCorntech: currentCorntechSales._count.id || 0,
+          currentPos: currentPosSales._count.id || 0,
+        },
+        salesGrowthAvailable: previousSaleCount > 0,
+      },
     };
   }
 }

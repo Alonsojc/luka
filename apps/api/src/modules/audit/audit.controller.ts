@@ -71,7 +71,7 @@ export class AuditController {
   }
 
   @Delete("clean")
-  @Permissions("configuracion:edit")
+  @Permissions("configuracion:update")
   cleanOld(@CurrentUser() caller: JwtPayload, @Body() body: { olderThanDays: number }) {
     const olderThan = new Date();
     olderThan.setDate(olderThan.getDate() - body.olderThanDays);

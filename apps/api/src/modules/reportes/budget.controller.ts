@@ -14,7 +14,7 @@ export class BudgetController {
   constructor(private budgetService: BudgetService) {}
 
   @Post("set")
-  @Permissions("reportes:edit")
+  @Permissions("reportes:update")
   setBudget(
     @CurrentUser() user: JwtPayload,
     @Body()
@@ -31,7 +31,7 @@ export class BudgetController {
   }
 
   @Post("set-bulk")
-  @Permissions("reportes:edit")
+  @Permissions("reportes:update")
   setBulkBudgets(
     @CurrentUser() user: JwtPayload,
     @Body()
@@ -99,7 +99,7 @@ export class BudgetController {
   }
 
   @Post("copy")
-  @Permissions("reportes:edit")
+  @Permissions("reportes:update")
   copyBudget(
     @CurrentUser() user: JwtPayload,
     @Body()

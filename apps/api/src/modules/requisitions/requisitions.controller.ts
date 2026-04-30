@@ -55,7 +55,7 @@ export class RequisitionsController {
   }
 
   @Patch(":id")
-  @Permissions("inventarios:edit")
+  @Permissions("inventarios:update")
   update(
     @CurrentUser() user: JwtPayload,
     @Param("id") id: string,
@@ -71,7 +71,7 @@ export class RequisitionsController {
   }
 
   @Post(":id/approve")
-  @Permissions("inventarios:edit")
+  @Permissions("inventarios:update")
   approve(
     @CurrentUser() user: JwtPayload,
     @Param("id") id: string,
@@ -81,7 +81,7 @@ export class RequisitionsController {
   }
 
   @Post(":id/reject")
-  @Permissions("inventarios:edit")
+  @Permissions("inventarios:update")
   reject(
     @CurrentUser() user: JwtPayload,
     @Param("id") id: string,
@@ -91,13 +91,13 @@ export class RequisitionsController {
   }
 
   @Post(":id/fulfill")
-  @Permissions("inventarios:edit")
+  @Permissions("inventarios:update")
   fulfill(@CurrentUser() user: JwtPayload, @Param("id") id: string) {
     return this.requisitionsService.fulfill(id, user.sub, user.organizationId);
   }
 
   @Post(":id/cancel")
-  @Permissions("inventarios:edit")
+  @Permissions("inventarios:update")
   cancel(@CurrentUser() user: JwtPayload, @Param("id") id: string) {
     return this.requisitionsService.cancel(id, user.sub, user.organizationId);
   }

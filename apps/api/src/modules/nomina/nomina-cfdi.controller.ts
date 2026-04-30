@@ -21,13 +21,13 @@ export class NominaCfdiController {
   }
 
   @Post("generate/:receiptId")
-  @Permissions("nomina:edit")
+  @Permissions("nomina:update")
   generate(@CurrentUser() user: JwtPayload, @Param("receiptId") receiptId: string) {
     return this.nominaCfdiService.generatePayrollCfdi(user.organizationId, receiptId);
   }
 
   @Post("generate-batch/:periodId")
-  @Permissions("nomina:edit")
+  @Permissions("nomina:update")
   generateBatch(@CurrentUser() user: JwtPayload, @Param("periodId") periodId: string) {
     return this.nominaCfdiService.generateBatchCfdi(user.organizationId, periodId);
   }

@@ -12,6 +12,9 @@ export const MODULES = [
   "crm",
   "corntech",
   "configuracion",
+  "delivery",
+  "merma",
+  "lealtad",
 ] as const;
 
 export type Module = (typeof MODULES)[number];
@@ -65,6 +68,15 @@ export const ROLE_PERMISSIONS: Record<SystemRole, Permission[]> = {
     "crm:update",
     "corntech:view",
     "usuarios:view",
+    "delivery:view",
+    "delivery:create",
+    "delivery:update",
+    "merma:view",
+    "merma:create",
+    "merma:update",
+    "lealtad:view",
+    "lealtad:create",
+    "lealtad:update",
   ],
 
   branch_manager: [
@@ -80,6 +92,12 @@ export const ROLE_PERMISSIONS: Record<SystemRole, Permission[]> = {
     "crm:create",
     "crm:update",
     "corntech:view",
+    "delivery:view",
+    "delivery:create",
+    "merma:view",
+    "merma:create",
+    "lealtad:view",
+    "lealtad:create",
   ],
 
   accountant: [

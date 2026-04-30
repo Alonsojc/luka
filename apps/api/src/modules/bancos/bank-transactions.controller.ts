@@ -42,7 +42,7 @@ export class BankTransactionsController {
   }
 
   @Patch(":id/reconcile")
-  @Permissions("bancos:edit")
+  @Permissions("bancos:update")
   reconcile(
     @Param("id") id: string,
     @Body() body: { reconciledWithType: string; reconciledWithId: string },

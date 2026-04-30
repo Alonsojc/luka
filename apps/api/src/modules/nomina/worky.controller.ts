@@ -20,7 +20,7 @@ export class WorkyController {
   }
 
   @Put("config")
-  @Permissions("nomina:edit")
+  @Permissions("nomina:update")
   saveConfig(
     @CurrentUser() user: JwtPayload,
     @Body()
@@ -34,19 +34,19 @@ export class WorkyController {
   }
 
   @Post("test-connection")
-  @Permissions("nomina:edit")
+  @Permissions("nomina:update")
   testConnection(@CurrentUser() user: JwtPayload) {
     return this.workyService.testConnection(user.organizationId);
   }
 
   @Post("sync/employees")
-  @Permissions("nomina:edit")
+  @Permissions("nomina:update")
   syncEmployees(@CurrentUser() user: JwtPayload) {
     return this.workyService.syncEmployees(user.organizationId);
   }
 
   @Post("import/csv")
-  @Permissions("nomina:edit")
+  @Permissions("nomina:update")
   importCsv(
     @CurrentUser() user: JwtPayload,
     @Body() body: { csvContent: string; branchId: string },

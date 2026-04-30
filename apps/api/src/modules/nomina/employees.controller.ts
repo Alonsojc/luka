@@ -82,7 +82,7 @@ export class EmployeesController {
   }
 
   @Patch(":id")
-  @Permissions("nomina:edit")
+  @Permissions("nomina:update")
   update(
     @CurrentUser() user: JwtPayload,
     @Param("id") id: string,
@@ -92,7 +92,7 @@ export class EmployeesController {
   }
 
   @Patch(":id/terminate")
-  @Permissions("nomina:edit")
+  @Permissions("nomina:update")
   terminate(
     @CurrentUser() user: JwtPayload,
     @Param("id") id: string,

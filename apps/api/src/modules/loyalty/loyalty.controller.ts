@@ -27,7 +27,7 @@ export class LoyaltyController {
   }
 
   @Put("program")
-  @Permissions("crm:edit")
+  @Permissions("crm:update")
   updateProgram(@CurrentUser() user: JwtPayload, @Body() body: UpdateProgramDto) {
     return this.loyaltyService.updateProgram(user.organizationId, body);
   }
@@ -61,7 +61,7 @@ export class LoyaltyController {
   }
 
   @Post("adjust")
-  @Permissions("crm:edit")
+  @Permissions("crm:update")
   adjustPoints(@CurrentUser() user: JwtPayload, @Body() body: AdjustPointsDto) {
     return this.loyaltyService.adjustPoints(user.organizationId, body);
   }
@@ -81,7 +81,7 @@ export class LoyaltyController {
   }
 
   @Patch("rewards/:id")
-  @Permissions("crm:edit")
+  @Permissions("crm:update")
   updateReward(
     @CurrentUser() user: JwtPayload,
     @Param("id") id: string,

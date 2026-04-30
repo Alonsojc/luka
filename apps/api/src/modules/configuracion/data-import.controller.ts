@@ -14,7 +14,7 @@ export class DataImportController {
   constructor(private dataImportService: DataImportService) {}
 
   @Post("validate")
-  @Permissions("configuracion:edit")
+  @Permissions("configuracion:update")
   validate(
     @CurrentUser() user: JwtPayload,
     @Body() body: { importType: string; csvContent: string },
@@ -27,7 +27,7 @@ export class DataImportController {
   }
 
   @Post("execute")
-  @Permissions("configuracion:edit")
+  @Permissions("configuracion:update")
   async execute(
     @CurrentUser() user: JwtPayload,
     @Body()

@@ -62,7 +62,7 @@ export class DeclarationsController {
   }
 
   @Post("mark-filed")
-  @Permissions("contabilidad:edit")
+  @Permissions("contabilidad:update")
   markFiled(
     @CurrentUser() user: JwtPayload,
     @Body()

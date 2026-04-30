@@ -78,19 +78,19 @@ export class LotsController {
   }
 
   @Post()
-  @Permissions("inventarios:edit")
+  @Permissions("inventarios:update")
   createLot(@CurrentUser() user: JwtPayload, @Body() dto: CreateLotDto) {
     return this.lotsService.createLot(user.organizationId, user.sub, dto);
   }
 
   @Post("auto-expire")
-  @Permissions("inventarios:edit")
+  @Permissions("inventarios:update")
   autoExpire(@CurrentUser() user: JwtPayload) {
     return this.lotsService.autoExpireLots(user.organizationId);
   }
 
   @Post(":id/consume")
-  @Permissions("inventarios:edit")
+  @Permissions("inventarios:update")
   consumeFromLot(
     @CurrentUser() user: JwtPayload,
     @Param("id") id: string,
@@ -100,7 +100,7 @@ export class LotsController {
   }
 
   @Post(":id/dispose")
-  @Permissions("inventarios:edit")
+  @Permissions("inventarios:update")
   disposeLot(
     @CurrentUser() user: JwtPayload,
     @Param("id") id: string,
@@ -110,7 +110,7 @@ export class LotsController {
   }
 
   @Patch(":id")
-  @Permissions("inventarios:edit")
+  @Permissions("inventarios:update")
   updateLot(@CurrentUser() user: JwtPayload, @Param("id") id: string, @Body() dto: UpdateLotDto) {
     return this.lotsService.updateLot(user.organizationId, id, dto);
   }

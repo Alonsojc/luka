@@ -49,19 +49,19 @@ export class TransfersController {
   }
 
   @Patch(":id/approve")
-  @Permissions("inventarios:edit")
+  @Permissions("inventarios:update")
   approve(@CurrentUser() user: JwtPayload, @Param("id") id: string) {
     return this.transfersService.approve(id, user.sub, user.organizationId);
   }
 
   @Patch(":id/ship")
-  @Permissions("inventarios:edit")
+  @Permissions("inventarios:update")
   ship(@CurrentUser() user: JwtPayload, @Param("id") id: string, @Body() dto: ShipTransferDto) {
     return this.transfersService.ship(id, dto, user.sub, user.organizationId);
   }
 
   @Patch(":id/receive")
-  @Permissions("inventarios:edit")
+  @Permissions("inventarios:update")
   receive(
     @CurrentUser() user: JwtPayload,
     @Param("id") id: string,
@@ -71,7 +71,7 @@ export class TransfersController {
   }
 
   @Patch(":id/cancel")
-  @Permissions("inventarios:edit")
+  @Permissions("inventarios:update")
   cancel(@CurrentUser() user: JwtPayload, @Param("id") id: string) {
     return this.transfersService.cancel(id, user.sub, user.organizationId);
   }

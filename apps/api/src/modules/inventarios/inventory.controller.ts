@@ -49,7 +49,7 @@ export class InventoryController {
   }
 
   @Post("adjust")
-  @Permissions("inventarios:edit")
+  @Permissions("inventarios:update")
   adjustStock(
     @CurrentUser() user: JwtPayload,
     @Body()

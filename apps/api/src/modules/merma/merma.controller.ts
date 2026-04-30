@@ -73,19 +73,19 @@ export class MermaController {
   }
 
   @Post()
-  @Permissions("inventarios:edit")
+  @Permissions("inventarios:update")
   create(@CurrentUser() user: JwtPayload, @Body() dto: CreateMermaDto) {
     return this.mermaService.create(user.organizationId, user.sub, dto);
   }
 
   @Patch(":id")
-  @Permissions("inventarios:edit")
+  @Permissions("inventarios:update")
   update(@CurrentUser() user: JwtPayload, @Param("id") id: string, @Body() dto: UpdateMermaDto) {
     return this.mermaService.update(user.organizationId, id, dto);
   }
 
   @Delete(":id")
-  @Permissions("inventarios:edit")
+  @Permissions("inventarios:update")
   remove(@CurrentUser() user: JwtPayload, @Param("id") id: string) {
     return this.mermaService.remove(user.organizationId, id);
   }
