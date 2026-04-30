@@ -15,6 +15,8 @@ export const DEFAULT_TEMPLATES: Record<string, string> = {
     "\ud83d\udeb4 *Nuevo Pedido Delivery*\n\n\ud83d\udccd {{branchName}}\n\ud83d\udcf1 Plataforma: {{platform}}\n\ud83d\udc64 Cliente: {{customerName}}\n\ud83d\udcb0 Total: ${{total}}\n\n_Luka System_",
   DAILY_SUMMARY:
     "\ud83d\udcca *Resumen Diario - {{date}}*\n\n\ud83d\udcb0 Ventas: ${{totalSales}}\n\ud83d\udce6 Requisiciones pendientes: {{pendingRequisitions}}\n\u26a0\ufe0f Productos bajo m\u00ednimo: {{lowStockCount}}\n\ud83d\udd34 Lotes por vencer: {{expiringLots}}\n\ud83d\udccb Transferencias activas: {{activeTransfers}}\n\n_Luka System_",
+  OPERATIONAL_RECONCILIATION:
+    "*Reconciliacion operativa - {{startDate}} a {{endDate}}*\n\nSucursal: {{branchName}}\nIncidencias: {{issueCount}}\nPOS vs inventario: {{posIssueCount}}\nCEDIS vs sucursal: {{cedisIssueCount}}\nFood cost: {{foodCostIssueCount}}\nDelivery neto: {{deliveryIssueCount}}\nVenta neta delivery: {{deliveryNetRevenue}}\n\nRevisar: {{reportUrl}}\n\n_Luka System_",
 };
 
 @Injectable()

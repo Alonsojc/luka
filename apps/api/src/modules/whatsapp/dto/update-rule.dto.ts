@@ -14,6 +14,7 @@ export class UpdateAlertRuleDto {
     "REQUISITION_APPROVED",
     "DELIVERY_NEW",
     "DAILY_SUMMARY",
+    "OPERATIONAL_RECONCILIATION",
   ])
   eventType?: string;
 

@@ -94,6 +94,7 @@ const EVENT_TYPES = [
   { value: "REQUISITION_APPROVED", label: "Requisicion Aprobada" },
   { value: "DELIVERY_NEW", label: "Nuevo Pedido Delivery" },
   { value: "DAILY_SUMMARY", label: "Resumen Diario" },
+  { value: "OPERATIONAL_RECONCILIATION", label: "Reconciliacion Operativa" },
 ];
 
 const EVENT_LABEL: Record<string, string> = {};
@@ -122,6 +123,18 @@ const EVENT_VARIABLES: Record<string, string[]> = {
     "lowStockCount",
     "expiringLots",
     "activeTransfers",
+  ],
+  OPERATIONAL_RECONCILIATION: [
+    "startDate",
+    "endDate",
+    "branchName",
+    "issueCount",
+    "posIssueCount",
+    "cedisIssueCount",
+    "foodCostIssueCount",
+    "deliveryIssueCount",
+    "deliveryNetRevenue",
+    "reportUrl",
   ],
 };
 
@@ -891,6 +904,47 @@ export default function AlertasPage() {
                 placeholder="7"
               />
             </FormField>
+          )}
+
+          {ruleForm.eventType === "OPERATIONAL_RECONCILIATION" && (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <FormField label="Dias a revisar">
+                <Input
+                  type="number"
+                  min={1}
+                  max={30}
+                  value={ruleForm.conditions.lookbackDays ?? 1}
+                  onChange={(e) =>
+                    setRuleForm((f) => ({
+                      ...f,
+                      conditions: {
+                        ...f.conditions,
+                        lookbackDays: parseInt(e.target.value) || 1,
+                      },
+                    }))
+                  }
+                  placeholder="1"
+                />
+              </FormField>
+              <FormField label="Minimo de incidencias">
+                <Input
+                  type="number"
+                  min={1}
+                  max={999}
+                  value={ruleForm.conditions.minIssueCount ?? 1}
+                  onChange={(e) =>
+                    setRuleForm((f) => ({
+                      ...f,
+                      conditions: {
+                        ...f.conditions,
+                        minIssueCount: parseInt(e.target.value) || 1,
+                      },
+                    }))
+                  }
+                  placeholder="1"
+                />
+              </FormField>
+            </div>
           )}
 
           {/* Recipients */}
