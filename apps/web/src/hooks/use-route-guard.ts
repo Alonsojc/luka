@@ -14,6 +14,7 @@ export function useRouteGuard() {
   const pathname = usePathname();
 
   useEffect(() => {
+    if (!pathname) return;
     const user = getUser();
     if (!user) return; // auth redirect is handled elsewhere
     if (!canAccessRoute(user, pathname)) {
