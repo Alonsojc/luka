@@ -6,7 +6,7 @@ import { TenantContextService } from "../tenant/tenant-context.service";
 import { TenantInterceptor } from "./tenant.interceptor";
 
 describe("TenantInterceptor", () => {
-  const createContext = (user?: JwtPayload): ExecutionContext =>
+  const createContext = (user?: Partial<JwtPayload>): ExecutionContext =>
     ({
       switchToHttp: () => ({
         getRequest: () => ({ user }),
@@ -17,7 +17,11 @@ describe("TenantInterceptor", () => {
     handle: () =>
       new Observable<string>((subscriber) => {
         setTimeout(() => {
-          subscriber.next(tenantContext.getOrganizationId() ?? "missing");
+          subscriber.next(
+            `${tenantContext.getOrganizationId() ?? "missing"}:${
+              tenantContext.isTenantRequired() ? "required" : "optional"
+            }`,
+          );
           subscriber.complete();
         }, delayMs);
       }),
@@ -39,7 +43,7 @@ describe("TenantInterceptor", () => {
       ),
     );
 
-    expect(result).toBe("org-1");
+    expect(result).toBe("org-1:required");
   });
 
   it("keeps concurrent requests isolated", async () => {
@@ -61,7 +65,36 @@ describe("TenantInterceptor", () => {
 
     const [first, second] = await Promise.all([runRequest("org-1", 25), runRequest("org-2", 5)]);
 
-    expect(first).toBe("org-1");
-    expect(second).toBe("org-2");
+    expect(first).toBe("org-1:required");
+    expect(second).toBe("org-2:required");
+  });
+
+  it("marks unauthenticated requests as tenant-optional", async () => {
+    const tenantContext = new TenantContextService();
+    const interceptor = new TenantInterceptor(tenantContext);
+
+    const result = await lastValueFrom(
+      interceptor.intercept(createContext(), createHandler(tenantContext, 0)),
+    );
+
+    expect(result).toBe("missing:optional");
+  });
+
+  it("marks authenticated requests without organizationId as tenant-required", async () => {
+    const tenantContext = new TenantContextService();
+    const interceptor = new TenantInterceptor(tenantContext);
+
+    const result = await lastValueFrom(
+      interceptor.intercept(
+        createContext({
+          sub: "user-1",
+          email: "test@luka.mx",
+          roles: [],
+        }),
+        createHandler(tenantContext, 0),
+      ),
+    );
+
+    expect(result).toBe("missing:required");
   });
 });
