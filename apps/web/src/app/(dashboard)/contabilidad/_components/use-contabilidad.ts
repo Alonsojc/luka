@@ -19,17 +19,29 @@ import type {
   DeclarationSummary,
   AnnualSummary,
 } from "./types";
-import {
-  emptyAccountForm,
-  emptyJournalForm,
-  safeNum,
-  TABS,
-} from "./types";
+import { emptyAccountForm, emptyJournalForm, safeNum, TABS } from "./types";
 
 export function useContabilidad() {
   const { authFetch, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState(TABS[0]);
+
+  useEffect(() => {
+    const tab = new URLSearchParams(window.location.search).get("tab");
+    const aliases: Record<string, string> = {
+      catalogo: TABS[0],
+      polizas: TABS[1],
+      "auto-polizas": TABS[2],
+      balanza: TABS[3],
+      estados: TABS[4],
+      diot: TABS[5],
+      declaraciones: TABS[6],
+    };
+    const target = tab ? aliases[tab] : undefined;
+    if (target) {
+      setActiveTab(target);
+    }
+  }, []);
 
   // ---- shared data ----
   const [accounts, setAccounts] = useState<Account[]>([]);
