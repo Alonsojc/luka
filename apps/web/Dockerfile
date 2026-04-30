@@ -21,6 +21,7 @@ COPY . .
 RUN pnpm --filter @luka/shared build
 # Build Next.js with standalone output
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV NODE_ENV=production
 # API URL is baked at build time for Next.js client-side code
 ARG NEXT_PUBLIC_API_URL=/api
 ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
