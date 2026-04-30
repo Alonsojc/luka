@@ -226,6 +226,44 @@ describe("PurchaseOrdersService", () => {
         }),
       });
     });
+
+    it("should reject zero received quantity", async () => {
+      mockPrisma.purchaseOrder.findFirst.mockResolvedValue({
+        ...mockPO,
+        status: "SENT",
+      });
+
+      await expect(
+        service.receive(ORG_ID, "po-1", USER_ID, [{ itemId: "item-1", receivedQuantity: 0 }]),
+      ).rejects.toThrow(BadRequestException);
+      expect(mockPrisma.purchaseOrderItem.update).not.toHaveBeenCalled();
+    });
+
+    it("should reject receiving more than pending quantity", async () => {
+      mockPrisma.purchaseOrder.findFirst.mockResolvedValue({
+        ...mockPO,
+        status: "PARTIALLY_RECEIVED",
+        items: [{ ...mockPO.items[0], quantity: 10, receivedQuantity: 7 }],
+      });
+
+      await expect(
+        service.receive(ORG_ID, "po-1", USER_ID, [{ itemId: "item-1", receivedQuantity: 4 }]),
+      ).rejects.toThrow(BadRequestException);
+      expect(mockPrisma.branchInventory.upsert).not.toHaveBeenCalled();
+      expect(mockPrisma.inventoryMovement.create).not.toHaveBeenCalled();
+    });
+
+    it("should reject unknown purchase order items instead of silently skipping", async () => {
+      mockPrisma.purchaseOrder.findFirst.mockResolvedValue({
+        ...mockPO,
+        status: "SENT",
+      });
+
+      await expect(
+        service.receive(ORG_ID, "po-1", USER_ID, [{ itemId: "missing-item", receivedQuantity: 1 }]),
+      ).rejects.toThrow(BadRequestException);
+      expect(mockPrisma.purchaseOrderItem.update).not.toHaveBeenCalled();
+    });
   });
 
   describe("remove", () => {

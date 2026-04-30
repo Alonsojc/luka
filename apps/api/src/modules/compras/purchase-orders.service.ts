@@ -2,6 +2,8 @@ import { Injectable, NotFoundException, BadRequestException } from "@nestjs/comm
 import { PrismaService } from "../../common/prisma/prisma.service";
 import { PurchaseOrderStatus } from "@luka/database";
 
+const DECIMAL_EPSILON = 0.0001;
+
 @Injectable()
 export class PurchaseOrdersService {
   constructor(private prisma: PrismaService) {}
@@ -189,16 +191,15 @@ export class PurchaseOrdersService {
       );
     }
 
-    return this.prisma.$transaction(async (tx) => {
-      for (const item of items) {
-        const poItem = po.items.find((i) => i.id === item.itemId);
-        if (!poItem) continue;
+    const receiptItems = this.validateReceiptItems(po.items, items);
 
+    return this.prisma.$transaction(async (tx) => {
+      for (const { poItem, receivedQuantity } of receiptItems) {
         await tx.purchaseOrderItem.update({
-          where: { id: item.itemId },
+          where: { id: poItem.id },
           data: {
             receivedQuantity: {
-              increment: item.receivedQuantity,
+              increment: receivedQuantity,
             },
           },
         });
@@ -212,12 +213,12 @@ export class PurchaseOrdersService {
             },
           },
           update: {
-            currentQuantity: { increment: item.receivedQuantity },
+            currentQuantity: { increment: receivedQuantity },
           },
           create: {
             branchId: po.branchId,
             productId: poItem.productId,
-            currentQuantity: item.receivedQuantity,
+            currentQuantity: receivedQuantity,
           },
         });
 
@@ -226,8 +227,8 @@ export class PurchaseOrdersService {
             branchId: po.branchId,
             productId: poItem.productId,
             movementType: "IN",
-            quantity: item.receivedQuantity,
-            unitCost: poItem.unitPrice,
+            quantity: receivedQuantity,
+            unitCost: this.toNumber(poItem.unitPrice),
             referenceType: "purchase_order",
             referenceId: id,
             userId,
@@ -268,5 +269,65 @@ export class PurchaseOrdersService {
       where: { id },
       data: { status: PurchaseOrderStatus.CANCELLED },
     });
+  }
+
+  private validateReceiptItems(
+    poItems: Array<{
+      id: string;
+      quantity: unknown;
+      receivedQuantity: unknown;
+      productId: string;
+      unitPrice: unknown;
+    }>,
+    items: Array<{ itemId: string; receivedQuantity: number }>,
+  ) {
+    if (!items || items.length === 0) {
+      throw new BadRequestException("Debe indicar al menos un producto recibido");
+    }
+
+    const poItemMap = new Map(poItems.map((item) => [item.id, item]));
+    const seen = new Set<string>();
+
+    return items.map((item) => {
+      if (seen.has(item.itemId)) {
+        throw new BadRequestException(`Item duplicado en recepción: ${item.itemId}`);
+      }
+      seen.add(item.itemId);
+
+      const poItem = poItemMap.get(item.itemId);
+      if (!poItem) {
+        throw new BadRequestException(`Item de orden de compra ${item.itemId} no encontrado`);
+      }
+
+      const receivedQuantity = this.normalizePositiveQuantity(item.receivedQuantity);
+      const orderedQuantity = this.toNumber(poItem.quantity);
+      const alreadyReceived = this.toNumber(poItem.receivedQuantity);
+      const remainingQuantity = this.roundQuantity(orderedQuantity - alreadyReceived);
+
+      if (receivedQuantity > remainingQuantity + DECIMAL_EPSILON) {
+        throw new BadRequestException(
+          `Cantidad recibida (${receivedQuantity}) excede pendiente (${remainingQuantity}) para el item ${item.itemId}`,
+        );
+      }
+
+      return { poItem, receivedQuantity };
+    });
+  }
+
+  private normalizePositiveQuantity(quantity: number): number {
+    const normalized = this.roundQuantity(Number(quantity));
+    if (!Number.isFinite(normalized) || normalized <= 0) {
+      throw new BadRequestException("La cantidad recibida debe ser mayor a cero");
+    }
+    return normalized;
+  }
+
+  private roundQuantity(quantity: number): number {
+    return Math.round(quantity * 10000) / 10000;
+  }
+
+  private toNumber(value: unknown): number {
+    if (value === null || value === undefined) return 0;
+    return Number(value);
   }
 }

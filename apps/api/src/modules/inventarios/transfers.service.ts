@@ -6,6 +6,8 @@ import { CreateTransferDto } from "./dto/create-transfer.dto";
 import { ShipTransferDto } from "./dto/ship-transfer.dto";
 import { ReceiveTransferDto } from "./dto/receive-transfer.dto";
 
+const DECIMAL_EPSILON = 0.0001;
+
 const TRANSFER_INCLUDE = {
   fromBranch: { select: { id: true, name: true, code: true } },
   toBranch: { select: { id: true, name: true, code: true } },
@@ -175,11 +177,12 @@ export class TransfersService {
       throw new BadRequestException("Solo se pueden enviar transferencias aprobadas");
     }
 
+    const shipmentItems = this.buildShipmentItems(transfer.items, dto.items);
+
     // Validate stock availability at origin branch
-    for (const item of dto.items) {
-      const transferItem = transfer.items.find((ti) => ti.id === item.itemId);
-      if (!transferItem) {
-        throw new BadRequestException(`Item de transferencia ${item.itemId} no encontrado`);
+    for (const { transferItem, sentQuantity } of shipmentItems) {
+      if (sentQuantity <= 0) {
+        continue;
       }
 
       const inventory = await this.prisma.branchInventory.findUnique({
@@ -192,25 +195,26 @@ export class TransfersService {
       });
 
       const available = inventory ? Number(inventory.currentQuantity) : 0;
-      if (available < item.sentQuantity) {
+      if (available + DECIMAL_EPSILON < sentQuantity) {
         throw new BadRequestException(
-          `Stock insuficiente para ${transferItem.product.name}. Disponible: ${available}, Solicitado: ${item.sentQuantity}`,
+          `Stock insuficiente para ${transferItem.product.name}. Disponible: ${available}, Solicitado: ${sentQuantity}`,
         );
       }
     }
 
     const result = await this.prisma.$transaction(async (tx) => {
-      for (const item of dto.items) {
+      for (const { transferItem, sentQuantity } of shipmentItems) {
         await tx.interBranchTransferItem.update({
-          where: { id: item.itemId },
-          data: { sentQuantity: item.sentQuantity },
+          where: { id: transferItem.id },
+          data: { sentQuantity },
         });
       }
 
       // Deduct from source branch inventory
-      for (const transferItem of transfer.items) {
-        const sentItem = dto.items.find((i) => i.itemId === transferItem.id);
-        if (!sentItem) continue;
+      for (const { transferItem, sentQuantity } of shipmentItems) {
+        if (sentQuantity <= 0) {
+          continue;
+        }
 
         await tx.branchInventory.update({
           where: {
@@ -220,18 +224,23 @@ export class TransfersService {
             },
           },
           data: {
-            currentQuantity: { decrement: sentItem.sentQuantity },
+            currentQuantity: { decrement: sentQuantity },
           },
         });
 
+        const requestedQuantity = this.toNumber(transferItem.requestedQuantity);
         await tx.inventoryMovement.create({
           data: {
             branchId: transfer.fromBranchId,
             productId: transferItem.productId,
             movementType: "TRANSFER_OUT",
-            quantity: sentItem.sentQuantity,
+            quantity: sentQuantity,
             referenceType: "inter_branch_transfer",
             referenceId: id,
+            notes:
+              sentQuantity + DECIMAL_EPSILON < requestedQuantity
+                ? `Envio parcial: solicitado ${requestedQuantity}, enviado ${sentQuantity}`
+                : undefined,
           },
         });
       }
@@ -262,18 +271,21 @@ export class TransfersService {
       throw new BadRequestException("Solo se pueden recibir transferencias en transito");
     }
 
+    const receiptItems = this.buildReceiptItems(transfer.items, dto.items);
+
     const result = await this.prisma.$transaction(async (tx) => {
-      for (const item of dto.items) {
+      for (const { transferItem, receivedQuantity } of receiptItems) {
         await tx.interBranchTransferItem.update({
-          where: { id: item.itemId },
-          data: { receivedQuantity: item.receivedQuantity },
+          where: { id: transferItem.id },
+          data: { receivedQuantity },
         });
       }
 
       // Add to destination branch inventory
-      for (const transferItem of transfer.items) {
-        const recvItem = dto.items.find((i) => i.itemId === transferItem.id);
-        if (!recvItem) continue;
+      for (const { transferItem, receivedQuantity } of receiptItems) {
+        if (receivedQuantity <= 0) {
+          continue;
+        }
 
         await tx.branchInventory.upsert({
           where: {
@@ -283,28 +295,33 @@ export class TransfersService {
             },
           },
           update: {
-            currentQuantity: { increment: recvItem.receivedQuantity },
+            currentQuantity: { increment: receivedQuantity },
           },
           create: {
             branchId: transfer.toBranchId,
             productId: transferItem.productId,
-            currentQuantity: recvItem.receivedQuantity,
+            currentQuantity: receivedQuantity,
           },
         });
 
+        const sentQuantity = this.toNumber(transferItem.sentQuantity);
         await tx.inventoryMovement.create({
           data: {
             branchId: transfer.toBranchId,
             productId: transferItem.productId,
             movementType: "TRANSFER_IN",
-            quantity: recvItem.receivedQuantity,
+            quantity: receivedQuantity,
             referenceType: "inter_branch_transfer",
             referenceId: id,
+            notes:
+              receivedQuantity + DECIMAL_EPSILON < sentQuantity
+                ? `Diferencia recepcion: enviado ${sentQuantity}, recibido ${receivedQuantity}`
+                : undefined,
           },
         });
       }
 
-      return tx.interBranchTransfer.update({
+      const updatedTransfer = await tx.interBranchTransfer.update({
         where: { id },
         data: {
           status: TransferStatus.RECEIVED,
@@ -312,6 +329,10 @@ export class TransfersService {
         },
         include: TRANSFER_INCLUDE,
       });
+
+      await this.updateLinkedRequisitionStatus(tx, organizationId, id, receiptItems);
+
+      return updatedTransfer;
     });
 
     await this.audit.log({
@@ -396,5 +417,156 @@ export class TransfersService {
     });
 
     return this.findOne(id);
+  }
+
+  private buildShipmentItems(
+    transferItems: Array<{
+      id: string;
+      requestedQuantity: unknown;
+      productId: string;
+      product: { name: string };
+    }>,
+    dtoItems: Array<{ itemId: string; sentQuantity: number }>,
+  ) {
+    if (!dtoItems || dtoItems.length === 0) {
+      throw new BadRequestException("Debe indicar al menos un producto enviado");
+    }
+
+    const itemMap = new Map(transferItems.map((item) => [item.id, item]));
+    const sentMap = new Map<string, number>();
+
+    for (const item of dtoItems) {
+      if (sentMap.has(item.itemId)) {
+        throw new BadRequestException(`Item duplicado en envio: ${item.itemId}`);
+      }
+      const transferItem = itemMap.get(item.itemId);
+      if (!transferItem) {
+        throw new BadRequestException(`Item de transferencia ${item.itemId} no encontrado`);
+      }
+
+      const sentQuantity = this.normalizeNonNegativeQuantity(item.sentQuantity, "enviada");
+      const requestedQuantity = this.toNumber(transferItem.requestedQuantity);
+      if (sentQuantity > requestedQuantity + DECIMAL_EPSILON) {
+        throw new BadRequestException(
+          `Cantidad enviada (${sentQuantity}) excede solicitada (${requestedQuantity}) para ${transferItem.product.name}`,
+        );
+      }
+      sentMap.set(item.itemId, sentQuantity);
+    }
+
+    const result = transferItems.map((transferItem) => ({
+      transferItem,
+      sentQuantity: sentMap.get(transferItem.id) ?? 0,
+    }));
+
+    if (!result.some((item) => item.sentQuantity > 0)) {
+      throw new BadRequestException("Debe enviar al menos una cantidad mayor a cero");
+    }
+
+    return result;
+  }
+
+  private buildReceiptItems(
+    transferItems: Array<{
+      id: string;
+      requestedQuantity: unknown;
+      sentQuantity: unknown;
+      productId: string;
+      product: { name: string };
+    }>,
+    dtoItems: Array<{ itemId: string; receivedQuantity: number }>,
+  ) {
+    if (!dtoItems || dtoItems.length === 0) {
+      throw new BadRequestException("Debe indicar al menos un producto recibido");
+    }
+
+    const itemMap = new Map(transferItems.map((item) => [item.id, item]));
+    const receivedMap = new Map<string, number>();
+
+    for (const item of dtoItems) {
+      if (receivedMap.has(item.itemId)) {
+        throw new BadRequestException(`Item duplicado en recepcion: ${item.itemId}`);
+      }
+      const transferItem = itemMap.get(item.itemId);
+      if (!transferItem) {
+        throw new BadRequestException(`Item de transferencia ${item.itemId} no encontrado`);
+      }
+      const receivedQuantity = this.normalizeNonNegativeQuantity(item.receivedQuantity, "recibida");
+      const sentQuantity = this.toNumber(transferItem.sentQuantity);
+      if (receivedQuantity > sentQuantity + DECIMAL_EPSILON) {
+        throw new BadRequestException(
+          `Cantidad recibida (${receivedQuantity}) excede enviada (${sentQuantity}) para ${transferItem.product.name}`,
+        );
+      }
+      receivedMap.set(item.itemId, receivedQuantity);
+    }
+
+    return transferItems.map((transferItem) => {
+      const sentQuantity = this.toNumber(transferItem.sentQuantity);
+      const receivedQuantity = receivedMap.get(transferItem.id);
+
+      if (sentQuantity > 0 && receivedQuantity === undefined) {
+        throw new BadRequestException(
+          `Debe registrar la recepcion del item enviado ${transferItem.id}`,
+        );
+      }
+
+      return {
+        transferItem,
+        receivedQuantity: receivedQuantity ?? 0,
+      };
+    });
+  }
+
+  private async updateLinkedRequisitionStatus(
+    tx: any,
+    organizationId: string,
+    transferId: string,
+    receiptItems: Array<{
+      transferItem: { requestedQuantity: unknown };
+      receivedQuantity: number;
+    }>,
+  ) {
+    const requisition = await tx.requisition.findFirst({
+      where: {
+        organizationId,
+        transferId,
+        status: { in: ["APPROVED", "PARTIALLY_FULFILLED"] },
+      },
+      select: { id: true },
+    });
+
+    if (!requisition) {
+      return;
+    }
+
+    const fullyReceived = receiptItems.every(
+      ({ transferItem, receivedQuantity }) =>
+        receivedQuantity + DECIMAL_EPSILON >= this.toNumber(transferItem.requestedQuantity),
+    );
+    const receivedAny = receiptItems.some(({ receivedQuantity }) => receivedQuantity > 0);
+    const status = fullyReceived ? "FULFILLED" : receivedAny ? "PARTIALLY_FULFILLED" : "APPROVED";
+
+    await tx.requisition.update({
+      where: { id: requisition.id },
+      data: { status },
+    });
+  }
+
+  private normalizeNonNegativeQuantity(quantity: number, label: string): number {
+    const normalized = this.roundQuantity(Number(quantity));
+    if (!Number.isFinite(normalized) || normalized < 0) {
+      throw new BadRequestException(`La cantidad ${label} no puede ser negativa`);
+    }
+    return normalized;
+  }
+
+  private roundQuantity(quantity: number): number {
+    return Math.round(quantity * 10000) / 10000;
+  }
+
+  private toNumber(value: unknown): number {
+    if (value === null || value === undefined) return 0;
+    return Number(value);
   }
 }
