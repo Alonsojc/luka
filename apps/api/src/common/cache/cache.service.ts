@@ -7,18 +7,28 @@ export class CacheService implements OnModuleInit, OnModuleDestroy {
   private client: Redis | null = null;
   private available = false;
 
+  private isDisabled() {
+    return process.env.CACHE_MODE === "disabled" || process.env.DISABLE_CACHE === "true";
+  }
+
   private disableCache() {
     this.available = false;
     this.client?.disconnect();
   }
 
   async onModuleInit() {
+    if (this.isDisabled()) {
+      this.logger.log("Redis cache disabled");
+      return;
+    }
+
     this.client = new Redis({
       host: process.env.REDIS_HOST || "localhost",
       port: parseInt(process.env.REDIS_PORT || "6379", 10),
       maxRetriesPerRequest: 3,
       lazyConnect: true,
     });
+    this.client.on("error", () => {});
 
     try {
       await this.client.connect();
