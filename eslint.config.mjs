@@ -15,6 +15,7 @@ export default tseslint.config(
       "**/coverage/**",
       "apps/web/public/sw.js",
       "apps/web/next-env.d.ts",
+      "apps/web/postcss.config.js",
     ],
   },
 
@@ -63,6 +64,7 @@ export default tseslint.config(
       ...nextPlugin.configs.recommended.rules,
       ...nextPlugin.configs["core-web-vitals"].rules,
       "@next/next/no-img-element": "off",
+      "@next/next/no-html-link-for-pages": "off",
       "react-hooks/rules-of-hooks": "error",
       "react-hooks/exhaustive-deps": "warn",
     },
