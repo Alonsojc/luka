@@ -77,42 +77,93 @@ export class CorntechService {
 
     for (const sale of sales) {
       try {
-        await this.prisma.posSale.create({
-          data: {
-            organizationId: orgId,
-            branchId,
-            ticketNumber: sale.ticketNumber,
-            saleDate: new Date(sale.date),
-            subtotal: sale.subtotal,
-            tax: sale.tax,
-            total: sale.total,
-            paymentMethod: sale.paymentMethod,
-            posTerminalId: sale.terminalId,
-            rawData: sale as any,
-            items: {
-              create: sale.items.map((item) => ({
-                productSku: item.sku,
-                productName: item.name,
-                quantity: item.quantity,
-                unitPrice: item.unitPrice,
-                total: item.total,
-              })),
-            },
-          },
-        });
+        await this.prisma.$transaction(async (tx) => {
+          if (sale.items.length === 0) {
+            throw new BadRequestException("Venta POS sin partidas");
+          }
 
-        // Decrease branch inventory for each sold item
-        for (const item of sale.items) {
-          await this.prisma.branchInventory.updateMany({
-            where: {
-              branchId,
-              product: { sku: item.sku },
-            },
+          for (const item of sale.items) {
+            const quantity = Number(item.quantity);
+            if (!item.sku) {
+              throw new BadRequestException("Venta POS con SKU vacio");
+            }
+            if (!Number.isFinite(quantity) || quantity <= 0) {
+              throw new BadRequestException(`Cantidad POS invalida para SKU ${item.sku}`);
+            }
+          }
+
+          const skus = [...new Set(sale.items.map((item) => item.sku).filter(Boolean))];
+          const products = await tx.product.findMany({
+            where: { organizationId: orgId, sku: { in: skus } },
+            select: { id: true, sku: true, costPerUnit: true },
+          });
+          const productMap = new Map(products.map((product) => [product.sku, product]));
+          const missingSkus = skus.filter((sku) => !productMap.has(sku));
+
+          if (missingSkus.length > 0) {
+            throw new BadRequestException(`SKU sin producto inventariable: ${missingSkus.join(", ")}`);
+          }
+
+          const createdSale = await tx.posSale.create({
             data: {
-              currentQuantity: { decrement: Number(item.quantity) },
+              organizationId: orgId,
+              branchId,
+              ticketNumber: sale.ticketNumber,
+              saleDate: new Date(sale.date),
+              subtotal: sale.subtotal,
+              tax: sale.tax,
+              total: sale.total,
+              paymentMethod: sale.paymentMethod,
+              posTerminalId: sale.terminalId,
+              rawData: sale as any,
+              items: {
+                create: sale.items.map((item) => ({
+                  productSku: item.sku,
+                  productName: item.name,
+                  quantity: item.quantity,
+                  unitPrice: item.unitPrice,
+                  total: item.total,
+                })),
+              },
             },
           });
-        }
+
+          for (const item of sale.items) {
+            const product = productMap.get(item.sku);
+            if (!product) {
+              throw new BadRequestException(`SKU sin producto inventariable: ${item.sku}`);
+            }
+
+            const updatedInventory = await tx.branchInventory.updateMany({
+              where: {
+                branchId,
+                productId: product.id,
+              },
+              data: {
+                currentQuantity: { decrement: Number(item.quantity) },
+              },
+            });
+
+            if (updatedInventory.count === 0) {
+              throw new BadRequestException(
+                `SKU ${item.sku} no tiene inventario inicial en sucursal ${branchId}`,
+              );
+            }
+
+            await tx.inventoryMovement.create({
+              data: {
+                branchId,
+                productId: product.id,
+                movementType: "SALE_DEDUCTION",
+                quantity: Number(item.quantity),
+                unitCost: product.costPerUnit,
+                referenceType: "pos_sale",
+                referenceId: createdSale.id,
+                notes: `Venta POS ${sale.ticketNumber}`,
+              },
+            });
+          }
+        });
 
         synced++;
       } catch (error: any) {

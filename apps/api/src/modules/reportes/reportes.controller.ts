@@ -67,4 +67,19 @@ export class ReportesController {
   inventoryValuation(@CurrentUser() user: JwtPayload, @Query("branchId") branchId?: string) {
     return this.reportesService.inventoryValuation(user.organizationId, branchId);
   }
+
+  @Get("operational-reconciliation")
+  @Permissions("reportes:view")
+  operationalReconciliation(
+    @CurrentUser() user: JwtPayload,
+    @Query("startDate") startDate?: string,
+    @Query("endDate") endDate?: string,
+    @Query("branchId") branchId?: string,
+  ) {
+    return this.reportesService.operationalReconciliation(user.organizationId, {
+      startDate,
+      endDate,
+      branchId,
+    });
+  }
 }
