@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { exportToCSV } from "@/lib/export-csv";
 import { generateInvoicePDF } from "@/lib/pdf-generator";
+import { getApiOrigin, getApiUrl } from "@/lib/api-url";
 import { DataTable } from "@/components/ui/data-table";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
@@ -714,8 +715,8 @@ export default function FacturacionPage() {
   // Attachment helpers
   // -------------------------------------------------------------------
 
-  const UPLOAD_API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
-  const fileBaseUrl = UPLOAD_API_URL.replace("/api", "");
+  const UPLOAD_API_URL = getApiUrl();
+  const fileBaseUrl = getApiOrigin();
 
   async function handleAttachFile(e: React.ChangeEvent<HTMLInputElement>, cfdi: Cfdi) {
     const file = e.target.files?.[0];

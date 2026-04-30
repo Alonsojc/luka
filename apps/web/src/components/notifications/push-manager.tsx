@@ -3,6 +3,7 @@
 import { useEffect, useRef, useCallback, useState } from "react";
 import { Bell, BellOff, BellRing, X } from "lucide-react";
 import { getUser } from "@/lib/auth";
+import { getNotificationsWsUrl } from "@/lib/api-url";
 
 type PermissionState = "default" | "granted" | "denied" | "unsupported";
 
@@ -69,11 +70,7 @@ export function PushNotificationManager() {
 
     if (wsRef.current?.readyState === WebSocket.OPEN) return;
 
-    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const host =
-      process.env.NEXT_PUBLIC_API_URL?.replace(/^https?:\/\//, "").replace("/api", "") ||
-      "localhost:3001";
-    const wsUrl = `${protocol}//${host}/notifications?userId=${userId}`;
+    const wsUrl = getNotificationsWsUrl(userId);
 
     try {
       const ws = new WebSocket(wsUrl);

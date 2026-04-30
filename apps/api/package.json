@@ -2,6 +2,9 @@
   "name": "@luka/api",
   "version": "0.0.1",
   "private": true,
+  "engines": {
+    "node": ">=22 <25"
+  },
   "scripts": {
     "build": "nest build",
     "dev": "nest start --watch",

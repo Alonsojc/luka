@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { getUser } from "@/lib/auth";
 import { api } from "@/lib/api-client";
+import { getNotificationsWsUrl } from "@/lib/api-url";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -34,7 +35,6 @@ interface UseNotificationsWsReturn {
 // Constants
 // ---------------------------------------------------------------------------
 
-const WS_BASE_URL = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:3001";
 const POLLING_INTERVAL_MS = 30_000; // 30 seconds fallback
 const RECONNECT_DELAY_MS = 5_000; // retry after 5 seconds
 const MAX_RECONNECT_ATTEMPTS = 10;
@@ -47,7 +47,7 @@ const MAX_RECONNECT_ATTEMPTS = 10;
  * Real-time notifications hook.
  *
  * Attempts to connect to the backend WebSocket gateway at
- * `${WS_BASE_URL}/notifications`. If the connection fails or
+ * `/notifications`. If the connection fails or
  * `socket.io-client` is unavailable, it falls back to HTTP polling
  * every 30 seconds.
  *
@@ -88,8 +88,7 @@ export function useNotificationsWs(): UseNotificationsWsReturn {
     // succeed if the server also supports raw WS. Otherwise we rely on
     // the polling fallback.
     try {
-      const url = `${WS_BASE_URL}/notifications?userId=${user.id}`;
-      const ws = new WebSocket(url.replace(/^http/, "ws"));
+      const ws = new WebSocket(getNotificationsWsUrl(user.id));
 
       ws.onopen = () => {
         setIsConnected(true);

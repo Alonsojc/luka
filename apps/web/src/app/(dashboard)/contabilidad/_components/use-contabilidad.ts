@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/components/ui/toast";
+import { getApiUrl } from "@/lib/api-url";
 import type {
   Account,
   JournalEntry,
@@ -393,7 +394,7 @@ export function useContabilidad() {
         .split("; ")
         .find((row) => row.startsWith("token="))
         ?.split("=")[1];
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+      const baseUrl = getApiUrl();
       const url = `${baseUrl}/contabilidad/diot/download?year=${diotYear}&month=${diotMonth}`;
       const response = await fetch(url, {
         headers: {

@@ -33,6 +33,7 @@ import {
 } from "lucide-react";
 import { exportToCSV } from "@/lib/export-csv";
 import { generateInventoryPDF } from "@/lib/pdf-generator";
+import { getApiOrigin, getApiUrl } from "@/lib/api-url";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/components/ui/toast";
 import { DataTable } from "@/components/ui/data-table";
@@ -945,7 +946,7 @@ export default function InventariosPage() {
   // Image upload helper
   // =======================================================================
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
+  const API_URL = getApiUrl();
 
   async function uploadImage(file: File): Promise<string> {
     const formData = new FormData();
@@ -1478,7 +1479,7 @@ export default function InventariosPage() {
   // Column definitions
   // =======================================================================
 
-  const imgBase = process.env.NEXT_PUBLIC_API_URL?.replace("/api", "") || "http://localhost:3001";
+  const imgBase = getApiOrigin();
 
   const productColumns = [
     {
