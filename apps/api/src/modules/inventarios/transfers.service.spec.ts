@@ -46,6 +46,16 @@ describe("TransfersService", () => {
         update: vi.fn(),
         upsert: vi.fn(),
       },
+      productLot: {
+        findMany: vi.fn().mockResolvedValue([]),
+        update: vi.fn(),
+        upsert: vi.fn(),
+      },
+      interBranchTransferLotAllocation: {
+        create: vi.fn(),
+        findMany: vi.fn().mockResolvedValue([]),
+        update: vi.fn(),
+      },
       inventoryMovement: {
         create: vi.fn(),
       },
@@ -123,6 +133,73 @@ describe("TransfersService", () => {
       });
     });
 
+    it("should allocate source lots by expiration when shipping from CEDIS", async () => {
+      const firstExpiration = new Date("2026-05-01T00:00:00.000Z");
+      const secondExpiration = new Date("2026-05-10T00:00:00.000Z");
+      mockPrisma.interBranchTransfer.findFirst.mockResolvedValue(baseTransfer);
+      mockPrisma.branchInventory.findUnique.mockResolvedValue({ currentQuantity: 20 });
+      mockPrisma.productLot.findMany.mockResolvedValue([
+        {
+          id: "lot-early",
+          lotNumber: "LOT-EARLY",
+          expirationDate: firstExpiration,
+          quantity: 6,
+          initialQuantity: 6,
+          unitCost: 110,
+          status: "ACTIVE",
+        },
+        {
+          id: "lot-later",
+          lotNumber: "LOT-LATER",
+          expirationDate: secondExpiration,
+          quantity: 10,
+          initialQuantity: 10,
+          unitCost: 120,
+          status: "ACTIVE",
+        },
+      ]);
+      mockPrisma.interBranchTransfer.update.mockResolvedValue({
+        ...baseTransfer,
+        status: "IN_TRANSIT",
+      });
+
+      await service.ship(
+        "transfer-1",
+        { items: [{ itemId: "transfer-item-1", sentQuantity: 8 }] },
+        USER_ID,
+        ORG_ID,
+      );
+
+      expect(mockPrisma.productLot.update).toHaveBeenNthCalledWith(1, {
+        where: { id: "lot-early" },
+        data: { quantity: 0, status: "CONSUMED" },
+      });
+      expect(mockPrisma.productLot.update).toHaveBeenNthCalledWith(2, {
+        where: { id: "lot-later" },
+        data: { quantity: 8, status: "ACTIVE" },
+      });
+      expect(mockPrisma.interBranchTransferLotAllocation.create).toHaveBeenNthCalledWith(1, {
+        data: {
+          transferItemId: "transfer-item-1",
+          sourceLotId: "lot-early",
+          lotNumber: "LOT-EARLY",
+          expirationDate: firstExpiration,
+          quantity: 6,
+          unitCost: 110,
+        },
+      });
+      expect(mockPrisma.interBranchTransferLotAllocation.create).toHaveBeenNthCalledWith(2, {
+        data: {
+          transferItemId: "transfer-item-1",
+          sourceLotId: "lot-later",
+          lotNumber: "LOT-LATER",
+          expirationDate: secondExpiration,
+          quantity: 2,
+          unitCost: 120,
+        },
+      });
+    });
+
     it("should reject shipping more than requested", async () => {
       mockPrisma.interBranchTransfer.findFirst.mockResolvedValue(baseTransfer);
 
@@ -187,6 +264,72 @@ describe("TransfersService", () => {
       });
     });
 
+    it("should recreate received lot allocations at the destination branch", async () => {
+      const expirationDate = new Date("2026-05-01T00:00:00.000Z");
+      mockPrisma.interBranchTransfer.findFirst.mockResolvedValue({
+        ...baseTransfer,
+        status: "IN_TRANSIT",
+        items: [{ ...baseTransfer.items[0], sentQuantity: 8 }],
+      });
+      mockPrisma.interBranchTransferLotAllocation.findMany.mockResolvedValue([
+        {
+          id: "alloc-1",
+          transferItemId: "transfer-item-1",
+          lotNumber: "LOT-EARLY",
+          expirationDate,
+          quantity: 8,
+          receivedQuantity: 0,
+          unitCost: 110,
+        },
+      ]);
+      mockPrisma.interBranchTransfer.update.mockResolvedValue({
+        ...baseTransfer,
+        status: "RECEIVED",
+      });
+      mockPrisma.requisition.findFirst.mockResolvedValue({ id: "req-1" });
+
+      await service.receive(
+        "transfer-1",
+        { items: [{ itemId: "transfer-item-1", receivedQuantity: 8 }] },
+        USER_ID,
+        ORG_ID,
+      );
+
+      expect(mockPrisma.productLot.upsert).toHaveBeenCalledWith({
+        where: {
+          branchId_productId_lotNumber: {
+            branchId: "branch-1",
+            productId: "product-1",
+            lotNumber: "LOT-EARLY",
+          },
+        },
+        update: {
+          quantity: { increment: 8 },
+          initialQuantity: { increment: 8 },
+          unitCost: 110,
+          status: "ACTIVE",
+        },
+        create: {
+          organizationId: ORG_ID,
+          branchId: "branch-1",
+          productId: "product-1",
+          lotNumber: "LOT-EARLY",
+          batchDate: expect.any(Date),
+          expirationDate,
+          quantity: 8,
+          initialQuantity: 8,
+          unitCost: 110,
+          receivedById: USER_ID,
+          status: "ACTIVE",
+          notes: "Transferencia transfer-1",
+        },
+      });
+      expect(mockPrisma.interBranchTransferLotAllocation.update).toHaveBeenCalledWith({
+        where: { id: "alloc-1" },
+        data: { receivedQuantity: { increment: 8 } },
+      });
+    });
+
     it("should mark linked requisition fulfilled when received covers requested", async () => {
       mockPrisma.interBranchTransfer.findFirst.mockResolvedValue({
         ...baseTransfer,
@@ -209,6 +352,48 @@ describe("TransfersService", () => {
       expect(mockPrisma.requisition.update).toHaveBeenCalledWith({
         where: { id: "req-1" },
         data: { status: "FULFILLED" },
+      });
+    });
+  });
+
+  describe("cancel", () => {
+    it("should restore allocated source lots when an in-transit transfer is cancelled", async () => {
+      mockPrisma.interBranchTransfer.findFirst.mockResolvedValue({
+        ...baseTransfer,
+        status: "IN_TRANSIT",
+        items: [{ ...baseTransfer.items[0], sentQuantity: 8 }],
+      });
+      mockPrisma.interBranchTransferLotAllocation.findMany.mockResolvedValue([
+        {
+          id: "alloc-1",
+          quantity: 8,
+          receivedQuantity: 0,
+          sourceLot: {
+            id: "lot-early",
+            quantity: 0,
+            initialQuantity: 8,
+            status: "CONSUMED",
+          },
+        },
+      ]);
+
+      await service.cancel("transfer-1", USER_ID, ORG_ID);
+
+      expect(mockPrisma.branchInventory.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: { currentQuantity: { increment: 8 } },
+        }),
+      );
+      expect(mockPrisma.productLot.update).toHaveBeenCalledWith({
+        where: { id: "lot-early" },
+        data: {
+          quantity: { increment: 8 },
+          status: "ACTIVE",
+        },
+      });
+      expect(mockPrisma.interBranchTransfer.update).toHaveBeenCalledWith({
+        where: { id: "transfer-1" },
+        data: { status: "CANCELLED" },
       });
     });
   });

@@ -1,12 +1,13 @@
 import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
 import { PrismaService } from "../../common/prisma/prisma.service";
 import { AuditService } from "../audit/audit.service";
-import { TransferStatus } from "@luka/database";
+import { Prisma, TransferStatus } from "@luka/database";
 import { CreateTransferDto } from "./dto/create-transfer.dto";
 import { ShipTransferDto } from "./dto/ship-transfer.dto";
 import { ReceiveTransferDto } from "./dto/receive-transfer.dto";
 
 const DECIMAL_EPSILON = 0.0001;
+const SHIPPABLE_LOT_STATUSES = ["ACTIVE", "LOW"];
 
 const TRANSFER_INCLUDE = {
   fromBranch: { select: { id: true, name: true, code: true } },
@@ -16,6 +17,7 @@ const TRANSFER_INCLUDE = {
       product: {
         select: { id: true, name: true, sku: true, unitOfMeasure: true },
       },
+      lotAllocations: true,
     },
   },
 };
@@ -248,6 +250,15 @@ export class TransfersService {
                 : undefined,
           },
         });
+
+        await this.allocateShippedLots(
+          tx,
+          organizationId,
+          transferItem.id,
+          transfer.fromBranchId,
+          transferItem.productId,
+          sentQuantity,
+        );
       }
 
       return tx.interBranchTransfer.update({
@@ -324,6 +335,17 @@ export class TransfersService {
                 : undefined,
           },
         });
+
+        await this.receiveAllocatedLots(
+          tx,
+          organizationId,
+          userId,
+          id,
+          transfer.toBranchId,
+          transferItem.id,
+          transferItem.productId,
+          receivedQuantity,
+        );
       }
 
       const updatedTransfer = await tx.interBranchTransfer.update({
@@ -397,6 +419,8 @@ export class TransfersService {
               notes: "Reverso por cancelacion de transferencia",
             },
           });
+
+          await this.restoreCancelledLotAllocations(tx, item.id);
         }
 
         await tx.interBranchTransfer.update({
@@ -558,6 +582,190 @@ export class TransfersService {
     });
   }
 
+  private async allocateShippedLots(
+    tx: any,
+    organizationId: string,
+    transferItemId: string,
+    branchId: string,
+    productId: string,
+    sentQuantity: number,
+  ) {
+    let remaining = this.roundQuantity(sentQuantity);
+    if (remaining <= 0) {
+      return;
+    }
+
+    const lots = await tx.productLot.findMany({
+      where: {
+        organizationId,
+        branchId,
+        productId,
+        status: { in: SHIPPABLE_LOT_STATUSES },
+        quantity: { gt: 0 },
+      },
+      orderBy: [{ expirationDate: "asc" }, { createdAt: "asc" }],
+    });
+
+    for (const lot of lots) {
+      if (remaining <= DECIMAL_EPSILON) {
+        break;
+      }
+
+      const available = this.toNumber(lot.quantity);
+      if (available <= 0) {
+        continue;
+      }
+
+      const allocatedQuantity = this.roundQuantity(Math.min(available, remaining));
+      const nextQuantity = this.roundQuantity(Math.max(0, available - allocatedQuantity));
+
+      await tx.productLot.update({
+        where: { id: lot.id },
+        data: {
+          quantity: nextQuantity,
+          status: this.getLotStatusAfterQuantity(lot.status, nextQuantity, lot.initialQuantity),
+        },
+      });
+
+      await tx.interBranchTransferLotAllocation.create({
+        data: {
+          transferItemId,
+          sourceLotId: lot.id,
+          lotNumber: lot.lotNumber,
+          expirationDate: lot.expirationDate,
+          quantity: allocatedQuantity,
+          unitCost: lot.unitCost ?? null,
+        },
+      });
+
+      remaining = this.roundQuantity(remaining - allocatedQuantity);
+    }
+  }
+
+  private async receiveAllocatedLots(
+    tx: any,
+    organizationId: string,
+    userId: string,
+    transferId: string,
+    branchId: string,
+    transferItemId: string,
+    productId: string,
+    receivedQuantity: number,
+  ) {
+    let remaining = this.roundQuantity(receivedQuantity);
+    if (remaining <= 0) {
+      return;
+    }
+
+    const allocations = await tx.interBranchTransferLotAllocation.findMany({
+      where: { transferItemId },
+      orderBy: [{ expirationDate: "asc" }, { createdAt: "asc" }],
+    });
+
+    for (const allocation of allocations) {
+      if (remaining <= DECIMAL_EPSILON) {
+        break;
+      }
+
+      const allocatedQuantity = this.toNumber(allocation.quantity);
+      const alreadyReceived = this.toNumber(allocation.receivedQuantity);
+      const receivableQuantity = this.roundQuantity(
+        Math.max(0, allocatedQuantity - alreadyReceived),
+      );
+      if (receivableQuantity <= 0) {
+        continue;
+      }
+
+      const lotReceiptQuantity = this.roundQuantity(Math.min(receivableQuantity, remaining));
+
+      await tx.productLot.upsert({
+        where: {
+          branchId_productId_lotNumber: {
+            branchId,
+            productId,
+            lotNumber: allocation.lotNumber,
+          },
+        },
+        update: {
+          quantity: { increment: lotReceiptQuantity },
+          initialQuantity: { increment: lotReceiptQuantity },
+          unitCost: allocation.unitCost ?? undefined,
+          status: "ACTIVE",
+        },
+        create: {
+          organizationId,
+          branchId,
+          productId,
+          lotNumber: allocation.lotNumber,
+          batchDate: new Date(),
+          expirationDate: allocation.expirationDate,
+          quantity: lotReceiptQuantity,
+          initialQuantity: lotReceiptQuantity,
+          unitCost: allocation.unitCost ?? null,
+          receivedById: userId,
+          status: "ACTIVE",
+          notes: `Transferencia ${transferId}`,
+        },
+      });
+
+      await tx.interBranchTransferLotAllocation.update({
+        where: { id: allocation.id },
+        data: { receivedQuantity: { increment: lotReceiptQuantity } },
+      });
+
+      remaining = this.roundQuantity(remaining - lotReceiptQuantity);
+    }
+  }
+
+  private async restoreCancelledLotAllocations(tx: any, transferItemId: string) {
+    const allocations = await tx.interBranchTransferLotAllocation.findMany({
+      where: { transferItemId },
+      include: { sourceLot: true },
+    });
+
+    for (const allocation of allocations) {
+      const restoreQuantity = this.roundQuantity(
+        this.toNumber(allocation.quantity) - this.toNumber(allocation.receivedQuantity),
+      );
+      if (restoreQuantity <= 0 || !allocation.sourceLot) {
+        continue;
+      }
+
+      const nextQuantity = this.roundQuantity(
+        this.toNumber(allocation.sourceLot.quantity) + restoreQuantity,
+      );
+
+      await tx.productLot.update({
+        where: { id: allocation.sourceLot.id },
+        data: {
+          quantity: { increment: restoreQuantity },
+          status: this.getLotStatusAfterQuantity(
+            allocation.sourceLot.status,
+            nextQuantity,
+            allocation.sourceLot.initialQuantity,
+          ),
+        },
+      });
+    }
+  }
+
+  private getLotStatusAfterQuantity(
+    currentStatus: string,
+    quantity: number,
+    initialQuantity: unknown,
+  ): string {
+    if (quantity <= DECIMAL_EPSILON) {
+      return "CONSUMED";
+    }
+    if (
+      ["ACTIVE", "LOW"].includes(currentStatus) &&
+      quantity <= this.toNumber(initialQuantity) * 0.1
+    ) {
+      return "LOW";
+    }
+    return currentStatus === "CONSUMED" ? "ACTIVE" : currentStatus;
+  }
+
   private normalizeNonNegativeQuantity(quantity: number, label: string): number {
     const normalized = this.roundQuantity(Number(quantity));
     if (!Number.isFinite(normalized) || normalized < 0) {
@@ -572,6 +780,7 @@ export class TransfersService {
 
   private toNumber(value: unknown): number {
     if (value === null || value === undefined) return 0;
+    if (value instanceof Prisma.Decimal) return value.toNumber();
     return Number(value);
   }
 }
