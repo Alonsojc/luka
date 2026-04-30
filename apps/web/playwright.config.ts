@@ -75,7 +75,7 @@ export default defineConfig({
             command: withEnv("pnpm --filter @luka/api exec nest start", e2eApiEnv),
             url: apiHealthURL,
             timeout: 120000,
-            reuseExistingServer: !process.env.CI,
+            reuseExistingServer: true,
           },
           {
             command: withEnv("pnpm --filter @luka/web dev", {
@@ -84,7 +84,7 @@ export default defineConfig({
             }),
             url: new URL("/login", baseURL).toString(),
             timeout: 120000,
-            reuseExistingServer: !process.env.CI,
+            reuseExistingServer: true,
           },
         ],
 });
