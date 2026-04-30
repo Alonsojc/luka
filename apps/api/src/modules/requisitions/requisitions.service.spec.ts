@@ -77,6 +77,7 @@ describe("RequisitionsService", () => {
       interBranchTransfer: {
         create: vi.fn(),
       },
+      $transaction: vi.fn((fn: any) => fn(mockPrisma)),
     };
 
     mockAudit = {
@@ -146,9 +147,7 @@ describe("RequisitionsService", () => {
     it("should throw NotFoundException when not found", async () => {
       mockPrisma.requisition.findFirst.mockResolvedValue(null);
 
-      await expect(service.findOne("nonexistent", ORG_ID)).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(service.findOne("nonexistent", ORG_ID)).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -174,9 +173,7 @@ describe("RequisitionsService", () => {
       mockPrisma.branch.findFirst
         .mockResolvedValueOnce({ id: "branch-1", organizationId: ORG_ID }) // requesting branch
         .mockResolvedValueOnce({ id: "branch-2", organizationId: ORG_ID }); // fulfilling branch
-      mockPrisma.product.findMany.mockResolvedValue([
-        { id: "product-1", organizationId: ORG_ID },
-      ]);
+      mockPrisma.product.findMany.mockResolvedValue([{ id: "product-1", organizationId: ORG_ID }]);
       mockPrisma.requisition.create.mockResolvedValue(mockRequisition);
 
       const result = await service.create(USER_ID, ORG_ID, dto as any);
@@ -208,9 +205,9 @@ describe("RequisitionsService", () => {
 
       mockPrisma.branch.findFirst.mockResolvedValue(null);
 
-      await expect(
-        service.create(USER_ID, ORG_ID, dto as any),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.create(USER_ID, ORG_ID, dto as any)).rejects.toThrow(
+        BadRequestException,
+      );
     });
   });
 
@@ -245,9 +242,9 @@ describe("RequisitionsService", () => {
       // A DRAFT requisition cannot be directly APPROVED
       mockPrisma.requisition.findFirst.mockResolvedValue(mockRequisition);
 
-      await expect(
-        service.approve("req-1", USER_ID, ORG_ID, {}),
-      ).rejects.toThrow(BadRequestException);
+      await expect(service.approve("req-1", USER_ID, ORG_ID, {})).rejects.toThrow(
+        BadRequestException,
+      );
     });
   });
 
@@ -292,6 +289,55 @@ describe("RequisitionsService", () => {
           rejectionReason: "Not valid",
         }),
       ).rejects.toThrow(BadRequestException);
+    });
+  });
+
+  // -----------------------------------------------------------------------
+  // fulfill
+  // -----------------------------------------------------------------------
+  describe("fulfill", () => {
+    it("should create transfer and keep requisition approved until physical reception", async () => {
+      const approvedReq = { ...mockRequisition, status: "APPROVED" };
+      const transfer = { id: "transfer-1" };
+      mockPrisma.requisition.findFirst.mockResolvedValue(approvedReq);
+      mockPrisma.interBranchTransfer.create.mockResolvedValue(transfer);
+      mockPrisma.requisition.update.mockResolvedValue({
+        ...approvedReq,
+        status: "APPROVED",
+        transferId: "transfer-1",
+      });
+
+      const result = await service.fulfill("req-1", USER_ID, ORG_ID);
+
+      expect(result.status).toBe("APPROVED");
+      expect(result.transfer).toEqual(transfer);
+      expect(mockPrisma.interBranchTransfer.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            fromBranchId: "branch-2",
+            toBranchId: "branch-1",
+          }),
+        }),
+      );
+      expect(mockPrisma.requisition.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            status: "APPROVED",
+            transferId: "transfer-1",
+          }),
+        }),
+      );
+    });
+
+    it("should reject creating a second transfer for the same requisition", async () => {
+      mockPrisma.requisition.findFirst.mockResolvedValue({
+        ...mockRequisition,
+        status: "APPROVED",
+        transferId: "transfer-1",
+      });
+
+      await expect(service.fulfill("req-1", USER_ID, ORG_ID)).rejects.toThrow(BadRequestException);
+      expect(mockPrisma.interBranchTransfer.create).not.toHaveBeenCalled();
     });
   });
 });

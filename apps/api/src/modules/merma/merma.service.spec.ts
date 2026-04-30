@@ -45,15 +45,23 @@ describe("MermaService", () => {
         findMany: vi.fn(),
       },
       branch: {
+        findFirst: vi.fn(),
         findMany: vi.fn(),
       },
+      branchInventory: {
+        findUnique: vi.fn(),
+        update: vi.fn(),
+        upsert: vi.fn(),
+      },
+      inventoryMovement: {
+        create: vi.fn(),
+        findFirst: vi.fn(),
+      },
+      $transaction: vi.fn((fn: any) => fn(mockPrisma)),
     };
 
     const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        MermaService,
-        { provide: PrismaService, useValue: mockPrisma },
-      ],
+      providers: [MermaService, { provide: PrismaService, useValue: mockPrisma }],
     }).compile();
 
     service = module.get<MermaService>(MermaService);
@@ -139,9 +147,7 @@ describe("MermaService", () => {
     it("should throw NotFoundException when not found", async () => {
       mockPrisma.wasteLog.findFirst.mockResolvedValue(null);
 
-      await expect(service.findOne(ORG_ID, "nonexistent")).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(service.findOne(ORG_ID, "nonexistent")).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -160,6 +166,9 @@ describe("MermaService", () => {
         cost: 875,
       };
 
+      mockPrisma.product.findFirst.mockResolvedValue({ id: "product-1", costPerUnit: 350 });
+      mockPrisma.branch.findFirst.mockResolvedValue({ id: "branch-1" });
+      mockPrisma.branchInventory.findUnique.mockResolvedValue({ currentQuantity: 10 });
       mockPrisma.wasteLog.create.mockResolvedValue(mockWasteLog);
 
       const result = await service.create(ORG_ID, USER_ID, dto as any);
@@ -176,6 +185,21 @@ describe("MermaService", () => {
           }),
         }),
       );
+      expect(mockPrisma.branchInventory.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: { currentQuantity: { decrement: 2.5 } },
+        }),
+      );
+      expect(mockPrisma.inventoryMovement.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          branchId: "branch-1",
+          productId: "product-1",
+          movementType: "WASTE",
+          quantity: 2.5,
+          referenceType: "waste_log",
+          referenceId: "waste-1",
+        }),
+      });
     });
 
     it("should auto-calculate cost from product price if not provided", async () => {
@@ -187,6 +211,7 @@ describe("MermaService", () => {
       };
 
       mockPrisma.product.findFirst.mockResolvedValue({
+        id: "product-1",
         costPerUnit: 350,
       });
       mockPrisma.wasteLog.create.mockResolvedValue(mockWasteLog);
@@ -195,7 +220,7 @@ describe("MermaService", () => {
 
       expect(mockPrisma.product.findFirst).toHaveBeenCalledWith({
         where: { id: "product-1", organizationId: ORG_ID },
-        select: { costPerUnit: true },
+        select: { id: true, costPerUnit: true },
       });
       expect(mockPrisma.wasteLog.create).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -243,13 +268,9 @@ describe("MermaService", () => {
           },
         ]);
 
-      mockPrisma.branch.findMany.mockResolvedValue([
-        { id: "branch-1", name: "Sucursal Centro" },
-      ]);
+      mockPrisma.branch.findMany.mockResolvedValue([{ id: "branch-1", name: "Sucursal Centro" }]);
 
-      mockPrisma.product.findMany.mockResolvedValue([
-        { id: "product-1", name: "Salmon" },
-      ]);
+      mockPrisma.product.findMany.mockResolvedValue([{ id: "product-1", name: "Salmon" }]);
 
       // trend data
       mockPrisma.wasteLog.findMany.mockResolvedValue([

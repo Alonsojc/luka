@@ -1557,7 +1557,7 @@ model AlertRule {
   id              String   @id @default(cuid())
   organizationId  String   @map("organization_id")
   name            String
-  eventType       String   @map("event_type") // STOCK_LOW, LOT_EXPIRING, REQUISITION_NEW, REQUISITION_APPROVED, DELIVERY_NEW, DAILY_SUMMARY
+  eventType       String   @map("event_type") // STOCK_LOW, LOT_EXPIRING, REQUISITION_NEW, REQUISITION_APPROVED, DELIVERY_NEW, DAILY_SUMMARY, OPERATIONAL_RECONCILIATION
   conditions      Json     @default("{}")
   recipients      Json     @default("[]")
   messageTemplate String   @map("message_template") @db.Text
@@ -1577,6 +1577,7 @@ model AlertLog {
   alertRuleId  String    @map("alert_rule_id")
   recipient    String
   message      String    @db.Text
+  dedupeKey    String?   @unique @map("dedupe_key")
   status       String    @default("PENDING") // PENDING, SENT, FAILED, DELIVERED
   errorMessage String?   @map("error_message")
   sentAt       DateTime? @map("sent_at")

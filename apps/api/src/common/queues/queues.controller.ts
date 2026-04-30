@@ -1,10 +1,20 @@
-import { Controller, Get, Post, Param, Query, UseGuards, Logger } from "@nestjs/common";
+import {
+  BadRequestException,
+  Controller,
+  Get,
+  Post,
+  Param,
+  Query,
+  UseGuards,
+  Logger,
+} from "@nestjs/common";
 import { InjectQueue } from "@nestjs/bullmq";
 import { Queue } from "bullmq";
 import type { JobType } from "bullmq";
 import { JwtAuthGuard } from "../guards/jwt-auth.guard";
 import { RolesGuard } from "../guards/roles.guard";
 import { Roles } from "../decorators/roles.decorator";
+import { CurrentUser, JwtPayload } from "../decorators/current-user.decorator";
 import { getErrorMessage } from "./queue-error.util";
 import {
   QUEUE_CORNTECH_SYNC,
@@ -13,8 +23,13 @@ import {
   ALL_QUEUES,
 } from "./queues.constants";
 
-const JOB_STATUSES = ["waiting", "active", "completed", "failed", "delayed"] as const satisfies
-  readonly JobType[];
+const JOB_STATUSES = [
+  "waiting",
+  "active",
+  "completed",
+  "failed",
+  "delayed",
+] as const satisfies readonly JobType[];
 
 type QueueJobStatus = (typeof JOB_STATUSES)[number];
 
@@ -51,7 +66,7 @@ export class QueuesController {
   }
 
   @Get()
-  async listQueues() {
+  async listQueues(@CurrentUser() user: JwtPayload) {
     const results: Array<{
       name: string;
       waiting: number;
@@ -65,21 +80,18 @@ export class QueuesController {
       const queue = this.getQueue(name);
       if (!queue) continue;
 
-      const [waiting, active, completed, failed, delayed] = await Promise.all([
-        queue.getWaitingCount(),
-        queue.getActiveCount(),
-        queue.getCompletedCount(),
-        queue.getFailedCount(),
-        queue.getDelayedCount(),
-      ]);
+      const jobs = await queue.getJobs([...JOB_STATUSES], 0, 999);
+      const tenantJobs = jobs.filter((job) =>
+        this.jobBelongsToOrganization(job, user.organizationId),
+      );
 
       results.push({
         name,
-        waiting,
-        active,
-        completed,
-        failed,
-        delayed,
+        waiting: tenantJobs.filter((job) => this.getJobStatus(job) === "waiting").length,
+        active: tenantJobs.filter((job) => this.getJobStatus(job) === "active").length,
+        completed: tenantJobs.filter((job) => this.getJobStatus(job) === "completed").length,
+        failed: tenantJobs.filter((job) => this.getJobStatus(job) === "failed").length,
+        delayed: tenantJobs.filter((job) => this.getJobStatus(job) === "delayed").length,
       });
     }
 
@@ -109,6 +121,7 @@ export class QueuesController {
 
   @Get(":name/jobs")
   async listJobs(
+    @CurrentUser() user: JwtPayload,
     @Param("name") name: string,
     @Query("status") status?: string,
     @Query("page") page?: string,
@@ -129,21 +142,18 @@ export class QueuesController {
     const jobs = jobStatus
       ? await queue.getJobs([jobStatus], start, end)
       : await queue.getJobs([...JOB_STATUSES], start, end);
+    const tenantJobs = jobs.filter((job) =>
+      this.jobBelongsToOrganization(job, user.organizationId),
+    );
 
     return {
       queue: name,
       page: pageNum,
       limit: limitNum,
-      jobs: jobs.map((job) => ({
+      jobs: tenantJobs.map((job) => ({
         id: job.id,
         name: job.name,
-        status: job.finishedOn
-          ? job.failedReason
-            ? "failed"
-            : "completed"
-          : job.processedOn
-            ? "active"
-            : "waiting",
+        status: this.getJobStatus(job),
         data: job.data,
         progress: job.progress,
         attempts: job.attemptsMade,
@@ -157,16 +167,19 @@ export class QueuesController {
   }
 
   @Post(":name/retry-failed")
-  async retryFailed(@Param("name") name: string) {
+  async retryFailed(@CurrentUser() user: JwtPayload, @Param("name") name: string) {
     const queue = this.getQueue(name);
     if (!queue) {
       return { error: "Cola no encontrada" };
     }
 
     const failedJobs = await queue.getJobs(["failed"]);
+    const tenantFailedJobs = failedJobs.filter((job) =>
+      this.jobBelongsToOrganization(job, user.organizationId),
+    );
     let retried = 0;
 
-    for (const job of failedJobs) {
+    for (const job of tenantFailedJobs) {
       try {
         await job.retry();
         retried++;
@@ -176,7 +189,7 @@ export class QueuesController {
     }
 
     this.logger.log(`Retried ${retried} failed jobs in queue "${name}"`);
-    return { queue: name, retried, total: failedJobs.length };
+    return { queue: name, retried, total: tenantFailedJobs.length };
   }
 
   @Post(":name/clean")
@@ -186,26 +199,36 @@ export class QueuesController {
       return { error: "Cola no encontrada" };
     }
 
-    const gracePeriod = 24 * 60 * 60 * 1000; // 24 hours in ms
-
-    const [cleanedCompleted, cleanedFailed] = await Promise.all([
-      queue.clean(gracePeriod, 1000, "completed"),
-      queue.clean(gracePeriod, 1000, "failed"),
-    ]);
-
-    const totalCleaned = cleanedCompleted.length + cleanedFailed.length;
-
-    this.logger.log(
-      `Cleaned ${totalCleaned} jobs from queue "${name}" (completed: ${cleanedCompleted.length}, failed: ${cleanedFailed.length})`,
+    throw new BadRequestException(
+      `Limpieza global de cola "${name}" deshabilitada: requiere alcance por organizationId`,
     );
+  }
 
-    return {
-      queue: name,
-      cleaned: {
-        completed: cleanedCompleted.length,
-        failed: cleanedFailed.length,
-        total: totalCleaned,
-      },
-    };
+  private jobBelongsToOrganization(job: { data?: unknown }, organizationId: string): boolean {
+    const data = job.data;
+    return (
+      typeof data === "object" &&
+      data !== null &&
+      "organizationId" in data &&
+      (data as { organizationId?: unknown }).organizationId === organizationId
+    );
+  }
+
+  private getJobStatus(job: {
+    finishedOn?: number | null;
+    failedReason?: string | null;
+    processedOn?: number | null;
+    delay?: number;
+  }) {
+    if (job.finishedOn) {
+      return job.failedReason ? "failed" : "completed";
+    }
+    if (job.processedOn) {
+      return "active";
+    }
+    if (job.delay && job.delay > 0) {
+      return "delayed";
+    }
+    return "waiting";
   }
 }

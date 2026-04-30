@@ -16,6 +16,9 @@ export class AuditLogProcessor extends WorkerHost {
 
   async process(job: Job<Prisma.AuditLogUncheckedCreateInput>): Promise<void> {
     try {
+      if (!job.data.organizationId) {
+        throw new Error("Missing required job field: organizationId");
+      }
       await this.prisma.auditLog.create({ data: job.data });
     } catch (error: unknown) {
       this.logger.error(`Failed to persist audit log (job ${job.id}): ${getErrorMessage(error)}`);

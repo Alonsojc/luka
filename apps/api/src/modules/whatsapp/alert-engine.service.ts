@@ -1,7 +1,22 @@
 import { Injectable, Logger } from "@nestjs/common";
+import { Cron } from "@nestjs/schedule";
+import { Prisma } from "@luka/database";
 import { PrismaService } from "../../common/prisma/prisma.service";
 import { WhatsAppService } from "./whatsapp.service";
 import { parseWhatsAppRecipients } from "./whatsapp-recipient.util";
+import { ReportesService } from "../reportes/reportes.service";
+import { ALERT_DEDUPE_RECIPIENT } from "./alert-log.constants";
+
+function toDateOnly(date: Date): string {
+  return date.toISOString().slice(0, 10);
+}
+
+function formatMXN(value: number): string {
+  return value.toLocaleString("es-MX", {
+    style: "currency",
+    currency: "MXN",
+  });
+}
 
 @Injectable()
 export class AlertEngineService {
@@ -10,6 +25,7 @@ export class AlertEngineService {
   constructor(
     private prisma: PrismaService,
     private whatsApp: WhatsAppService,
+    private reportes: ReportesService,
   ) {}
 
   // ---------------------------------------------------------------
@@ -295,6 +311,110 @@ export class AlertEngineService {
   }
 
   // ---------------------------------------------------------------
+  // Operational Reconciliation Alerts
+  // ---------------------------------------------------------------
+
+  async checkOperationalReconciliationAlerts(organizationId: string) {
+    const rules = await this.getActiveRules(organizationId, "OPERATIONAL_RECONCILIATION");
+    if (rules.length === 0) return { triggered: 0 };
+
+    let triggered = 0;
+    let totalIssues = 0;
+    let deduped = 0;
+
+    for (const rule of rules) {
+      const conditions = rule.conditions as any;
+      const branchIds = Array.isArray(conditions?.branchIds)
+        ? (conditions.branchIds as string[])
+        : [];
+      const minIssueCount = Number(conditions?.minIssueCount ?? 1);
+      const range = this.getOperationalReconciliationRange(conditions?.lookbackDays);
+
+      const scopes =
+        branchIds.length > 0
+          ? await this.prisma.branch.findMany({
+              where: { id: { in: branchIds }, organizationId },
+              select: { id: true, name: true },
+            })
+          : [{ id: undefined, name: "Todas las sucursales" }];
+
+      for (const scope of scopes) {
+        const reconciliation = await this.reportes.operationalReconciliation(organizationId, {
+          startDate: range.startDate,
+          endDate: range.endDate,
+          branchId: scope.id,
+        });
+
+        if (reconciliation.issueCount < minIssueCount) {
+          continue;
+        }
+
+        const dedupeKey = this.getOperationalReconciliationDedupeKey(
+          rule.id,
+          scope.id,
+          range.startDate,
+          range.endDate,
+        );
+        const reserved = await this.reserveAlertDedupeKey(rule.id, dedupeKey);
+        if (!reserved) {
+          deduped++;
+          continue;
+        }
+
+        totalIssues += reconciliation.issueCount;
+        await this.processAlertRule(rule, {
+          startDate: range.startDate,
+          endDate: range.endDate,
+          branchName: scope.name,
+          issueCount: String(reconciliation.issueCount),
+          posIssueCount: String(reconciliation.posInventory.summary.issueCount),
+          cedisIssueCount: String(reconciliation.cedisTransfers.summary.issueCount),
+          foodCostIssueCount: String(reconciliation.foodCost.summary.issueCount),
+          deliveryIssueCount: String(reconciliation.deliveryNetRevenue.summary.issueCount),
+          deliveryNetRevenue: formatMXN(
+            reconciliation.deliveryNetRevenue.summary.recalculatedNetRevenue,
+          ),
+          reportUrl: "/reportes",
+        });
+        triggered++;
+      }
+    }
+
+    return { triggered, issueCount: totalIssues, deduped };
+  }
+
+  @Cron("0 8 * * *", { timeZone: "America/Mexico_City" })
+  async runScheduledOperationalReconciliationAlerts() {
+    const organizations = await this.prisma.organization.findMany({
+      where: {
+        alertRules: {
+          some: {
+            eventType: "OPERATIONAL_RECONCILIATION",
+            isActive: true,
+          },
+        },
+      },
+      select: { id: true },
+    });
+
+    let triggered = 0;
+    let issueCount = 0;
+    for (const org of organizations) {
+      try {
+        const result = await this.checkOperationalReconciliationAlerts(org.id);
+        triggered += result.triggered;
+        issueCount += result.issueCount ?? 0;
+      } catch (error: any) {
+        this.logger.error(
+          `Operational reconciliation alert failed for org ${org.id}: ${error.message}`,
+        );
+      }
+    }
+
+    return { organizations: organizations.length, triggered, issueCount };
+  }
+
+  // ---------------------------------------------------------------
   // Core processing
   // ---------------------------------------------------------------
 
@@ -342,5 +462,58 @@ export class AlertEngineService {
         isActive: true,
       },
     });
+  }
+
+  private getOperationalReconciliationRange(lookbackDaysValue: unknown) {
+    const lookbackDays = Number(lookbackDaysValue ?? 1);
+    const normalizedLookback = Number.isFinite(lookbackDays)
+      ? Math.max(1, Math.min(30, Math.floor(lookbackDays)))
+      : 1;
+
+    const end = new Date();
+    end.setDate(end.getDate() - 1);
+    const start = new Date(end);
+    start.setDate(start.getDate() - normalizedLookback + 1);
+
+    return {
+      startDate: toDateOnly(start),
+      endDate: toDateOnly(end),
+    };
+  }
+
+  private getOperationalReconciliationDedupeKey(
+    ruleId: string,
+    branchId: string | undefined,
+    startDate: string,
+    endDate: string,
+  ) {
+    return [
+      "operational-reconciliation",
+      ruleId,
+      branchId ?? "all-branches",
+      startDate,
+      endDate,
+    ].join(":");
+  }
+
+  private async reserveAlertDedupeKey(alertRuleId: string, dedupeKey: string) {
+    try {
+      await this.prisma.alertLog.create({
+        data: {
+          alertRuleId,
+          recipient: ALERT_DEDUPE_RECIPIENT,
+          message: `Dedupe lock: ${dedupeKey}`,
+          status: "RESERVED",
+          sentAt: new Date(),
+          dedupeKey,
+        },
+      });
+      return true;
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+        return false;
+      }
+      throw error;
+    }
   }
 }

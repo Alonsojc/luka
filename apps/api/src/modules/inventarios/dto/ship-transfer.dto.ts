@@ -6,7 +6,7 @@ class ShipItemDto {
   itemId: string;
 
   @IsNumber()
-  @Min(0.0001)
+  @Min(0)
   sentQuantity: number;
 }
 

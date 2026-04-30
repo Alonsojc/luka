@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   BarChart3,
   TrendingUp,
@@ -13,6 +13,8 @@ import {
   Banknote,
   Clock,
   Download,
+  ClipboardCheck,
+  AlertTriangle,
 } from "lucide-react";
 import {
   BarChart,
@@ -32,6 +34,8 @@ import { useApiQuery } from "@/hooks/use-api-query";
 import { DataTable } from "@/components/ui/data-table";
 import { Button } from "@/components/ui/button";
 import { FormField, Input, Select } from "@/components/ui/form-field";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { exportToCSV } from "@/lib/export-csv";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -140,6 +144,101 @@ interface AgingData {
   details: AgingDetail[];
 }
 
+interface PosInventoryReconciliationRow {
+  branchName: string;
+  productSku: string;
+  productName: string;
+  soldQuantity: number;
+  deductedQuantity: number;
+  difference: number;
+  revenue: number;
+  actualCost: number;
+  status: string;
+}
+
+interface CedisTransferReconciliationRow {
+  transferId: string;
+  status: string;
+  transferStatus: string;
+  fromBranchName: string;
+  toBranchName: string;
+  productSku: string;
+  productName: string;
+  requestedQuantity: number;
+  sentQuantity: number;
+  receivedQuantity: number;
+  difference: number;
+}
+
+interface FoodCostReconciliationRow {
+  productSku: string;
+  productName: string;
+  recipeName: string | null;
+  quantitySold: number;
+  revenue: number;
+  theoreticalCost: number;
+  actualCost: number;
+  costDifference: number;
+  theoreticalFoodCostPct: number;
+  actualFoodCostPct: number;
+  status: string;
+}
+
+interface DeliveryNetRevenueReconciliationRow {
+  orderId: string;
+  platform: string;
+  externalOrderId: string | null;
+  branchName: string;
+  grossRevenue: number;
+  deliveryFee: number;
+  platformFee: number;
+  recordedNetRevenue: number;
+  recalculatedNetRevenue: number;
+  delta: number;
+  feePct: number;
+  status: string;
+}
+
+interface ReconciliationSection<T> {
+  summary: Record<string, number>;
+  rows: T[];
+  issues: T[];
+}
+
+interface OperationalReconciliationData {
+  period: {
+    startDate: string;
+    endDate: string;
+    branchId: string | null;
+  };
+  status: "OK" | "REVIEW_REQUIRED";
+  issueCount: number;
+  posInventory: ReconciliationSection<PosInventoryReconciliationRow>;
+  cedisTransfers: ReconciliationSection<CedisTransferReconciliationRow>;
+  foodCost: ReconciliationSection<FoodCostReconciliationRow>;
+  deliveryNetRevenue: ReconciliationSection<DeliveryNetRevenueReconciliationRow> & {
+    byPlatform: Array<{
+      platform: string;
+      orderCount: number;
+      grossRevenue: number;
+      recalculatedNetRevenue: number;
+      feePct: number;
+    }>;
+  };
+}
+
+interface ReconciliationIssueRow {
+  id: string;
+  area: string;
+  status: string;
+  branch: string;
+  reference: string;
+  product: string;
+  difference: string;
+  impact: string;
+  severity: "critical" | "warning";
+}
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -162,6 +261,47 @@ function formatNumber(value: unknown): string {
 
 function formatPct(value: unknown): string {
   return `${safeNum(value).toFixed(1)}%`;
+}
+
+function statusLabel(status: string): string {
+  const labels: Record<string, string> = {
+    OK: "OK",
+    REVIEW_REQUIRED: "Revisar",
+    MISSING_DEDUCTION: "Sin descuento",
+    QUANTITY_MISMATCH: "Diferencia",
+    ORPHAN_DEDUCTION: "Descuento huerfano",
+    PENDING_RECEIPT: "Por recibir",
+    RECEIVED_SHORT: "Recibido menor",
+    MISSING_RECIPE: "Sin receta",
+    MISSING_RECIPE_COST: "Sin costo",
+    COST_MISMATCH: "Costo distinto",
+    NET_REVENUE_MISMATCH: "Neto distinto",
+    NEGATIVE_NET_REVENUE: "Neto negativo",
+  };
+  return labels[status] ?? status;
+}
+
+function statusVariant(status: string): "green" | "red" | "yellow" | "gray" {
+  if (status === "OK") return "green";
+  if (
+    [
+      "MISSING_DEDUCTION",
+      "NET_REVENUE_MISMATCH",
+      "NEGATIVE_NET_REVENUE",
+      "MISSING_RECIPE",
+      "MISSING_RECIPE_COST",
+    ].includes(status)
+  ) {
+    return "red";
+  }
+  if (status === "REVIEW_REQUIRED" || status === "PENDING_RECEIPT") return "yellow";
+  return "gray";
+}
+
+function formatQty(value: unknown): string {
+  return safeNum(value).toLocaleString("es-MX", {
+    maximumFractionDigits: 4,
+  });
 }
 
 /** Get the first day of the current month as YYYY-MM-DD */
@@ -189,6 +329,7 @@ const TABS = [
   { key: "ventas-sucursal", label: "Ventas por Sucursal", icon: Store },
   { key: "ventas-producto", label: "Ventas por Producto", icon: Package },
   { key: "inventario", label: "Valuacion de Inventario", icon: Warehouse },
+  { key: "reconciliacion-operativa", label: "Reconciliacion Operativa", icon: ClipboardCheck },
   { key: "tendencias", label: "Tendencias", icon: TrendingUp },
   { key: "estado-resultados", label: "Estado de Resultados", icon: FileSpreadsheet },
   { key: "flujo-efectivo", label: "Flujo de Efectivo", icon: Banknote },
@@ -371,6 +512,117 @@ function PnlRow({
   );
 }
 
+function ReconciliationAreaPanel({
+  title,
+  issueCount,
+  primaryMetric,
+  secondaryMetric,
+  icon: Icon,
+}: {
+  title: string;
+  issueCount: number;
+  primaryMetric: string;
+  secondaryMetric: string;
+  icon: typeof AlertTriangle;
+}) {
+  const hasIssues = issueCount > 0;
+
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-sm font-semibold text-gray-900">{title}</p>
+          <div className="mt-2">
+            <StatusBadge
+              label={hasIssues ? `${issueCount} incidencia(s)` : "OK"}
+              variant={hasIssues ? "yellow" : "green"}
+            />
+          </div>
+        </div>
+        <div className={`rounded-lg p-2 ${hasIssues ? "bg-yellow-50" : "bg-green-50"}`}>
+          <Icon className={`h-5 w-5 ${hasIssues ? "text-yellow-700" : "text-green-700"}`} />
+        </div>
+      </div>
+      <div className="mt-4 grid grid-cols-2 gap-3">
+        <div>
+          <p className="text-xs text-gray-500">Total</p>
+          <p className="mt-1 text-lg font-bold text-gray-900">{primaryMetric}</p>
+        </div>
+        <div>
+          <p className="text-xs text-gray-500">Diferencia</p>
+          <p className="mt-1 text-lg font-bold text-gray-900">{secondaryMetric}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function buildReconciliationIssues(
+  data: OperationalReconciliationData | null,
+): ReconciliationIssueRow[] {
+  if (!data) return [];
+
+  const rows: ReconciliationIssueRow[] = [];
+
+  data.posInventory.issues.forEach((issue, index) => {
+    rows.push({
+      id: `pos-${index}`,
+      area: "POS vs Inventario",
+      status: issue.status,
+      branch: issue.branchName,
+      reference: issue.productSku,
+      product: issue.productName,
+      difference: `${formatQty(issue.difference)} und`,
+      impact: formatMXN(issue.actualCost || issue.revenue),
+      severity: issue.status === "MISSING_DEDUCTION" ? "critical" : "warning",
+    });
+  });
+
+  data.cedisTransfers.issues.forEach((issue, index) => {
+    rows.push({
+      id: `transfer-${index}`,
+      area: "CEDIS vs Sucursal",
+      status: issue.status,
+      branch: `${issue.fromBranchName} -> ${issue.toBranchName}`,
+      reference: issue.transferId,
+      product: issue.productName,
+      difference: `${formatQty(issue.difference)} und`,
+      impact: `${formatQty(issue.sentQuantity)} enviadas`,
+      severity: issue.status === "RECEIVED_SHORT" ? "critical" : "warning",
+    });
+  });
+
+  data.foodCost.issues.forEach((issue, index) => {
+    rows.push({
+      id: `food-cost-${index}`,
+      area: "Food Cost",
+      status: issue.status,
+      branch: "Todas",
+      reference: issue.productSku,
+      product: issue.productName,
+      difference: formatMXN(issue.costDifference),
+      impact: `${formatPct(issue.actualFoodCostPct)} real`,
+      severity: issue.status === "COST_MISMATCH" ? "warning" : "critical",
+    });
+  });
+
+  data.deliveryNetRevenue.issues.forEach((issue, index) => {
+    rows.push({
+      id: `delivery-${index}`,
+      area: "Delivery Neto",
+      status: issue.status,
+      branch: issue.branchName,
+      reference: issue.externalOrderId || issue.orderId,
+      product: issue.platform,
+      difference: formatMXN(issue.delta),
+      impact: `${formatPct(issue.feePct)} comision`,
+      severity: "critical",
+    });
+  });
+
+  return rows;
+}
+
 // ---------------------------------------------------------------------------
 // Page Component
 // ---------------------------------------------------------------------------
@@ -402,6 +654,12 @@ export default function ReportesPage() {
   const [inventoryBranchId, setInventoryBranchId] = useState("");
   const [inventoryData, setInventoryData] = useState<InventoryValuation[]>([]);
   const [inventoryLoading, setInventoryLoading] = useState(false);
+
+  // ---- Reconciliacion Operativa ----
+  const [reconciliationBranchId, setReconciliationBranchId] = useState("");
+  const [reconciliationData, setReconciliationData] =
+    useState<OperationalReconciliationData | null>(null);
+  const [reconciliationLoading, setReconciliationLoading] = useState(false);
 
   // ---- Tendencias ----
   const [trendsBranchId, setTrendsBranchId] = useState("");
@@ -487,6 +745,23 @@ export default function ReportesPage() {
     },
     [authFetch, toast],
   );
+
+  const fetchOperationalReconciliation = useCallback(async () => {
+    setReconciliationLoading(true);
+    try {
+      const params = new URLSearchParams({ startDate, endDate });
+      if (reconciliationBranchId) params.set("branchId", reconciliationBranchId);
+      const data = await authFetch<OperationalReconciliationData>(
+        "get",
+        `/reportes/operational-reconciliation?${params.toString()}`,
+      );
+      setReconciliationData(data);
+    } catch {
+      toast("Error al cargar reconciliacion operativa", "error");
+    } finally {
+      setReconciliationLoading(false);
+    }
+  }, [authFetch, startDate, endDate, reconciliationBranchId, toast]);
 
   const fetchTrends = useCallback(
     async (branchId?: string) => {
@@ -632,6 +907,8 @@ export default function ReportesPage() {
       fetchSalesByProduct(selectedBranchId);
     } else if (activeTab === "inventario") {
       fetchInventory(inventoryBranchId || undefined);
+    } else if (activeTab === "reconciliacion-operativa") {
+      fetchOperationalReconciliation();
     } else if (activeTab === "tendencias") {
       fetchTrends(trendsBranchId || undefined);
     } else if (activeTab === "estado-resultados") {
@@ -671,6 +948,8 @@ export default function ReportesPage() {
       fetchSalesByProduct(selectedBranchId);
     } else if (activeTab === "inventario") {
       fetchInventory(inventoryBranchId || undefined);
+    } else if (activeTab === "reconciliacion-operativa") {
+      fetchOperationalReconciliation();
     } else if (activeTab === "tendencias") {
       fetchTrends(trendsBranchId || undefined);
     } else if (activeTab === "estado-resultados") {
@@ -711,6 +990,21 @@ export default function ReportesPage() {
     totalValue: inventoryData.reduce((sum, r) => sum + safeNum(r.totalValue), 0),
     totalItems: inventoryData.length,
     totalUnits: inventoryData.reduce((sum, r) => sum + safeNum(r.currentQuantity), 0),
+  };
+
+  const reconciliationIssues = useMemo(
+    () => buildReconciliationIssues(reconciliationData),
+    [reconciliationData],
+  );
+
+  const reconciliationMetrics = {
+    issueCount: reconciliationData?.issueCount ?? 0,
+    posIssueCount: reconciliationData?.posInventory.summary.issueCount ?? 0,
+    transferIssueCount: reconciliationData?.cedisTransfers.summary.issueCount ?? 0,
+    saleCount: reconciliationData?.posInventory.summary.saleCount ?? 0,
+    transferCount: reconciliationData?.cedisTransfers.summary.transferCount ?? 0,
+    deliveryOrders: reconciliationData?.deliveryNetRevenue.summary.orderCount ?? 0,
+    deliveryNetRevenue: reconciliationData?.deliveryNetRevenue.summary.recalculatedNetRevenue ?? 0,
   };
 
   const trendsMetrics = {
@@ -845,6 +1139,56 @@ export default function ReportesPage() {
       render: (r: SalesTrend) => formatMXN(r.averageTicket),
     },
   ];
+
+  const reconciliationIssueColumns = [
+    {
+      key: "area",
+      header: "Area",
+      render: (r: ReconciliationIssueRow) => <span className="font-medium">{r.area}</span>,
+    },
+    {
+      key: "status",
+      header: "Estado",
+      render: (r: ReconciliationIssueRow) => (
+        <StatusBadge label={statusLabel(r.status)} variant={statusVariant(r.status)} />
+      ),
+    },
+    {
+      key: "branch",
+      header: "Sucursal",
+    },
+    {
+      key: "reference",
+      header: "Referencia",
+      className: "font-mono",
+    },
+    {
+      key: "product",
+      header: "Producto / Plataforma",
+    },
+    {
+      key: "difference",
+      header: "Diferencia",
+      className: "text-right",
+    },
+    {
+      key: "impact",
+      header: "Impacto",
+      className: "text-right",
+    },
+  ];
+
+  function handleExportReconciliationIssues() {
+    exportToCSV(reconciliationIssues, `Reconciliacion_Operativa_${startDate}_${endDate}`, [
+      { key: "area", label: "Area" },
+      { key: "status", label: "Estado" },
+      { key: "branch", label: "Sucursal" },
+      { key: "reference", label: "Referencia" },
+      { key: "product", label: "Producto/Plataforma" },
+      { key: "difference", label: "Diferencia" },
+      { key: "impact", label: "Impacto" },
+    ]);
+  }
 
   // --- Aging detail columns ---
   const agingDetailColumns = [
@@ -1131,6 +1475,121 @@ export default function ReportesPage() {
               loading={inventoryLoading}
               emptyMessage="No hay datos de inventario disponibles"
             />
+          </div>
+        )}
+
+        {/* ============================================================ */}
+        {/* RECONCILIACION OPERATIVA                                     */}
+        {/* ============================================================ */}
+        {activeTab === "reconciliacion-operativa" && (
+          <div className="space-y-6">
+            <DateFilters
+              showBranch
+              branchValue={reconciliationBranchId}
+              onBranchChange={setReconciliationBranchId}
+              startDate={startDate}
+              onStartDateChange={setStartDate}
+              endDate={endDate}
+              onEndDateChange={setEndDate}
+              branches={branches}
+              onRefresh={handleRefresh}
+            />
+
+            {reconciliationLoading && (
+              <div className="flex items-center justify-center py-12 text-muted-foreground">
+                Cargando reconciliacion operativa...
+              </div>
+            )}
+
+            {!reconciliationLoading && reconciliationData && (
+              <>
+                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+                  <MetricCard
+                    title="Estado"
+                    value={reconciliationData.status === "OK" ? "OK" : "Revisar"}
+                    sub={`${formatNumber(reconciliationMetrics.issueCount)} incidencia(s)`}
+                    icon={ClipboardCheck}
+                  />
+                  <MetricCard
+                    title="Ventas POS"
+                    value={formatNumber(reconciliationMetrics.saleCount)}
+                    sub={`${formatNumber(reconciliationMetrics.posIssueCount)} incidencia(s)`}
+                    icon={Store}
+                  />
+                  <MetricCard
+                    title="Transferencias"
+                    value={formatNumber(reconciliationMetrics.transferCount)}
+                    sub={`${formatNumber(reconciliationMetrics.transferIssueCount)} incidencia(s)`}
+                    icon={Warehouse}
+                  />
+                  <MetricCard
+                    title="Delivery Neto"
+                    value={formatMXN(reconciliationMetrics.deliveryNetRevenue)}
+                    sub={`${formatNumber(reconciliationMetrics.deliveryOrders)} orden(es)`}
+                    icon={DollarSign}
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+                  <ReconciliationAreaPanel
+                    title="POS vs Inventario"
+                    issueCount={reconciliationData.posInventory.summary.issueCount}
+                    primaryMetric={`${formatQty(reconciliationData.posInventory.summary.totalSoldQuantity)} vendidas`}
+                    secondaryMetric={`${formatQty(
+                      safeNum(reconciliationData.posInventory.summary.totalSoldQuantity) -
+                        safeNum(reconciliationData.posInventory.summary.totalDeductedQuantity),
+                    )} und`}
+                    icon={AlertTriangle}
+                  />
+                  <ReconciliationAreaPanel
+                    title="CEDIS vs Sucursal"
+                    issueCount={reconciliationData.cedisTransfers.summary.issueCount}
+                    primaryMetric={`${formatNumber(reconciliationData.cedisTransfers.summary.lineCount)} lineas`}
+                    secondaryMetric={`${formatNumber(reconciliationData.cedisTransfers.summary.receivedShortCount)} cortas`}
+                    icon={Warehouse}
+                  />
+                  <ReconciliationAreaPanel
+                    title="Food Cost"
+                    issueCount={reconciliationData.foodCost.summary.issueCount}
+                    primaryMetric={formatMXN(reconciliationData.foodCost.summary.actualCost)}
+                    secondaryMetric={formatMXN(
+                      safeNum(reconciliationData.foodCost.summary.actualCost) -
+                        safeNum(reconciliationData.foodCost.summary.theoreticalCost),
+                    )}
+                    icon={Package}
+                  />
+                  <ReconciliationAreaPanel
+                    title="Delivery"
+                    issueCount={reconciliationData.deliveryNetRevenue.summary.issueCount}
+                    primaryMetric={formatMXN(
+                      reconciliationData.deliveryNetRevenue.summary.grossRevenue,
+                    )}
+                    secondaryMetric={formatPct(reconciliationData.deliveryNetRevenue.summary.feePct)}
+                    icon={DollarSign}
+                  />
+                </div>
+
+                <DataTable
+                  columns={reconciliationIssueColumns}
+                  data={reconciliationIssues}
+                  searchable
+                  searchPlaceholder="Buscar incidencia..."
+                  pageSize={12}
+                  onExport={
+                    reconciliationIssues.length > 0 ? handleExportReconciliationIssues : undefined
+                  }
+                  exportLabel="Exportar incidencias"
+                  loading={reconciliationLoading}
+                  emptyMessage="No hay incidencias operativas en el periodo"
+                />
+              </>
+            )}
+
+            {!reconciliationLoading && !reconciliationData && (
+              <div className="rounded-xl border border-gray-200 bg-white p-12 text-center text-sm text-gray-500">
+                Selecciona un periodo y presiona Consultar para ver la reconciliacion operativa.
+              </div>
+            )}
           </div>
         )}
 

@@ -21,6 +21,7 @@ import { UpdateWhatsAppConfigDto } from "./dto/update-config.dto";
 import { CreateAlertRuleDto } from "./dto/create-rule.dto";
 import { UpdateAlertRuleDto } from "./dto/update-rule.dto";
 import { parseWhatsAppRecipients } from "./whatsapp-recipient.util";
+import { ALERT_DEDUPE_RECIPIENT } from "./alert-log.constants";
 
 @ApiTags("WhatsApp")
 @ApiBearerAuth()
@@ -188,6 +189,7 @@ export class WhatsAppController {
 
     const where: any = {
       alertRule: { organizationId: user.organizationId },
+      recipient: { not: ALERT_DEDUPE_RECIPIENT },
     };
     if (ruleId) where.alertRuleId = ruleId;
     if (status) where.status = status;
@@ -229,6 +231,9 @@ export class WhatsAppController {
     const results = {
       stockAlerts: await this.alertEngine.checkStockAlerts(user.organizationId),
       expirationAlerts: await this.alertEngine.checkExpirationAlerts(user.organizationId),
+      operationalReconciliationAlerts: await this.alertEngine.checkOperationalReconciliationAlerts(
+        user.organizationId,
+      ),
       dailySummary: await this.alertEngine.sendDailySummary(user.organizationId),
     };
 
@@ -294,6 +299,18 @@ export class WhatsAppController {
         lowStockCount: "7",
         expiringLots: "2",
         activeTransfers: "1",
+      },
+      OPERATIONAL_RECONCILIATION: {
+        startDate: "29/04/2026",
+        endDate: "29/04/2026",
+        branchName: "Todas las sucursales",
+        issueCount: "4",
+        posIssueCount: "1",
+        cedisIssueCount: "1",
+        foodCostIssueCount: "1",
+        deliveryIssueCount: "1",
+        deliveryNetRevenue: "$8,450.00",
+        reportUrl: "/reportes",
       },
     };
 

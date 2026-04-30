@@ -348,36 +348,45 @@ export class RequisitionsService {
 
   async fulfill(id: string, userId: string, organizationId: string) {
     const requisition = await this.findOne(id, organizationId);
-    this.validateTransition(requisition.status, "FULFILLED");
+    if (requisition.status !== "APPROVED") {
+      throw new BadRequestException("Solo se pueden surtir requisiciones aprobadas");
+    }
 
     if (!requisition.fulfillingBranchId) {
       throw new BadRequestException("No se ha asignado una sucursal de surtido");
     }
+    if (requisition.transferId) {
+      throw new BadRequestException("La requisicion ya tiene una transferencia asignada");
+    }
 
-    // Create an InterBranchTransfer from the requisition
-    const transfer = await this.prisma.interBranchTransfer.create({
-      data: {
-        fromBranchId: requisition.fulfillingBranchId,
-        toBranchId: requisition.requestingBranchId,
-        requestedById: userId,
-        notes: `Generado automaticamente desde requisicion ${requisition.id}`,
-        items: {
-          create: requisition.items.map((item) => ({
-            productId: item.productId,
-            requestedQuantity: item.approvedQuantity ?? item.requestedQuantity,
-          })),
+    const { transfer, updated } = await this.prisma.$transaction(async (tx) => {
+      // Create an InterBranchTransfer from the requisition
+      const transfer = await tx.interBranchTransfer.create({
+        data: {
+          fromBranchId: requisition.fulfillingBranchId!,
+          toBranchId: requisition.requestingBranchId,
+          requestedById: userId,
+          notes: `Generado automaticamente desde requisicion ${requisition.id}`,
+          items: {
+            create: requisition.items.map((item) => ({
+              productId: item.productId,
+              requestedQuantity: item.approvedQuantity ?? item.requestedQuantity,
+            })),
+          },
         },
-      },
-    });
+      });
 
-    // Link the transfer to the requisition and mark as fulfilled
-    const updated = await this.prisma.requisition.update({
-      where: { id },
-      data: {
-        status: "FULFILLED",
-        transferId: transfer.id,
-      },
-      include: REQUISITION_INCLUDE,
+      // Link the transfer, but keep requisition open until physical reception.
+      const updated = await tx.requisition.update({
+        where: { id },
+        data: {
+          status: "APPROVED",
+          transferId: transfer.id,
+        },
+        include: REQUISITION_INCLUDE,
+      });
+
+      return { transfer, updated };
     });
 
     await this.audit.log({
@@ -387,7 +396,7 @@ export class RequisitionsService {
       module: "requisiciones",
       entityType: "Requisition",
       entityId: id,
-      description: `Requisicion surtida - Transferencia ${transfer.id} creada de ${requisition.fulfillingBranch?.name || "CEDIS"} a ${requisition.requestingBranch.name}`,
+      description: `Transferencia ${transfer.id} creada para surtir requisicion de ${requisition.fulfillingBranch?.name || "CEDIS"} a ${requisition.requestingBranch.name}; pendiente de recepcion fisica`,
     });
 
     return { ...updated, transfer };

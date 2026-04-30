@@ -4,6 +4,10 @@ import { CreateLotDto } from "./dto/create-lot.dto";
 import { UpdateLotDto } from "./dto/update-lot.dto";
 import { Prisma } from "@luka/database";
 
+const LOT_STOCK_STATUSES = ["ACTIVE", "LOW", "EXPIRED"];
+const LOT_TERMINAL_STATUSES = ["CONSUMED", "DISPOSED"];
+const DECIMAL_EPSILON = 0.0001;
+
 @Injectable()
 export class LotsService {
   constructor(private prisma: PrismaService) {}
@@ -12,34 +16,60 @@ export class LotsService {
   // Create a new lot (receiving product)
   // ---------------------------------------------------------------
   async createLot(organizationId: string, userId: string, dto: CreateLotDto) {
+    const quantity = this.normalizePositiveQuantity(dto.quantity);
     const lotNumber = dto.lotNumber || this.generateLotNumber(dto.productId, dto.branchId);
+    const { product } = await this.assertBranchAndProductBelongToOrganization(
+      organizationId,
+      dto.branchId,
+      dto.productId,
+    );
+    const unitCost = dto.unitCost ?? Number(product.costPerUnit);
 
-    return this.prisma.productLot.create({
-      data: {
-        organizationId,
-        productId: dto.productId,
-        branchId: dto.branchId,
-        lotNumber,
-        batchDate: dto.batchDate ? new Date(dto.batchDate) : new Date(),
-        expirationDate: new Date(dto.expirationDate),
-        quantity: dto.quantity,
-        initialQuantity: dto.quantity,
-        unitCost: dto.unitCost ?? null,
-        supplierId: dto.supplierId || null,
-        notes: dto.notes || null,
-        receivedById: userId,
-        status: "ACTIVE",
-      },
-      include: {
-        product: {
-          select: { id: true, name: true, sku: true, unitOfMeasure: true },
+    return this.prisma.$transaction(async (tx) => {
+      const lot = await tx.productLot.create({
+        data: {
+          organizationId,
+          productId: dto.productId,
+          branchId: dto.branchId,
+          lotNumber,
+          batchDate: dto.batchDate ? new Date(dto.batchDate) : new Date(),
+          expirationDate: new Date(dto.expirationDate),
+          quantity,
+          initialQuantity: quantity,
+          unitCost: dto.unitCost ?? null,
+          supplierId: dto.supplierId || null,
+          notes: dto.notes || null,
+          receivedById: userId,
+          status: "ACTIVE",
         },
-        branch: { select: { id: true, name: true, code: true } },
-        supplier: { select: { id: true, name: true } },
-        receivedBy: {
-          select: { id: true, firstName: true, lastName: true },
+        include: {
+          product: {
+            select: { id: true, name: true, sku: true, unitOfMeasure: true },
+          },
+          branch: { select: { id: true, name: true, code: true } },
+          supplier: { select: { id: true, name: true } },
+          receivedBy: {
+            select: { id: true, firstName: true, lastName: true },
+          },
         },
-      },
+      });
+
+      await this.incrementBranchInventory(tx, dto.branchId, dto.productId, quantity, userId);
+      await tx.inventoryMovement.create({
+        data: {
+          branchId: dto.branchId,
+          productId: dto.productId,
+          movementType: "IN",
+          quantity,
+          unitCost,
+          referenceType: "product_lot",
+          referenceId: lot.id,
+          notes: dto.notes || `Recepcion de lote ${lotNumber}`,
+          userId,
+        },
+      });
+
+      return lot;
     });
   }
 
@@ -173,71 +203,168 @@ export class LotsService {
   async updateLot(organizationId: string, id: string, dto: UpdateLotDto) {
     const existing = await this.prisma.productLot.findFirst({
       where: { id, organizationId },
+      include: {
+        product: { select: { costPerUnit: true } },
+      },
     });
 
     if (!existing) {
       throw new NotFoundException("Lote no encontrado");
     }
 
-    return this.prisma.productLot.update({
-      where: { id },
-      data: {
-        ...(dto.quantity !== undefined && { quantity: dto.quantity }),
-        ...(dto.notes !== undefined && { notes: dto.notes }),
-        ...(dto.status && { status: dto.status }),
-      },
-      include: {
-        product: {
-          select: { id: true, name: true, sku: true, unitOfMeasure: true },
+    const currentQuantity = this.toNumber(existing.quantity);
+    const targetQuantity =
+      dto.quantity !== undefined
+        ? this.normalizeNonNegativeQuantity(dto.quantity)
+        : currentQuantity;
+    let targetStatus = dto.status || existing.status;
+
+    if (LOT_TERMINAL_STATUSES.includes(targetStatus) && targetQuantity > 0) {
+      throw new BadRequestException("Un lote consumido o descartado debe quedar con cantidad 0");
+    }
+    if (targetQuantity === 0 && !dto.status && existing.status !== "DISPOSED") {
+      targetStatus = "CONSUMED";
+    }
+
+    const quantityDiff = this.roundQuantity(targetQuantity - currentQuantity);
+    const unitCost = existing.unitCost
+      ? this.toNumber(existing.unitCost)
+      : this.toNumber(existing.product.costPerUnit);
+
+    return this.prisma.$transaction(async (tx) => {
+      if (quantityDiff > 0) {
+        await this.incrementBranchInventory(
+          tx,
+          existing.branchId,
+          existing.productId,
+          quantityDiff,
+          null,
+        );
+        await tx.inventoryMovement.create({
+          data: {
+            branchId: existing.branchId,
+            productId: existing.productId,
+            movementType: "ADJUSTMENT",
+            quantity: quantityDiff,
+            unitCost,
+            referenceType: "product_lot_adjustment",
+            referenceId: id,
+            notes: dto.notes || `Ajuste manual de lote ${existing.lotNumber}`,
+          },
+        });
+      } else if (quantityDiff < 0) {
+        await this.decrementBranchInventory(
+          tx,
+          existing.branchId,
+          existing.productId,
+          Math.abs(quantityDiff),
+        );
+        await tx.inventoryMovement.create({
+          data: {
+            branchId: existing.branchId,
+            productId: existing.productId,
+            movementType: "ADJUSTMENT",
+            quantity: quantityDiff,
+            unitCost,
+            referenceType: "product_lot_adjustment",
+            referenceId: id,
+            notes: dto.notes || `Ajuste manual de lote ${existing.lotNumber}`,
+          },
+        });
+      }
+
+      return tx.productLot.update({
+        where: { id },
+        data: {
+          ...(dto.quantity !== undefined && { quantity: targetQuantity }),
+          ...(dto.notes !== undefined && { notes: dto.notes }),
+          status: targetStatus,
         },
-        branch: { select: { id: true, name: true, code: true } },
-        supplier: { select: { id: true, name: true } },
-        receivedBy: {
-          select: { id: true, firstName: true, lastName: true },
+        include: {
+          product: {
+            select: { id: true, name: true, sku: true, unitOfMeasure: true },
+          },
+          branch: { select: { id: true, name: true, code: true } },
+          supplier: { select: { id: true, name: true } },
+          receivedBy: {
+            select: { id: true, firstName: true, lastName: true },
+          },
         },
-      },
+      });
     });
   }
 
   // ---------------------------------------------------------------
   // Consume from a lot (FEFO — First Expired, First Out)
   // ---------------------------------------------------------------
-  async consumeFromLot(organizationId: string, lotId: string, quantity: number) {
+  async consumeFromLot(organizationId: string, lotId: string, quantity: number, userId?: string) {
+    const requestedQuantity = this.normalizePositiveQuantity(quantity);
     const lot = await this.prisma.productLot.findFirst({
       where: { id: lotId, organizationId },
+      include: {
+        product: { select: { costPerUnit: true } },
+      },
     });
 
     if (!lot) {
       throw new NotFoundException("Lote no encontrado");
     }
+    if (LOT_TERMINAL_STATUSES.includes(lot.status)) {
+      throw new BadRequestException(`No se puede consumir un lote con estatus ${lot.status}`);
+    }
 
-    const currentQty = Number(lot.quantity);
-    if (quantity > currentQty) {
+    const currentQty = this.toNumber(lot.quantity);
+    if (requestedQuantity > currentQty + DECIMAL_EPSILON) {
       throw new BadRequestException(
-        `Cantidad solicitada (${quantity}) excede la disponible (${currentQty})`,
+        `Cantidad solicitada (${requestedQuantity}) excede la disponible (${currentQty})`,
       );
     }
 
-    const newQty = currentQty - quantity;
+    const newQty = this.roundQuantity(Math.max(0, currentQty - requestedQuantity));
     let newStatus = lot.status;
     if (newQty <= 0) {
       newStatus = "CONSUMED";
-    } else if (newQty <= Number(lot.initialQuantity) * 0.1) {
+    } else if (
+      ["ACTIVE", "LOW"].includes(lot.status) &&
+      newQty <= this.toNumber(lot.initialQuantity) * 0.1
+    ) {
       newStatus = "LOW";
     }
 
-    return this.prisma.productLot.update({
-      where: { id: lotId },
-      data: {
-        quantity: newQty,
-        status: newStatus,
-      },
-      include: {
-        product: {
-          select: { id: true, name: true, sku: true, unitOfMeasure: true },
+    const unitCost = lot.unitCost
+      ? this.toNumber(lot.unitCost)
+      : this.toNumber(lot.product.costPerUnit);
+
+    return this.prisma.$transaction(async (tx) => {
+      await this.decrementBranchInventory(tx, lot.branchId, lot.productId, requestedQuantity);
+
+      await tx.inventoryMovement.create({
+        data: {
+          branchId: lot.branchId,
+          productId: lot.productId,
+          movementType: "OUT",
+          quantity: requestedQuantity,
+          unitCost,
+          referenceType: "product_lot",
+          referenceId: lotId,
+          notes: `Consumo de lote ${lot.lotNumber}`,
+          userId,
         },
-        branch: { select: { id: true, name: true, code: true } },
-      },
+      });
+
+      return tx.productLot.update({
+        where: { id: lotId },
+        data: {
+          quantity: newQty,
+          status: newStatus,
+        },
+        include: {
+          product: {
+            select: { id: true, name: true, sku: true, unitOfMeasure: true },
+          },
+          branch: { select: { id: true, name: true, code: true } },
+        },
+      });
     });
   }
 
@@ -255,12 +382,20 @@ export class LotsService {
     if (!lot) {
       throw new NotFoundException("Lote no encontrado");
     }
+    if (LOT_TERMINAL_STATUSES.includes(lot.status)) {
+      throw new BadRequestException(`No se puede descartar un lote con estatus ${lot.status}`);
+    }
 
-    const remainingQty = Number(lot.quantity);
+    const remainingQty = this.toNumber(lot.quantity);
+    if (remainingQty <= 0) {
+      throw new BadRequestException("El lote no tiene inventario disponible para descartar");
+    }
     const costPerUnit = lot.unitCost ? Number(lot.unitCost) : Number(lot.product.costPerUnit);
     const wasteCost = remainingQty * costPerUnit;
 
     return this.prisma.$transaction(async (tx) => {
+      await this.decrementBranchInventory(tx, lot.branchId, lot.productId, remainingQty);
+
       // Mark lot as DISPOSED
       const updatedLot = await tx.productLot.update({
         where: { id: lotId },
@@ -270,6 +405,20 @@ export class LotsService {
             select: { id: true, name: true, sku: true, unitOfMeasure: true },
           },
           branch: { select: { id: true, name: true, code: true } },
+        },
+      });
+
+      await tx.inventoryMovement.create({
+        data: {
+          branchId: lot.branchId,
+          productId: lot.productId,
+          movementType: "WASTE",
+          quantity: remainingQty,
+          unitCost: costPerUnit,
+          referenceType: "product_lot",
+          referenceId: lotId,
+          notes: reason || `Lote ${lot.lotNumber} descartado por caducidad`,
+          userId,
         },
       });
 
@@ -574,6 +723,103 @@ export class LotsService {
   }
 
   // ---------------------------------------------------------------
+  // Reconcile physical lot balance vs branch inventory balance
+  // ---------------------------------------------------------------
+  async getLotStockReconciliation(
+    organizationId: string,
+    filters: { branchId?: string; productId?: string } = {},
+  ) {
+    const lotGroups = await this.prisma.productLot.groupBy({
+      by: ["branchId", "productId"],
+      where: {
+        organizationId,
+        status: { in: LOT_STOCK_STATUSES },
+        ...(filters.branchId && { branchId: filters.branchId }),
+        ...(filters.productId && { productId: filters.productId }),
+      },
+      _sum: { quantity: true },
+    });
+
+    if (lotGroups.length === 0) {
+      return {
+        data: [],
+        summary: { total: 0, balanced: 0, mismatched: 0 },
+      };
+    }
+
+    const pairs = lotGroups.map((group) => ({
+      branchId: group.branchId,
+      productId: group.productId,
+    }));
+    const branchIds = [...new Set(lotGroups.map((group) => group.branchId))];
+    const productIds = [...new Set(lotGroups.map((group) => group.productId))];
+
+    const [inventories, branches, products] = await Promise.all([
+      this.prisma.branchInventory.findMany({
+        where: {
+          OR: pairs,
+          branch: { organizationId },
+          product: { organizationId },
+        },
+        include: {
+          branch: { select: { id: true, name: true, code: true } },
+          product: { select: { id: true, name: true, sku: true, unitOfMeasure: true } },
+        },
+      }),
+      this.prisma.branch.findMany({
+        where: { id: { in: branchIds }, organizationId },
+        select: { id: true, name: true, code: true },
+      }),
+      this.prisma.product.findMany({
+        where: { id: { in: productIds }, organizationId },
+        select: { id: true, name: true, sku: true, unitOfMeasure: true },
+      }),
+    ]);
+
+    const inventoryMap = new Map(
+      inventories.map((inventory) => [
+        this.stockKey(inventory.branchId, inventory.productId),
+        inventory,
+      ]),
+    );
+    const branchMap = new Map(branches.map((branch) => [branch.id, branch]));
+    const productMap = new Map(products.map((product) => [product.id, product]));
+
+    const data = lotGroups.map((group) => {
+      const key = this.stockKey(group.branchId, group.productId);
+      const inventory = inventoryMap.get(key);
+      const lotQuantity = this.roundQuantity(this.toNumber(group._sum.quantity));
+      const stockQuantity = this.roundQuantity(this.toNumber(inventory?.currentQuantity));
+      const difference = this.roundQuantity(stockQuantity - lotQuantity);
+      const branch = inventory?.branch || branchMap.get(group.branchId);
+      const product = inventory?.product || productMap.get(group.productId);
+
+      return {
+        branchId: group.branchId,
+        branchName: branch?.name || "Sucursal desconocida",
+        branchCode: branch?.code || null,
+        productId: group.productId,
+        productName: product?.name || "Producto desconocido",
+        productSku: product?.sku || null,
+        unitOfMeasure: product?.unitOfMeasure || null,
+        lotQuantity,
+        stockQuantity,
+        difference,
+        isBalanced: Math.abs(difference) < DECIMAL_EPSILON,
+      };
+    });
+
+    return {
+      data,
+      summary: {
+        total: data.length,
+        balanced: data.filter((row) => row.isBalanced).length,
+        mismatched: data.filter((row) => !row.isBalanced).length,
+      },
+    };
+  }
+
+  // ---------------------------------------------------------------
   // Helper: generate lot number
   // ---------------------------------------------------------------
   private generateLotNumber(productId: string, _branchId: string): string {
@@ -582,5 +828,129 @@ export class LotsService {
     const timePart = now.toISOString().slice(11, 19).replace(/:/g, "");
     const suffix = productId.slice(-4).toUpperCase();
     return `LOT-${datePart}-${timePart}-${suffix}`;
+  }
+
+  private async assertBranchAndProductBelongToOrganization(
+    organizationId: string,
+    branchId: string,
+    productId: string,
+  ) {
+    const [branch, product] = await Promise.all([
+      this.prisma.branch.findFirst({
+        where: { id: branchId, organizationId },
+        select: { id: true },
+      }),
+      this.prisma.product.findFirst({
+        where: { id: productId, organizationId },
+        select: { id: true, costPerUnit: true },
+      }),
+    ]);
+
+    if (!branch) {
+      throw new BadRequestException("Sucursal no encontrada o no pertenece a la organizacion");
+    }
+    if (!product) {
+      throw new BadRequestException("Producto no encontrado o no pertenece a la organizacion");
+    }
+
+    return { branch, product };
+  }
+
+  private async incrementBranchInventory(
+    tx: Prisma.TransactionClient,
+    branchId: string,
+    productId: string,
+    quantity: number,
+    userId?: string | null,
+  ) {
+    await tx.branchInventory.upsert({
+      where: {
+        branchId_productId: {
+          branchId,
+          productId,
+        },
+      },
+      update: {
+        currentQuantity: { increment: quantity },
+        ...(userId && {
+          lastCountDate: new Date(),
+          lastCountUserId: userId,
+        }),
+      },
+      create: {
+        branchId,
+        productId,
+        currentQuantity: quantity,
+        ...(userId && {
+          lastCountDate: new Date(),
+          lastCountUserId: userId,
+        }),
+      },
+    });
+  }
+
+  private async decrementBranchInventory(
+    tx: Prisma.TransactionClient,
+    branchId: string,
+    productId: string,
+    quantity: number,
+  ) {
+    const inventory = await tx.branchInventory.findUnique({
+      where: {
+        branchId_productId: {
+          branchId,
+          productId,
+        },
+      },
+      select: { currentQuantity: true },
+    });
+
+    const available = this.toNumber(inventory?.currentQuantity);
+    if (available + DECIMAL_EPSILON < quantity) {
+      throw new BadRequestException(
+        `Stock insuficiente en sucursal. Disponible: ${available}, solicitado: ${quantity}`,
+      );
+    }
+
+    await tx.branchInventory.update({
+      where: {
+        branchId_productId: {
+          branchId,
+          productId,
+        },
+      },
+      data: {
+        currentQuantity: { decrement: quantity },
+      },
+    });
+  }
+
+  private normalizePositiveQuantity(quantity: number): number {
+    const normalized = this.roundQuantity(Number(quantity));
+    if (!Number.isFinite(normalized) || normalized <= 0) {
+      throw new BadRequestException("La cantidad debe ser mayor a cero");
+    }
+    return normalized;
+  }
+
+  private normalizeNonNegativeQuantity(quantity: number): number {
+    const normalized = this.roundQuantity(Number(quantity));
+    if (!Number.isFinite(normalized) || normalized < 0) {
+      throw new BadRequestException("La cantidad no puede ser negativa");
+    }
+    return normalized;
+  }
+
+  private roundQuantity(quantity: number): number {
+    return Math.round(quantity * 10000) / 10000;
+  }
+
+  private toNumber(value: unknown): number {
+    if (value === null || value === undefined) return 0;
+    return Number(value);
+  }
+
+  private stockKey(branchId: string, productId: string): string {
+    return `${branchId}:${productId}`;
   }
 }
