@@ -70,7 +70,7 @@ export class PurchaseOrdersController {
   }
 
   @Patch(":id")
-  @Permissions("compras:edit")
+  @Permissions("compras:update")
   update(
     @CurrentUser() user: JwtPayload,
     @Param("id") id: string,
@@ -91,13 +91,13 @@ export class PurchaseOrdersController {
   }
 
   @Patch(":id/send")
-  @Permissions("compras:edit")
+  @Permissions("compras:update")
   send(@CurrentUser() user: JwtPayload, @Param("id") id: string) {
     return this.purchaseOrdersService.send(user.organizationId, id);
   }
 
   @Patch(":id/receive")
-  @Permissions("compras:edit")
+  @Permissions("compras:update")
   receive(
     @CurrentUser() user: JwtPayload,
     @Param("id") id: string,

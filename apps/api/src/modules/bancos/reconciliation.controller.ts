@@ -32,14 +32,14 @@ export class ReconciliationController {
 
   // POST /bancos/accounts/:id/reconcile
   @Post("accounts/:id/reconcile")
-  @Permissions("bancos:edit")
+  @Permissions("bancos:update")
   autoReconcile(@CurrentUser() user: JwtPayload, @Param("id") accountId: string) {
     return this.reconciliationService.autoReconcile(user.organizationId, accountId);
   }
 
   // POST /bancos/transactions/:id/reconcile
   @Post("transactions/:id/reconcile")
-  @Permissions("bancos:edit")
+  @Permissions("bancos:update")
   manualReconcile(
     @CurrentUser() user: JwtPayload,
     @Param("id") transactionId: string,
@@ -50,7 +50,7 @@ export class ReconciliationController {
 
   // POST /bancos/transactions/:id/unreconcile
   @Post("transactions/:id/unreconcile")
-  @Permissions("bancos:edit")
+  @Permissions("bancos:update")
   unreconcile(@CurrentUser() user: JwtPayload, @Param("id") transactionId: string) {
     return this.reconciliationService.unreconcile(user.organizationId, transactionId);
   }

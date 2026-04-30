@@ -479,7 +479,7 @@ export class FacturacionService {
         numParcialidad,
         impSaldoAnt: saldoAnterior,
         impPagado,
-        impSaldoInsoluto,
+        impSaldoInsoluto: saldoInsoluto,
         objetoImpDR: "02", // Objeto de impuesto
         impuestosDR: {
           trasladosDR: [

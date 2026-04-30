@@ -49,7 +49,7 @@ export class PromotionsController {
   }
 
   @Patch(":id")
-  @Permissions("crm:edit")
+  @Permissions("crm:update")
   update(
     @CurrentUser() user: JwtPayload,
     @Param("id") id: string,

@@ -1,5 +1,6 @@
 import { Injectable, Optional } from "@nestjs/common";
 import { PrismaService } from "../../common/prisma/prisma.service";
+import { toNullablePrismaJson } from "../../common/utils/prisma-json";
 import { NotificationsGateway } from "./notifications.gateway";
 
 @Injectable()
@@ -31,7 +32,7 @@ export class NotificationsService {
         title: data.title,
         message: data.message,
         link: data.link || null,
-        metadata: data.metadata || null,
+        metadata: toNullablePrismaJson(data.metadata),
       },
     });
 
@@ -77,7 +78,7 @@ export class NotificationsService {
       title: notification.title,
       message: notification.message,
       link: notification.link || null,
-      metadata: notification.metadata || null,
+      metadata: toNullablePrismaJson(notification.metadata),
     }));
 
     await this.prisma.notification.createMany({ data });
@@ -119,7 +120,7 @@ export class NotificationsService {
       title: notification.title,
       message: notification.message,
       link: notification.link || null,
-      metadata: notification.metadata || null,
+      metadata: toNullablePrismaJson(notification.metadata),
     }));
 
     await this.prisma.notification.createMany({ data });

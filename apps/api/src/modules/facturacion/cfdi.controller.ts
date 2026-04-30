@@ -34,13 +34,13 @@ export class CfdiController {
   }
 
   @Patch(":id")
-  @Permissions("facturacion:edit")
+  @Permissions("facturacion:update")
   update(@CurrentUser() user: JwtPayload, @Param("id") id: string, @Body() dto: UpdateInvoiceDto) {
     return this.cfdiService.update(user.organizationId, id, dto);
   }
 
   @Patch(":id/cancel")
-  @Permissions("facturacion:edit")
+  @Permissions("facturacion:update")
   cancel(
     @CurrentUser() user: JwtPayload,
     @Param("id") id: string,

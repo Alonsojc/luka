@@ -16,7 +16,7 @@ export class InventoryLoadController {
   constructor(private inventoryLoadService: InventoryLoadService) {}
 
   @Post("load")
-  @Permissions("inventarios:edit")
+  @Permissions("inventarios:update")
   loadInventory(@CurrentUser() user: JwtPayload, @Body() dto: LoadInventoryDto) {
     return this.inventoryLoadService.loadInventory(user, {
       branchId: dto.branchId,
@@ -25,13 +25,13 @@ export class InventoryLoadController {
   }
 
   @Post("load-csv")
-  @Permissions("inventarios:edit")
+  @Permissions("inventarios:update")
   loadCsv(@CurrentUser() user: JwtPayload, @Body() dto: LoadCsvDto) {
     return this.inventoryLoadService.loadFromCsv(user, dto.branchId, dto.rows);
   }
 
   @Post("adjust")
-  @Permissions("inventarios:edit")
+  @Permissions("inventarios:update")
   adjustInventory(@CurrentUser() user: JwtPayload, @Body() dto: AdjustInventoryDto) {
     return this.inventoryLoadService.adjustInventory(user, {
       branchId: dto.branchId,

@@ -22,7 +22,7 @@ export class ShiftsController {
   }
 
   @Post("templates")
-  @Permissions("nomina:edit")
+  @Permissions("nomina:update")
   createTemplate(
     @CurrentUser() user: JwtPayload,
     @Body()
@@ -38,7 +38,7 @@ export class ShiftsController {
   }
 
   @Put("templates/:id")
-  @Permissions("nomina:edit")
+  @Permissions("nomina:update")
   updateTemplate(
     @CurrentUser() user: JwtPayload,
     @Param("id") id: string,
@@ -55,7 +55,7 @@ export class ShiftsController {
   }
 
   @Delete("templates/:id")
-  @Permissions("nomina:edit")
+  @Permissions("nomina:update")
   deleteTemplate(@CurrentUser() user: JwtPayload, @Param("id") id: string) {
     return this.shiftsService.deleteTemplate(user.organizationId, id);
   }
@@ -73,7 +73,7 @@ export class ShiftsController {
   }
 
   @Post("assign")
-  @Permissions("nomina:edit")
+  @Permissions("nomina:update")
   assignShift(
     @CurrentUser() user: JwtPayload,
     @Body()
@@ -88,7 +88,7 @@ export class ShiftsController {
   }
 
   @Post("assign/bulk")
-  @Permissions("nomina:edit")
+  @Permissions("nomina:update")
   bulkAssign(
     @CurrentUser() user: JwtPayload,
     @Body()
@@ -103,7 +103,7 @@ export class ShiftsController {
   }
 
   @Delete("assign/:id")
-  @Permissions("nomina:edit")
+  @Permissions("nomina:update")
   removeAssignment(@CurrentUser() user: JwtPayload, @Param("id") id: string) {
     return this.shiftsService.removeAssignment(user.organizationId, id);
   }

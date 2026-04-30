@@ -12,6 +12,7 @@ import {
   FileText,
   BarChart3,
   Download,
+  AlertTriangle,
 } from "lucide-react";
 import {
   LineChart,
@@ -87,12 +88,19 @@ interface RoiData {
   }[];
 }
 
+type DataStatus = "OK" | "PARTIAL_DATA" | "NO_DATA";
+
 interface TrendsData {
   months: string[];
   sales: number[];
   expenses: number[];
   profit: number[];
   employeeCount: number[];
+  dataStatus?: DataStatus;
+  dataQuality?: {
+    hasSales?: boolean;
+    hasExpenses?: boolean;
+  };
 }
 
 interface KpisData {
@@ -107,6 +115,12 @@ interface KpisData {
   employeeCostRatio: number;
   topSellingProducts: { name: string; quantity: number; revenue: number }[];
   topBranches: { name: string; sales: number }[];
+  dataStatus?: DataStatus;
+  dataQuality?: {
+    hasCurrentSales?: boolean;
+    hasPreviousSales?: boolean;
+    salesGrowthAvailable?: boolean;
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -192,6 +206,31 @@ export default function InversionistasPage() {
   const { data: analyticsKpis } = useApiQuery<KpisData>("/reportes/analytics/kpis", [
     "analytics-kpis",
   ]);
+
+  const hasAnalyticsSales = Boolean(
+    analyticsKpis?.dataQuality?.hasCurrentSales ??
+      (analyticsKpis ? safeNum(analyticsKpis.currentMonthSales) !== 0 : false),
+  );
+  const hasSalesGrowthData = Boolean(
+    analyticsKpis?.dataQuality?.salesGrowthAvailable ??
+      (analyticsKpis ? safeNum(analyticsKpis.previousMonthSales) !== 0 : false),
+  );
+  const trendHasCashFlowData = Boolean(
+    trends &&
+      trends.dataStatus !== "NO_DATA" &&
+      (trends.sales.some((value) => safeNum(value) !== 0) ||
+        trends.expenses.some((value) => safeNum(value) !== 0)),
+  );
+  const estimatedAnnualReturn =
+    analyticsKpis && hasAnalyticsSales
+      ? (analyticsKpis.currentMonthSales -
+          analyticsKpis.previousMonthSales * (analyticsKpis.employeeCostRatio / 100 + 0.55)) *
+        12
+      : null;
+  const estimatedRoi =
+    analyticsKpis && hasAnalyticsSales && analyticsKpis.cashPosition > 0
+      ? ((analyticsKpis.currentMonthSales * 12 * 0.15) / analyticsKpis.cashPosition) * 100
+      : null;
 
   // --- derived KPIs ---------------------------------------------------------
   const kpis = useMemo(() => {
@@ -648,6 +687,12 @@ export default function InversionistasPage() {
                 </div>
               ) : analyticsKpis ? (
                 <>
+                  {!hasAnalyticsSales && (
+                    <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+                      <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                      <span>Sin ventas POS/Corntech sincronizadas para el mes actual.</span>
+                    </div>
+                  )}
                   <div className="flex items-center justify-between border-b border-gray-100 pb-4">
                     <span className="text-sm text-gray-600">Posicion en Efectivo</span>
                     <span className="text-lg font-bold text-gray-900">
@@ -657,39 +702,37 @@ export default function InversionistasPage() {
                   <div className="flex items-center justify-between border-b border-gray-100 pb-4">
                     <span className="text-sm text-gray-600">Ventas Mensuales</span>
                     <span className="text-lg font-bold text-gray-900">
-                      {fmtMXN(analyticsKpis.currentMonthSales)}
+                      {hasAnalyticsSales ? fmtMXN(analyticsKpis.currentMonthSales) : "Sin datos"}
                     </span>
                   </div>
                   <div className="flex items-center justify-between border-b border-gray-100 pb-4">
                     <span className="text-sm text-gray-600">Retorno Estimado Anual</span>
                     <span className="text-lg font-bold text-green-600">
-                      {fmtMXN(
-                        (analyticsKpis.currentMonthSales -
-                          analyticsKpis.previousMonthSales *
-                            (analyticsKpis.employeeCostRatio / 100 + 0.55)) *
-                          12,
-                      )}
+                      {estimatedAnnualReturn !== null ? fmtMXN(estimatedAnnualReturn) : "--"}
                     </span>
                   </div>
                   <div className="flex items-center justify-between border-b border-gray-100 pb-4">
                     <span className="text-sm text-gray-600">ROI Estimado</span>
                     <span className="text-2xl font-bold text-black">
-                      {analyticsKpis.cashPosition > 0
-                        ? fmtPct(
-                            ((analyticsKpis.currentMonthSales * 12 * 0.15) /
-                              analyticsKpis.cashPosition) *
-                              100,
-                          )
-                        : "--"}
+                      {estimatedRoi !== null ? fmtPct(estimatedRoi) : "--"}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-600">Crecimiento de Ventas</span>
                     <span
-                      className={`text-lg font-bold ${analyticsKpis.salesGrowth >= 0 ? "text-green-600" : "text-red-600"}`}
+                      className={`text-lg font-bold ${
+                        !hasSalesGrowthData
+                          ? "text-gray-500"
+                          : analyticsKpis.salesGrowth >= 0
+                            ? "text-green-600"
+                            : "text-red-600"
+                      }`}
                     >
-                      {analyticsKpis.salesGrowth >= 0 ? "+" : ""}
-                      {fmtPct(analyticsKpis.salesGrowth)}
+                      {hasSalesGrowthData
+                        ? `${analyticsKpis.salesGrowth >= 0 ? "+" : ""}${fmtPct(
+                            analyticsKpis.salesGrowth,
+                          )}`
+                        : "--"}
                     </span>
                   </div>
                 </>
@@ -712,7 +755,7 @@ export default function InversionistasPage() {
               <div className="flex h-full items-center justify-center text-sm text-gray-400">
                 Cargando...
               </div>
-            ) : trends && trends.months.length > 0 ? (
+            ) : trends && trendHasCashFlowData ? (
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
                   data={trends.months.map((m, i) => ({

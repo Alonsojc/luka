@@ -1,5 +1,7 @@
 import { Injectable } from "@nestjs/common";
+import type { CorntechSale } from "@luka/database";
 import { PrismaService } from "../../common/prisma/prisma.service";
+import { toPrismaJsonArray } from "../../common/utils/prisma-json";
 
 function startOfDay(date: Date): Date {
   const d = new Date(date);
@@ -355,7 +357,7 @@ export class CorntechService {
     tax: number;
     total: number;
     paymentMethod?: string;
-    items?: any[];
+    items?: readonly unknown[];
   }) {
     const { saleDate, ...rest } = data;
     return this.prisma.corntechSale.upsert({
@@ -368,13 +370,13 @@ export class CorntechService {
       update: {
         ...rest,
         saleDate: new Date(saleDate),
-        items: data.items || [],
+        items: toPrismaJsonArray(data.items || []),
         syncedAt: new Date(),
       },
       create: {
         ...rest,
         saleDate: new Date(saleDate),
-        items: data.items || [],
+        items: toPrismaJsonArray(data.items || []),
       },
     });
   }
@@ -389,10 +391,10 @@ export class CorntechService {
       tax: number;
       total: number;
       paymentMethod?: string;
-      items?: any[];
+      items?: readonly unknown[];
     }>,
   ) {
-    const results = [];
+    const results: CorntechSale[] = [];
     for (const sale of sales) {
       const result = await this.upsertSale({
         branchId,

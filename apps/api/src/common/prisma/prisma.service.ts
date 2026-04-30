@@ -74,6 +74,13 @@ const FILTERED_OPERATIONS = new Set([
   "groupBy",
 ]);
 
+type TenantQueryOperation = {
+  model?: string;
+  operation?: string;
+  args?: Record<string, unknown>;
+  query: (args?: Record<string, unknown>) => unknown;
+};
+
 export function applyTenantScopeToArgs(
   model: string | undefined,
   operation: string | undefined,
@@ -110,7 +117,7 @@ export function createTenantQueryExtension(getOrganizationId: () => string | und
   return {
     query: {
       $allModels: {
-        async $allOperations({ model, operation, args, query }: any) {
+        async $allOperations({ model, operation, args, query }: TenantQueryOperation) {
           const scopedArgs = applyTenantScopeToArgs(model, operation, args, getOrganizationId());
           return query(scopedArgs);
         },
@@ -136,7 +143,7 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
     );
 
     return new Proxy(this, {
-      get(target: any, prop: string | symbol, receiver: any) {
+      get(target: PrismaService, prop: PropertyKey, receiver: unknown) {
         // PrismaService's own prototype methods (lifecycle, etc.)
         // take priority — but NOT PrismaClient's own properties like model
         // delegates, which must go through the extended client for tenant filtering.
@@ -145,7 +152,8 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
         }
         // Everything else — model delegates, $connect, $transaction, etc. —
         // goes through the extended client so the query extension applies.
-        const value = (extended as any)[prop];
+        const extendedClient = extended as unknown as Record<PropertyKey, unknown>;
+        const value = extendedClient[prop];
         return typeof value === "function" ? value.bind(extended) : value;
       },
     }) as this;

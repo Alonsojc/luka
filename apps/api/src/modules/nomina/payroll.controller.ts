@@ -92,13 +92,13 @@ export class PayrollController {
   }
 
   @Post(":id/calculate")
-  @Permissions("nomina:edit")
+  @Permissions("nomina:update")
   calculate(@CurrentUser() user: JwtPayload, @Param("id") id: string) {
     return this.payrollService.calculatePayroll(user.organizationId, id);
   }
 
   @Patch(":id/approve")
-  @Permissions("nomina:edit")
+  @Permissions("nomina:update")
   approve(@CurrentUser() user: JwtPayload, @Param("id") id: string) {
     return this.payrollService.approvePeriod(user.organizationId, id);
   }

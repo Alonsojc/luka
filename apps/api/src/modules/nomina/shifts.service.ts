@@ -1,5 +1,13 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
+import type { Prisma } from "@luka/database";
 import { PrismaService } from "../../common/prisma/prisma.service";
+
+type ShiftAssignmentWithDetails = Prisma.ShiftAssignmentGetPayload<{
+  include: {
+    employee: { select: { id: true; firstName: true; lastName: true } };
+    shiftTemplate: { select: { id: true; name: true; startTime: true; endTime: true; color: true } };
+  };
+}>;
 
 @Injectable()
 export class ShiftsService {
@@ -161,7 +169,7 @@ export class ShiftsService {
       dates: string[];
     },
   ) {
-    const results = [];
+    const results: ShiftAssignmentWithDetails[] = [];
     for (const dateStr of data.dates) {
       try {
         const assignment = await this.prisma.shiftAssignment.upsert({

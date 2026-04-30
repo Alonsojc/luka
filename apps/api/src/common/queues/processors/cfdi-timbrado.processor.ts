@@ -1,8 +1,16 @@
 import { Processor, WorkerHost } from "@nestjs/bullmq";
 import { Logger } from "@nestjs/common";
-import { Job } from "bullmq";
+import type { Job } from "bullmq";
 import { FacturacionService } from "../../../modules/facturacion/facturacion.service";
+import { getErrorMessage, getErrorStack } from "../queue-error.util";
 import { QUEUE_CFDI_TIMBRADO } from "../queues.constants";
+
+interface CfdiTimbradoJobData {
+  organizationId?: string;
+  invoiceId?: string;
+  motivo?: string;
+  folioSustitucion?: string;
+}
 
 @Processor(QUEUE_CFDI_TIMBRADO)
 export class CfdiTimbradoProcessor extends WorkerHost {
@@ -12,7 +20,7 @@ export class CfdiTimbradoProcessor extends WorkerHost {
     super();
   }
 
-  async process(job: Job): Promise<any> {
+  async process(job: Job<CfdiTimbradoJobData>): Promise<unknown> {
     this.logger.log(
       `Processing job ${job.name} (id=${job.id}) — data: ${JSON.stringify(job.data)}`,
     );
@@ -27,14 +35,25 @@ export class CfdiTimbradoProcessor extends WorkerHost {
           this.logger.warn(`Unknown job name: ${job.name}`);
           return { status: "unknown_job" };
       }
-    } catch (error: any) {
-      this.logger.error(`Job ${job.name} (id=${job.id}) failed: ${error.message}`, error.stack);
+    } catch (error: unknown) {
+      this.logger.error(
+        `Job ${job.name} (id=${job.id}) failed: ${getErrorMessage(error)}`,
+        getErrorStack(error),
+      );
       throw error;
     }
   }
 
-  private async handleStampInvoice(job: Job) {
-    const { organizationId, invoiceId } = job.data;
+  private requireString(value: string | undefined, field: string): string {
+    if (!value) {
+      throw new Error(`Missing required job field: ${field}`);
+    }
+    return value;
+  }
+
+  private async handleStampInvoice(job: Job<CfdiTimbradoJobData>) {
+    const organizationId = this.requireString(job.data.organizationId, "organizationId");
+    const invoiceId = this.requireString(job.data.invoiceId, "invoiceId");
 
     try {
       // Generate XML through the existing service (which already handles the
@@ -54,14 +73,16 @@ export class CfdiTimbradoProcessor extends WorkerHost {
         series: result.invoice.series,
         folio: result.invoice.folio,
       };
-    } catch (error: any) {
-      this.logger.error(`stamp-invoice failed for ${invoiceId}: ${error.message}`);
+    } catch (error: unknown) {
+      this.logger.error(`stamp-invoice failed for ${invoiceId}: ${getErrorMessage(error)}`);
       throw error;
     }
   }
 
-  private async handleCancelInvoice(job: Job) {
-    const { organizationId, invoiceId, motivo, folioSustitucion } = job.data;
+  private async handleCancelInvoice(job: Job<CfdiTimbradoJobData>) {
+    const organizationId = this.requireString(job.data.organizationId, "organizationId");
+    const invoiceId = this.requireString(job.data.invoiceId, "invoiceId");
+    const { motivo, folioSustitucion } = job.data;
 
     try {
       // Call the existing cancel method. It currently sets status to
@@ -84,8 +105,8 @@ export class CfdiTimbradoProcessor extends WorkerHost {
         status: result.status,
         invoiceId,
       };
-    } catch (error: any) {
-      this.logger.error(`cancel-invoice failed for ${invoiceId}: ${error.message}`);
+    } catch (error: unknown) {
+      this.logger.error(`cancel-invoice failed for ${invoiceId}: ${getErrorMessage(error)}`);
       throw error;
     }
   }

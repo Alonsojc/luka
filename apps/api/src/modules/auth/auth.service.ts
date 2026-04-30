@@ -11,6 +11,7 @@ import { PrismaService } from "../../common/prisma/prisma.service";
 import { JwtPayload } from "../../common/decorators/current-user.decorator";
 import { EmailService } from "../email/email.service";
 import { AuditService } from "../audit/audit.service";
+import { getJwtExpiresIn, getJwtSecret } from "./jwt-config";
 
 @Injectable()
 export class AuthService {
@@ -57,10 +58,11 @@ export class AuthService {
       })),
     };
 
-    const accessToken = this.jwtService.sign(payload as unknown as Record<string, unknown>);
-    const refreshToken = this.jwtService.sign(payload as unknown as Record<string, unknown>, {
-      secret: process.env.JWT_REFRESH_SECRET,
-      expiresIn: process.env.JWT_REFRESH_EXPIRATION || "7d",
+    const tokenPayload: Record<string, unknown> = { ...payload };
+    const accessToken = this.jwtService.sign(tokenPayload);
+    const refreshToken = this.jwtService.sign(tokenPayload, {
+      secret: getJwtSecret("JWT_REFRESH_SECRET"),
+      expiresIn: getJwtExpiresIn(process.env.JWT_REFRESH_EXPIRATION, "7d"),
     });
 
     // Store refresh token hash
@@ -96,7 +98,7 @@ export class AuthService {
     let decoded: JwtPayload;
     try {
       decoded = this.jwtService.verify(refreshToken, {
-        secret: process.env.JWT_REFRESH_SECRET,
+        secret: getJwtSecret("JWT_REFRESH_SECRET"),
       });
     } catch {
       throw new UnauthorizedException("Token de refresco inválido");
@@ -134,10 +136,11 @@ export class AuthService {
       })),
     };
 
-    const newAccessToken = this.jwtService.sign(payload as unknown as Record<string, unknown>);
-    const newRefreshToken = this.jwtService.sign(payload as unknown as Record<string, unknown>, {
-      secret: process.env.JWT_REFRESH_SECRET,
-      expiresIn: process.env.JWT_REFRESH_EXPIRATION || "7d",
+    const tokenPayload: Record<string, unknown> = { ...payload };
+    const newAccessToken = this.jwtService.sign(tokenPayload);
+    const newRefreshToken = this.jwtService.sign(tokenPayload, {
+      secret: getJwtSecret("JWT_REFRESH_SECRET"),
+      expiresIn: getJwtExpiresIn(process.env.JWT_REFRESH_EXPIRATION, "7d"),
     });
 
     // Store new refresh token hash — old token is now invalid

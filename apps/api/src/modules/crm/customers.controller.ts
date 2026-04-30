@@ -42,7 +42,7 @@ export class CustomersController {
   }
 
   @Patch(":id")
-  @Permissions("crm:edit")
+  @Permissions("crm:update")
   update(
     @CurrentUser() user: JwtPayload,
     @Param("id") id: string,

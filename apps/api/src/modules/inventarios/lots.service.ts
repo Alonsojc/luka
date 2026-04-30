@@ -446,7 +446,7 @@ export class LotsService {
       },
       _count: true,
       _sum: { quantity: true },
-      orderBy: { _count: { _all: "desc" } },
+      orderBy: { _count: { productId: "desc" } },
       take: 10,
     });
 
@@ -464,7 +464,7 @@ export class LotsService {
       productId: p.productId,
       productName: productMap.get(p.productId) || "Desconocido",
       lotCount: p._count,
-      totalQuantity: Number(p._sum.quantity || 0),
+      totalQuantity: Number(p._sum?.quantity || 0),
     }));
 
     // Status distribution

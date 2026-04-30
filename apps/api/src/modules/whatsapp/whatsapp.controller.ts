@@ -20,6 +20,7 @@ import { AlertEngineService } from "./alert-engine.service";
 import { UpdateWhatsAppConfigDto } from "./dto/update-config.dto";
 import { CreateAlertRuleDto } from "./dto/create-rule.dto";
 import { UpdateAlertRuleDto } from "./dto/update-rule.dto";
+import { parseWhatsAppRecipients } from "./whatsapp-recipient.util";
 
 @ApiTags("WhatsApp")
 @ApiBearerAuth()
@@ -150,8 +151,8 @@ export class WhatsAppController {
     const sampleData = this.getSampleData(rule.eventType);
     const rendered = this.whatsAppService.renderTemplate(rule.messageTemplate, sampleData);
 
-    const recipients = (rule.recipients as any[]) || [];
-    const results = [];
+    const recipients = parseWhatsAppRecipients(rule.recipients);
+    const results: Array<{ phone: string; success: boolean; logId: string }> = [];
 
     for (const recipient of recipients) {
       const result = await this.whatsAppService.sendMessage(

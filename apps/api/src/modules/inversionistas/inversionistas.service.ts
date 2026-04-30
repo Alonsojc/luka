@@ -1,6 +1,17 @@
 import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../../common/prisma/prisma.service";
 
+interface ProfitabilityByBranchRow {
+  branch: { id: string; name: string; code: string };
+  revenue: number;
+  costOfGoods: number;
+  laborCost: number;
+  grossProfit: number;
+  netProfit: number;
+  marginPercent: number;
+  transactions: number;
+}
+
 @Injectable()
 export class InversionistasService {
   constructor(private prisma: PrismaService) {}
@@ -11,7 +22,7 @@ export class InversionistasService {
       select: { id: true, name: true, code: true },
     });
 
-    const results = [];
+    const results: ProfitabilityByBranchRow[] = [];
 
     for (const branch of branches) {
       // Revenue: sales totals

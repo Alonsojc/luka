@@ -1,5 +1,6 @@
 import { Injectable, BadRequestException } from "@nestjs/common";
 import { PrismaService } from "../../common/prisma/prisma.service";
+import { toPrismaJsonArray } from "../../common/utils/prisma-json";
 
 interface ValidationError {
   row: number;
@@ -338,7 +339,7 @@ export class DataImportService {
         importedRows,
         skippedRows,
         failedRows,
-        errors,
+        errors: toPrismaJsonArray(errors),
         completedAt: new Date(),
       },
     });
@@ -432,7 +433,7 @@ export class DataImportService {
         importedRows,
         skippedRows,
         failedRows,
-        errors,
+        errors: toPrismaJsonArray(errors),
         completedAt: new Date(),
       },
     });
@@ -567,7 +568,7 @@ export class DataImportService {
         importedRows,
         skippedRows,
         failedRows,
-        errors,
+        errors: toPrismaJsonArray(errors),
         completedAt: new Date(),
       },
     });
@@ -686,7 +687,7 @@ export class DataImportService {
         importedRows,
         skippedRows,
         failedRows,
-        errors,
+        errors: toPrismaJsonArray(errors),
         completedAt: new Date(),
       },
     });
@@ -784,7 +785,7 @@ export class DataImportService {
         importedRows,
         skippedRows,
         failedRows,
-        errors,
+        errors: toPrismaJsonArray(errors),
         completedAt: new Date(),
       },
     });

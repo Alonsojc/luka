@@ -54,7 +54,7 @@ export class PresentationsController {
    * Update a presentation.
    */
   @Patch("presentations/:id")
-  @Permissions("inventarios:edit")
+  @Permissions("inventarios:update")
   update(
     @CurrentUser() user: JwtPayload,
     @Param("id") id: string,

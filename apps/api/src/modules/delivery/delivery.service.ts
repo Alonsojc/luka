@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
 import { PrismaService } from "../../common/prisma/prisma.service";
+import { toPrismaJsonArray } from "../../common/utils/prisma-json";
 import { CreateDeliveryOrderDto } from "./dto/create-order.dto";
 import { UpdateDeliveryStatusDto } from "./dto/update-status.dto";
 import { CreateDeliveryConfigDto } from "./dto/create-config.dto";
@@ -89,7 +90,7 @@ export class DeliveryService {
         total: dto.total,
         netRevenue,
         orderDate: new Date(dto.orderDate),
-        items: dto.items || [],
+        items: toPrismaJsonArray(dto.items || []),
       },
       include: { branch: true },
     });

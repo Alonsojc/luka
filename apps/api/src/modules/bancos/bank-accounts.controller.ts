@@ -43,7 +43,7 @@ export class BankAccountsController {
   }
 
   @Patch(":id")
-  @Permissions("bancos:edit")
+  @Permissions("bancos:update")
   update(
     @CurrentUser() user: JwtPayload,
     @Param("id") id: string,

@@ -58,7 +58,7 @@ export class LoyaltyController {
   }
 
   @Post("adjust")
-  @Permissions("crm:edit")
+  @Permissions("crm:update")
   adjust(
     @CurrentUser() user: JwtPayload,
     @Body()

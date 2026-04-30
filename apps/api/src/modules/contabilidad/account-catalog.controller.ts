@@ -44,7 +44,7 @@ export class AccountCatalogController {
   }
 
   @Patch(":id")
-  @Permissions("contabilidad:edit")
+  @Permissions("contabilidad:update")
   update(
     @CurrentUser() user: JwtPayload,
     @Param("id") id: string,

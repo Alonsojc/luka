@@ -1,4 +1,5 @@
 import { Injectable } from "@nestjs/common";
+import type { BranchBudget } from "@luka/database";
 import { PrismaService } from "../../common/prisma/prisma.service";
 
 const CATEGORIES = [
@@ -12,6 +13,17 @@ const CATEGORIES = [
 ] as const;
 
 type Category = (typeof CATEGORIES)[number];
+
+interface MultiBranchComparisonRow {
+  branchId: string;
+  branchName: string;
+  branchCode: string;
+  budget: number;
+  actual: number;
+  variance: number;
+  variancePct: number;
+  status: string;
+}
 
 @Injectable()
 export class BudgetService {
@@ -68,7 +80,7 @@ export class BudgetService {
       budgets: { month: number; category: string; amount: number }[];
     },
   ) {
-    const results = [];
+    const results: BranchBudget[] = [];
     for (const entry of data.budgets) {
       const result = await this.prisma.branchBudget.upsert({
         where: {
@@ -275,7 +287,7 @@ export class BudgetService {
       orderBy: { name: "asc" },
     });
 
-    const rows = [];
+    const rows: MultiBranchComparisonRow[] = [];
     for (const branch of branches) {
       const comparison = await this.getComparison(organizationId, branch.id, year, month);
       rows.push({

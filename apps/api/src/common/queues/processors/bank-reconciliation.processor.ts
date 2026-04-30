@@ -1,8 +1,16 @@
 import { Processor, WorkerHost } from "@nestjs/bullmq";
 import { Logger } from "@nestjs/common";
-import { Job } from "bullmq";
+import type { Job } from "bullmq";
 import { ReconciliationService } from "../../../modules/bancos/reconciliation.service";
+import type { ImportTransactionItemDto } from "../../../modules/bancos/dto/import-transactions.dto";
+import { getErrorMessage, getErrorStack } from "../queue-error.util";
 import { QUEUE_BANK_RECONCILIATION } from "../queues.constants";
+
+interface BankReconciliationJobData {
+  organizationId?: string;
+  accountId?: string;
+  transactions?: ImportTransactionItemDto[];
+}
 
 @Processor(QUEUE_BANK_RECONCILIATION)
 export class BankReconciliationProcessor extends WorkerHost {
@@ -12,7 +20,7 @@ export class BankReconciliationProcessor extends WorkerHost {
     super();
   }
 
-  async process(job: Job): Promise<any> {
+  async process(job: Job<BankReconciliationJobData>): Promise<unknown> {
     this.logger.log(
       `Processing job ${job.name} (id=${job.id}) — data: ${JSON.stringify(job.data)}`,
     );
@@ -27,14 +35,25 @@ export class BankReconciliationProcessor extends WorkerHost {
           this.logger.warn(`Unknown job name: ${job.name}`);
           return { status: "unknown_job" };
       }
-    } catch (error: any) {
-      this.logger.error(`Job ${job.name} (id=${job.id}) failed: ${error.message}`, error.stack);
+    } catch (error: unknown) {
+      this.logger.error(
+        `Job ${job.name} (id=${job.id}) failed: ${getErrorMessage(error)}`,
+        getErrorStack(error),
+      );
       throw error;
     }
   }
 
-  private async handleAutoReconcile(job: Job) {
-    const { organizationId, accountId } = job.data;
+  private requireString(value: string | undefined, field: string): string {
+    if (!value) {
+      throw new Error(`Missing required job field: ${field}`);
+    }
+    return value;
+  }
+
+  private async handleAutoReconcile(job: Job<BankReconciliationJobData>) {
+    const organizationId = this.requireString(job.data.organizationId, "organizationId");
+    const accountId = this.requireString(job.data.accountId, "accountId");
 
     try {
       const result = await this.reconciliationService.autoReconcile(organizationId, accountId);
@@ -43,17 +62,19 @@ export class BankReconciliationProcessor extends WorkerHost {
         `auto-reconcile completed for account ${accountId}: ${result.matched}/${result.total} matched`,
       );
       return result;
-    } catch (error: any) {
-      this.logger.error(`auto-reconcile failed: ${error.message}`);
+    } catch (error: unknown) {
+      this.logger.error(`auto-reconcile failed: ${getErrorMessage(error)}`);
       throw error;
     }
   }
 
-  private async handleImportStatement(job: Job) {
-    const { organizationId, accountId, transactions } = job.data;
+  private async handleImportStatement(job: Job<BankReconciliationJobData>) {
+    const organizationId = this.requireString(job.data.organizationId, "organizationId");
+    const accountId = this.requireString(job.data.accountId, "accountId");
+    const transactions = job.data.transactions ?? [];
 
     try {
-      if (!transactions || transactions.length === 0) {
+      if (transactions.length === 0) {
         this.logger.log(`import-statement: No transactions to import`);
         return { imported: 0 };
       }
@@ -68,8 +89,8 @@ export class BankReconciliationProcessor extends WorkerHost {
         `import-statement completed for account ${accountId}: ${result.imported} imported`,
       );
       return { imported: result.imported };
-    } catch (error: any) {
-      this.logger.error(`import-statement failed: ${error.message}`);
+    } catch (error: unknown) {
+      this.logger.error(`import-statement failed: ${getErrorMessage(error)}`);
       throw error;
     }
   }

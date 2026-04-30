@@ -57,7 +57,7 @@ export class PhysicalCountController {
   }
 
   @Patch(":id/items/:itemId")
-  @Permissions("inventarios:edit")
+  @Permissions("inventarios:update")
   updateItem(
     @CurrentUser() user: JwtPayload,
     @Param("id") countId: string,
@@ -68,7 +68,7 @@ export class PhysicalCountController {
   }
 
   @Patch(":id/items")
-  @Permissions("inventarios:edit")
+  @Permissions("inventarios:update")
   bulkUpdateItems(
     @CurrentUser() user: JwtPayload,
     @Param("id") countId: string,
@@ -78,13 +78,13 @@ export class PhysicalCountController {
   }
 
   @Post(":id/complete")
-  @Permissions("inventarios:edit")
+  @Permissions("inventarios:update")
   complete(@CurrentUser() user: JwtPayload, @Param("id") countId: string) {
     return this.physicalCountService.complete(user.organizationId, countId, user.sub);
   }
 
   @Post(":id/cancel")
-  @Permissions("inventarios:edit")
+  @Permissions("inventarios:update")
   cancel(@CurrentUser() user: JwtPayload, @Param("id") countId: string) {
     return this.physicalCountService.cancel(user.organizationId, countId);
   }
