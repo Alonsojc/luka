@@ -61,6 +61,19 @@ export class LotsController {
     return this.lotsService.getExpirationSummary(user.organizationId);
   }
 
+  @Get("reconciliation")
+  @Permissions("inventarios:view")
+  getLotStockReconciliation(
+    @CurrentUser() user: JwtPayload,
+    @Query("branchId") branchId?: string,
+    @Query("productId") productId?: string,
+  ) {
+    return this.lotsService.getLotStockReconciliation(user.organizationId, {
+      branchId,
+      productId,
+    });
+  }
+
   @Get("by-product/:productId")
   @Permissions("inventarios:view")
   getLotsByProduct(
@@ -96,7 +109,7 @@ export class LotsController {
     @Param("id") id: string,
     @Body("quantity") quantity: number,
   ) {
-    return this.lotsService.consumeFromLot(user.organizationId, id, quantity);
+    return this.lotsService.consumeFromLot(user.organizationId, id, quantity, user.sub);
   }
 
   @Post(":id/dispose")

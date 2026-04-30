@@ -1,8 +1,10 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../../common/prisma/prisma.service";
 import { CreateMermaDto } from "./dto/create-merma.dto";
 import { UpdateMermaDto } from "./dto/update-merma.dto";
 import { Prisma } from "@luka/database";
+
+const DECIMAL_EPSILON = 0.0001;
 
 @Injectable()
 export class MermaService {
@@ -95,38 +97,54 @@ export class MermaService {
   }
 
   async create(organizationId: string, userId: string, dto: CreateMermaDto) {
-    let cost = dto.cost;
+    const quantity = this.normalizePositiveQuantity(dto.quantity);
+    const { product } = await this.assertProductAndBranchBelongToOrganization(
+      organizationId,
+      dto.productId,
+      dto.branchId,
+    );
+    const cost = dto.cost ?? Number(product.costPerUnit) * quantity;
+    const unitCost = cost / quantity;
 
-    // Auto-calculate cost from product price if not provided
-    if (cost === undefined || cost === null) {
-      const product = await this.prisma.product.findFirst({
-        where: { id: dto.productId, organizationId },
-        select: { costPerUnit: true },
+    return this.prisma.$transaction(async (tx) => {
+      const wasteLog = await tx.wasteLog.create({
+        data: {
+          organizationId,
+          branchId: dto.branchId || null,
+          productId: dto.productId,
+          quantity,
+          unit: dto.unit || "kg",
+          reason: dto.reason,
+          notes: dto.notes || null,
+          cost,
+          reportedBy: userId,
+          reportedAt: dto.reportedAt ? new Date(dto.reportedAt) : new Date(),
+        },
+        include: {
+          branch: { select: { id: true, name: true, code: true } },
+          product: { select: { id: true, name: true, sku: true, unitOfMeasure: true } },
+          reporter: { select: { id: true, firstName: true, lastName: true } },
+        },
       });
 
-      if (product) {
-        cost = Number(product.costPerUnit) * dto.quantity;
+      if (dto.branchId) {
+        await this.decrementBranchInventory(tx, dto.branchId, dto.productId, quantity);
+        await tx.inventoryMovement.create({
+          data: {
+            branchId: dto.branchId,
+            productId: dto.productId,
+            movementType: "WASTE",
+            quantity,
+            unitCost,
+            referenceType: "waste_log",
+            referenceId: wasteLog.id,
+            notes: dto.notes || `Merma registrada: ${dto.reason}`,
+            userId,
+          },
+        });
       }
-    }
 
-    return this.prisma.wasteLog.create({
-      data: {
-        organizationId,
-        branchId: dto.branchId || null,
-        productId: dto.productId,
-        quantity: dto.quantity,
-        unit: dto.unit || "kg",
-        reason: dto.reason,
-        notes: dto.notes || null,
-        cost: cost ?? null,
-        reportedBy: userId,
-        reportedAt: dto.reportedAt ? new Date(dto.reportedAt) : new Date(),
-      },
-      include: {
-        branch: { select: { id: true, name: true, code: true } },
-        product: { select: { id: true, name: true, sku: true, unitOfMeasure: true } },
-        reporter: { select: { id: true, firstName: true, lastName: true } },
-      },
+      return wasteLog;
     });
   }
 
@@ -139,37 +157,102 @@ export class MermaService {
       throw new NotFoundException("Registro de merma no encontrado");
     }
 
+    const existingQuantity = this.toNumber(existing.quantity);
+    const nextProductId = dto.productId || existing.productId;
+    const nextBranchId = dto.branchId !== undefined ? dto.branchId : existing.branchId;
+    const nextQuantity =
+      dto.quantity !== undefined ? this.normalizePositiveQuantity(dto.quantity) : existingQuantity;
+    const stockImpactChanged =
+      nextProductId !== existing.productId ||
+      nextBranchId !== existing.branchId ||
+      nextQuantity !== existingQuantity;
+    const { product } = await this.assertProductAndBranchBelongToOrganization(
+      organizationId,
+      nextProductId,
+      nextBranchId || undefined,
+    );
+
     // Recalculate cost if quantity or product changed and cost not provided
     let cost = dto.cost;
-    if (cost === undefined && (dto.quantity || dto.productId)) {
-      const productId = dto.productId || existing.productId;
-      const quantity = dto.quantity || Number(existing.quantity);
-      const product = await this.prisma.product.findFirst({
-        where: { id: productId, organizationId },
-        select: { costPerUnit: true },
-      });
-      if (product) {
-        cost = Number(product.costPerUnit) * quantity;
-      }
+    if (cost === undefined && (dto.quantity !== undefined || dto.productId)) {
+      cost = Number(product.costPerUnit) * nextQuantity;
     }
 
-    return this.prisma.wasteLog.update({
-      where: { id },
-      data: {
-        ...(dto.branchId !== undefined && { branchId: dto.branchId }),
-        ...(dto.productId && { productId: dto.productId }),
-        ...(dto.quantity && { quantity: dto.quantity }),
-        ...(dto.unit && { unit: dto.unit }),
-        ...(dto.reason && { reason: dto.reason }),
-        ...(dto.notes !== undefined && { notes: dto.notes }),
-        ...(cost !== undefined && { cost }),
-        ...(dto.reportedAt && { reportedAt: new Date(dto.reportedAt) }),
-      },
-      include: {
-        branch: { select: { id: true, name: true, code: true } },
-        product: { select: { id: true, name: true, sku: true, unitOfMeasure: true } },
-        reporter: { select: { id: true, firstName: true, lastName: true } },
-      },
+    const existingMovement = existing.branchId
+      ? await this.prisma.inventoryMovement.findFirst({
+          where: {
+            referenceType: "waste_log",
+            referenceId: id,
+            movementType: "WASTE",
+          },
+          select: { id: true },
+        })
+      : null;
+
+    return this.prisma.$transaction(async (tx) => {
+      if (stockImpactChanged) {
+        if (existing.branchId && existingMovement) {
+          await this.incrementBranchInventory(
+            tx,
+            existing.branchId,
+            existing.productId,
+            existingQuantity,
+            existing.reportedBy,
+          );
+          await tx.inventoryMovement.create({
+            data: {
+              branchId: existing.branchId,
+              productId: existing.productId,
+              movementType: "IN",
+              quantity: existingQuantity,
+              referenceType: "waste_log_reversal",
+              referenceId: id,
+              notes: "Reverso por edicion de merma",
+              userId: existing.reportedBy,
+            },
+          });
+        }
+
+        if (nextBranchId) {
+          const totalCost =
+            cost !== undefined
+              ? cost
+              : this.toNumber(existing.cost) || Number(product.costPerUnit) * nextQuantity;
+          await this.decrementBranchInventory(tx, nextBranchId, nextProductId, nextQuantity);
+          await tx.inventoryMovement.create({
+            data: {
+              branchId: nextBranchId,
+              productId: nextProductId,
+              movementType: "WASTE",
+              quantity: nextQuantity,
+              unitCost: totalCost / nextQuantity,
+              referenceType: "waste_log",
+              referenceId: id,
+              notes: dto.notes || `Merma actualizada: ${dto.reason || existing.reason}`,
+              userId: existing.reportedBy,
+            },
+          });
+        }
+      }
+
+      return tx.wasteLog.update({
+        where: { id },
+        data: {
+          ...(dto.branchId !== undefined && { branchId: dto.branchId }),
+          ...(dto.productId && { productId: dto.productId }),
+          ...(dto.quantity !== undefined && { quantity: nextQuantity }),
+          ...(dto.unit && { unit: dto.unit }),
+          ...(dto.reason && { reason: dto.reason }),
+          ...(dto.notes !== undefined && { notes: dto.notes }),
+          ...(cost !== undefined && { cost }),
+          ...(dto.reportedAt && { reportedAt: new Date(dto.reportedAt) }),
+        },
+        include: {
+          branch: { select: { id: true, name: true, code: true } },
+          product: { select: { id: true, name: true, sku: true, unitOfMeasure: true } },
+          reporter: { select: { id: true, firstName: true, lastName: true } },
+        },
+      });
     });
   }
 
@@ -182,7 +265,43 @@ export class MermaService {
       throw new NotFoundException("Registro de merma no encontrado");
     }
 
-    await this.prisma.wasteLog.delete({ where: { id } });
+    const existingMovement = existing.branchId
+      ? await this.prisma.inventoryMovement.findFirst({
+          where: {
+            referenceType: "waste_log",
+            referenceId: id,
+            movementType: "WASTE",
+          },
+          select: { id: true },
+        })
+      : null;
+
+    await this.prisma.$transaction(async (tx) => {
+      if (existing.branchId && existingMovement) {
+        await this.incrementBranchInventory(
+          tx,
+          existing.branchId,
+          existing.productId,
+          this.toNumber(existing.quantity),
+          existing.reportedBy,
+        );
+        await tx.inventoryMovement.create({
+          data: {
+            branchId: existing.branchId,
+            productId: existing.productId,
+            movementType: "IN",
+            quantity: this.toNumber(existing.quantity),
+            referenceType: "waste_log_delete",
+            referenceId: id,
+            notes: "Reverso por eliminacion de merma",
+            userId: existing.reportedBy,
+          },
+        });
+      }
+
+      await tx.wasteLog.delete({ where: { id } });
+    });
+
     return { deleted: true };
   }
 
@@ -328,5 +447,119 @@ export class MermaService {
       byProduct,
       trend,
     };
+  }
+
+  private async assertProductAndBranchBelongToOrganization(
+    organizationId: string,
+    productId: string,
+    branchId?: string | null,
+  ) {
+    const [product, branch] = await Promise.all([
+      this.prisma.product.findFirst({
+        where: { id: productId, organizationId },
+        select: { id: true, costPerUnit: true },
+      }),
+      branchId
+        ? this.prisma.branch.findFirst({
+            where: { id: branchId, organizationId },
+            select: { id: true },
+          })
+        : Promise.resolve(null),
+    ]);
+
+    if (!product) {
+      throw new BadRequestException("Producto no encontrado o no pertenece a la organizacion");
+    }
+    if (branchId && !branch) {
+      throw new BadRequestException("Sucursal no encontrada o no pertenece a la organizacion");
+    }
+
+    return { product, branch };
+  }
+
+  private async decrementBranchInventory(
+    tx: Prisma.TransactionClient,
+    branchId: string,
+    productId: string,
+    quantity: number,
+  ) {
+    const inventory = await tx.branchInventory.findUnique({
+      where: {
+        branchId_productId: {
+          branchId,
+          productId,
+        },
+      },
+      select: { currentQuantity: true },
+    });
+
+    const available = this.toNumber(inventory?.currentQuantity);
+    if (available + DECIMAL_EPSILON < quantity) {
+      throw new BadRequestException(
+        `Stock insuficiente en sucursal. Disponible: ${available}, solicitado: ${quantity}`,
+      );
+    }
+
+    await tx.branchInventory.update({
+      where: {
+        branchId_productId: {
+          branchId,
+          productId,
+        },
+      },
+      data: {
+        currentQuantity: { decrement: quantity },
+      },
+    });
+  }
+
+  private async incrementBranchInventory(
+    tx: Prisma.TransactionClient,
+    branchId: string,
+    productId: string,
+    quantity: number,
+    userId?: string | null,
+  ) {
+    await tx.branchInventory.upsert({
+      where: {
+        branchId_productId: {
+          branchId,
+          productId,
+        },
+      },
+      update: {
+        currentQuantity: { increment: quantity },
+        ...(userId && {
+          lastCountDate: new Date(),
+          lastCountUserId: userId,
+        }),
+      },
+      create: {
+        branchId,
+        productId,
+        currentQuantity: quantity,
+        ...(userId && {
+          lastCountDate: new Date(),
+          lastCountUserId: userId,
+        }),
+      },
+    });
+  }
+
+  private normalizePositiveQuantity(quantity: number): number {
+    const normalized = this.roundQuantity(Number(quantity));
+    if (!Number.isFinite(normalized) || normalized <= 0) {
+      throw new BadRequestException("La cantidad debe ser mayor a cero");
+    }
+    return normalized;
+  }
+
+  private roundQuantity(quantity: number): number {
+    return Math.round(quantity * 10000) / 10000;
+  }
+
+  private toNumber(value: unknown): number {
+    if (value === null || value === undefined) return 0;
+    return Number(value);
   }
 }
