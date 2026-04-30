@@ -246,6 +246,52 @@ describe("RequisitionsService", () => {
         BadRequestException,
       );
     });
+
+    it("should reject approved items that do not belong to the requisition", async () => {
+      const submittedReq = { ...mockRequisition, status: "SUBMITTED" };
+      mockPrisma.requisition.findFirst.mockResolvedValue(submittedReq);
+
+      await expect(
+        service.approve("req-1", USER_ID, ORG_ID, {
+          items: [{ itemId: "item-from-other-requisition", approvedQuantity: 5 }],
+        }),
+      ).rejects.toThrow(BadRequestException);
+
+      expect(mockPrisma.requisitionItem.update).not.toHaveBeenCalled();
+      expect(mockPrisma.requisition.update).not.toHaveBeenCalled();
+    });
+
+    it("should reject duplicate approved item ids before updating quantities", async () => {
+      const submittedReq = { ...mockRequisition, status: "SUBMITTED" };
+      mockPrisma.requisition.findFirst.mockResolvedValue(submittedReq);
+
+      await expect(
+        service.approve("req-1", USER_ID, ORG_ID, {
+          items: [
+            { itemId: "item-1", approvedQuantity: 5 },
+            { itemId: "item-1", approvedQuantity: 6 },
+          ],
+        }),
+      ).rejects.toThrow(BadRequestException);
+
+      expect(mockPrisma.requisitionItem.update).not.toHaveBeenCalled();
+      expect(mockPrisma.requisition.update).not.toHaveBeenCalled();
+    });
+
+    it("should reject fulfilling branches outside the organization", async () => {
+      const submittedReq = { ...mockRequisition, status: "SUBMITTED" };
+      mockPrisma.requisition.findFirst.mockResolvedValue(submittedReq);
+      mockPrisma.branch.findFirst.mockResolvedValue(null);
+
+      await expect(
+        service.approve("req-1", USER_ID, ORG_ID, {
+          fulfillingBranchId: "branch-from-other-org",
+        }),
+      ).rejects.toThrow(BadRequestException);
+
+      expect(mockPrisma.requisitionItem.update).not.toHaveBeenCalled();
+      expect(mockPrisma.requisition.update).not.toHaveBeenCalled();
+    });
   });
 
   // -----------------------------------------------------------------------
