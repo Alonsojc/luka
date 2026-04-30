@@ -1577,6 +1577,7 @@ model AlertLog {
   alertRuleId  String    @map("alert_rule_id")
   recipient    String
   message      String    @db.Text
+  dedupeKey    String?   @unique @map("dedupe_key")
   status       String    @default("PENDING") // PENDING, SENT, FAILED, DELIVERED
   errorMessage String?   @map("error_message")
   sentAt       DateTime? @map("sent_at")

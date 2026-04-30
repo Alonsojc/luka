@@ -1,9 +1,11 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { Cron } from "@nestjs/schedule";
+import { Prisma } from "@luka/database";
 import { PrismaService } from "../../common/prisma/prisma.service";
 import { WhatsAppService } from "./whatsapp.service";
 import { parseWhatsAppRecipients } from "./whatsapp-recipient.util";
 import { ReportesService } from "../reportes/reportes.service";
+import { ALERT_DEDUPE_RECIPIENT } from "./alert-log.constants";
 
 function toDateOnly(date: Date): string {
   return date.toISOString().slice(0, 10);
@@ -318,6 +320,7 @@ export class AlertEngineService {
 
     let triggered = 0;
     let totalIssues = 0;
+    let deduped = 0;
 
     for (const rule of rules) {
       const conditions = rule.conditions as any;
@@ -346,6 +349,18 @@ export class AlertEngineService {
           continue;
         }
 
+        const dedupeKey = this.getOperationalReconciliationDedupeKey(
+          rule.id,
+          scope.id,
+          range.startDate,
+          range.endDate,
+        );
+        const reserved = await this.reserveAlertDedupeKey(rule.id, dedupeKey);
+        if (!reserved) {
+          deduped++;
+          continue;
+        }
+
         totalIssues += reconciliation.issueCount;
         await this.processAlertRule(rule, {
           startDate: range.startDate,
@@ -356,14 +371,16 @@ export class AlertEngineService {
           cedisIssueCount: String(reconciliation.cedisTransfers.summary.issueCount),
           foodCostIssueCount: String(reconciliation.foodCost.summary.issueCount),
           deliveryIssueCount: String(reconciliation.deliveryNetRevenue.summary.issueCount),
-          deliveryNetRevenue: formatMXN(reconciliation.deliveryNetRevenue.summary.recalculatedNetRevenue),
+          deliveryNetRevenue: formatMXN(
+            reconciliation.deliveryNetRevenue.summary.recalculatedNetRevenue,
+          ),
           reportUrl: "/reportes",
         });
         triggered++;
       }
     }
 
-    return { triggered, issueCount: totalIssues };
+    return { triggered, issueCount: totalIssues, deduped };
   }
 
   @Cron("0 8 * * *", { timeZone: "America/Mexico_City" })
@@ -462,5 +479,41 @@ export class AlertEngineService {
       startDate: toDateOnly(start),
       endDate: toDateOnly(end),
     };
+  }
+
+  private getOperationalReconciliationDedupeKey(
+    ruleId: string,
+    branchId: string | undefined,
+    startDate: string,
+    endDate: string,
+  ) {
+    return [
+      "operational-reconciliation",
+      ruleId,
+      branchId ?? "all-branches",
+      startDate,
+      endDate,
+    ].join(":");
+  }
+
+  private async reserveAlertDedupeKey(alertRuleId: string, dedupeKey: string) {
+    try {
+      await this.prisma.alertLog.create({
+        data: {
+          alertRuleId,
+          recipient: ALERT_DEDUPE_RECIPIENT,
+          message: `Dedupe lock: ${dedupeKey}`,
+          status: "RESERVED",
+          sentAt: new Date(),
+          dedupeKey,
+        },
+      });
+      return true;
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+        return false;
+      }
+      throw error;
+    }
   }
 }
