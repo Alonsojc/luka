@@ -31,6 +31,7 @@ import {
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/components/ui/toast";
 import { useApiQuery } from "@/hooks/use-api-query";
+import { getApiUrl } from "@/lib/api-url";
 import { DataTable } from "@/components/ui/data-table";
 import { Button } from "@/components/ui/button";
 import { FormField, Input, Select } from "@/components/ui/form-field";
@@ -844,7 +845,7 @@ export default function ReportesPage() {
       .split("; ")
       .find((row) => row.startsWith("token="))
       ?.split("=")[1];
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+    const baseUrl = getApiUrl();
     const response = await fetch(`${baseUrl}${url}`, {
       headers: {
         Authorization: `Bearer ${localStorage.getItem("token") || token || ""}`,
