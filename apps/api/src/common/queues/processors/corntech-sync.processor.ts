@@ -112,10 +112,13 @@ export class CorntechSyncProcessor extends WorkerHost {
   }
 
   private async handleSyncProducts(job: Job<CorntechSyncJobData>) {
+    const organizationId = this.requireString(job.data.organizationId, "organizationId");
     const branchId = this.requireString(job.data.branchId, "branchId");
     const products = job.data.products ?? [];
 
     try {
+      await this.corntechService.assertBranchBelongsToOrganization(organizationId, branchId);
+
       // bulkUpsertSales handles product-like data through the existing service
       // If a dedicated product sync method exists, use it; otherwise log placeholder
       if (typeof this.corntechService.bulkUpsertSales === "function" && products.length > 0) {
@@ -135,10 +138,13 @@ export class CorntechSyncProcessor extends WorkerHost {
   }
 
   private async handleSyncCashClosings(job: Job<CorntechSyncJobData>) {
+    const organizationId = this.requireString(job.data.organizationId, "organizationId");
     const branchId = this.requireString(job.data.branchId, "branchId");
     const closings = job.data.closings ?? [];
 
     try {
+      await this.corntechService.assertBranchBelongsToOrganization(organizationId, branchId);
+
       if (closings.length === 0) {
         this.logger.log(`sync-cash-closings: No closings provided`);
         return { synced: 0 };

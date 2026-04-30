@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { Test, TestingModule } from "@nestjs/testing";
-import { NotFoundException } from "@nestjs/common";
+import { BadRequestException, NotFoundException } from "@nestjs/common";
 import { ProductsService } from "./products.service";
 import { InventoryService } from "./inventory.service";
 import { PrismaService } from "../../common/prisma/prisma.service";
@@ -26,6 +26,9 @@ const mockPrisma: any = {
   inventoryMovement: {
     findMany: vi.fn(),
     create: vi.fn(),
+  },
+  branch: {
+    findFirst: vi.fn(),
   },
   $transaction: vi.fn((fn: any) => fn(mockPrisma)),
   $queryRaw: vi.fn(),
@@ -287,11 +290,11 @@ describe("InventoryService", () => {
       const mockInventory = [{ branchId: "b1", productId: "p1", currentQuantity: 10 }];
       mockPrisma.branchInventory.findMany.mockResolvedValue(mockInventory);
 
-      const result = await service.getStockByBranch("b1");
+      const result = await service.getStockByBranch("org-1", "b1");
 
       expect(result).toEqual(mockInventory);
       expect(mockPrisma.branchInventory.findMany).toHaveBeenCalledWith({
-        where: { branchId: "b1" },
+        where: { branchId: "b1", branch: { organizationId: "org-1" } },
         include: { product: true },
         orderBy: { product: { name: "asc" } },
       });
@@ -308,6 +311,8 @@ describe("InventoryService", () => {
         productId: "p1",
         currentQuantity: 10,
       };
+      mockPrisma.branch.findFirst.mockResolvedValue({ id: "b1" });
+      mockPrisma.product.findFirst.mockResolvedValue({ id: "p1" });
       mockPrisma.branchInventory.findUnique.mockResolvedValue(existingInventory);
       mockPrisma.branchInventory.upsert.mockResolvedValue({
         ...existingInventory,
@@ -315,7 +320,7 @@ describe("InventoryService", () => {
       });
       mockPrisma.inventoryMovement.create.mockResolvedValue({});
 
-      const result = await service.adjustStock("b1", "user-1", {
+      const result = await service.adjustStock("org-1", "b1", "user-1", {
         productId: "p1",
         quantity: 15,
         notes: "Ajuste de conteo",
@@ -336,6 +341,8 @@ describe("InventoryService", () => {
     });
 
     it("should create inventory when it does not exist yet (upsert)", async () => {
+      mockPrisma.branch.findFirst.mockResolvedValue({ id: "b1" });
+      mockPrisma.product.findFirst.mockResolvedValue({ id: "p1" });
       mockPrisma.branchInventory.findUnique.mockResolvedValue(null);
       mockPrisma.branchInventory.upsert.mockResolvedValue({
         branchId: "b1",
@@ -344,7 +351,7 @@ describe("InventoryService", () => {
       });
       mockPrisma.inventoryMovement.create.mockResolvedValue({});
 
-      const result = await service.adjustStock("b1", "user-1", {
+      const result = await service.adjustStock("org-1", "b1", "user-1", {
         productId: "p1",
         quantity: 20,
       });
@@ -365,6 +372,8 @@ describe("InventoryService", () => {
         productId: "p1",
         currentQuantity: 30,
       };
+      mockPrisma.branch.findFirst.mockResolvedValue({ id: "b1" });
+      mockPrisma.product.findFirst.mockResolvedValue({ id: "p1" });
       mockPrisma.branchInventory.findUnique.mockResolvedValue(existingInventory);
       mockPrisma.branchInventory.upsert.mockResolvedValue({
         ...existingInventory,
@@ -372,7 +381,7 @@ describe("InventoryService", () => {
       });
       mockPrisma.inventoryMovement.create.mockResolvedValue({});
 
-      const result = await service.adjustStock("b1", "user-1", {
+      const result = await service.adjustStock("org-1", "b1", "user-1", {
         productId: "p1",
         quantity: 5,
       });
@@ -384,6 +393,20 @@ describe("InventoryService", () => {
           quantity: -25,
         }),
       });
+    });
+
+    it("should reject adjustments for branches outside the organization", async () => {
+      mockPrisma.branch.findFirst.mockResolvedValue(null);
+      mockPrisma.product.findFirst.mockResolvedValue({ id: "p1" });
+
+      await expect(
+        service.adjustStock("org-1", "branch-org-2", "user-1", {
+          productId: "p1",
+          quantity: 5,
+        }),
+      ).rejects.toThrow(BadRequestException);
+      expect(mockPrisma.branchInventory.upsert).not.toHaveBeenCalled();
+      expect(mockPrisma.inventoryMovement.create).not.toHaveBeenCalled();
     });
   });
 });

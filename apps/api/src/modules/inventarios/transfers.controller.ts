@@ -38,8 +38,8 @@ export class TransfersController {
 
   @Get(":id")
   @Permissions("inventarios:view")
-  findOne(@Param("id") id: string) {
-    return this.transfersService.findOne(id);
+  findOne(@CurrentUser() user: JwtPayload, @Param("id") id: string) {
+    return this.transfersService.findOne(user.organizationId, id);
   }
 
   @Post()

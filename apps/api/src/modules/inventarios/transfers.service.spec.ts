@@ -35,7 +35,7 @@ describe("TransfersService", () => {
   beforeEach(async () => {
     mockPrisma = {
       interBranchTransfer: {
-        findUnique: vi.fn(),
+        findFirst: vi.fn(),
         update: vi.fn(),
       },
       interBranchTransferItem: {
@@ -70,9 +70,27 @@ describe("TransfersService", () => {
     service = module.get<TransfersService>(TransfersService);
   });
 
+  describe("findOne", () => {
+    it("should scope transfer lookup to the organization on both branches", async () => {
+      mockPrisma.interBranchTransfer.findFirst.mockResolvedValue(baseTransfer);
+
+      const result = await service.findOne(ORG_ID, "transfer-1");
+
+      expect(result).toEqual(baseTransfer);
+      expect(mockPrisma.interBranchTransfer.findFirst).toHaveBeenCalledWith({
+        where: {
+          id: "transfer-1",
+          fromBranch: { organizationId: ORG_ID },
+          toBranch: { organizationId: ORG_ID },
+        },
+        include: expect.any(Object),
+      });
+    });
+  });
+
   describe("ship", () => {
     it("should allow partial shipment and record sent quantity before reception", async () => {
-      mockPrisma.interBranchTransfer.findUnique.mockResolvedValue(baseTransfer);
+      mockPrisma.interBranchTransfer.findFirst.mockResolvedValue(baseTransfer);
       mockPrisma.branchInventory.findUnique.mockResolvedValue({ currentQuantity: 20 });
       mockPrisma.interBranchTransfer.update.mockResolvedValue({
         ...baseTransfer,
@@ -106,7 +124,7 @@ describe("TransfersService", () => {
     });
 
     it("should reject shipping more than requested", async () => {
-      mockPrisma.interBranchTransfer.findUnique.mockResolvedValue(baseTransfer);
+      mockPrisma.interBranchTransfer.findFirst.mockResolvedValue(baseTransfer);
 
       await expect(
         service.ship(
@@ -122,7 +140,7 @@ describe("TransfersService", () => {
 
   describe("receive", () => {
     it("should reject receiving more than CEDIS sent", async () => {
-      mockPrisma.interBranchTransfer.findUnique.mockResolvedValue({
+      mockPrisma.interBranchTransfer.findFirst.mockResolvedValue({
         ...baseTransfer,
         status: "IN_TRANSIT",
         items: [{ ...baseTransfer.items[0], sentQuantity: 8 }],
@@ -140,7 +158,7 @@ describe("TransfersService", () => {
     });
 
     it("should mark linked requisition partially fulfilled when received is below requested", async () => {
-      mockPrisma.interBranchTransfer.findUnique.mockResolvedValue({
+      mockPrisma.interBranchTransfer.findFirst.mockResolvedValue({
         ...baseTransfer,
         status: "IN_TRANSIT",
         items: [{ ...baseTransfer.items[0], sentQuantity: 8 }],
@@ -170,7 +188,7 @@ describe("TransfersService", () => {
     });
 
     it("should mark linked requisition fulfilled when received covers requested", async () => {
-      mockPrisma.interBranchTransfer.findUnique.mockResolvedValue({
+      mockPrisma.interBranchTransfer.findFirst.mockResolvedValue({
         ...baseTransfer,
         status: "IN_TRANSIT",
         items: [{ ...baseTransfer.items[0], sentQuantity: 10 }],

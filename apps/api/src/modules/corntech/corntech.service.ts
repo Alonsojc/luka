@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { BadRequestException, Injectable } from "@nestjs/common";
 import type { CorntechSale } from "@luka/database";
 import { PrismaService } from "../../common/prisma/prisma.service";
 import { toPrismaJsonArray } from "../../common/utils/prisma-json";
@@ -67,6 +67,8 @@ export class CorntechService {
     branchId: string,
     sales: PosSaleDto[],
   ): Promise<SyncResult> {
+    await this.assertBranchBelongsToOrganization(orgId, branchId);
+
     const log = await this.createPosSyncLog(orgId, branchId, "SALES", sales.length);
 
     let synced = 0;
@@ -457,5 +459,16 @@ export class CorntechService {
         difference: diff,
       },
     });
+  }
+
+  async assertBranchBelongsToOrganization(organizationId: string, branchId: string) {
+    const branch = await this.prisma.branch.findFirst({
+      where: { id: branchId, organizationId },
+      select: { id: true },
+    });
+
+    if (!branch) {
+      throw new BadRequestException("Sucursal no encontrada o no pertenece a la organizacion");
+    }
   }
 }

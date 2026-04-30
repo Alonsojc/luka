@@ -17,8 +17,12 @@ export class InventoryController {
 
   @Get("export/stock")
   @Permissions("inventarios:view")
-  async exportStock(@Query("branchId") branchId: string, @Res() res: Response) {
-    const stock = await this.inventoryService.getStockByBranch(branchId);
+  async exportStock(
+    @CurrentUser() user: JwtPayload,
+    @Query("branchId") branchId: string,
+    @Res() res: Response,
+  ) {
+    const stock = await this.inventoryService.getStockByBranch(user.organizationId, branchId);
 
     const header = ["SKU", "Producto", "Cantidad Actual", "Stock Minimo", "Ultimo Conteo"].join(
       ";",
@@ -44,8 +48,8 @@ export class InventoryController {
 
   @Get("branch/:branchId")
   @Permissions("inventarios:view")
-  getStockByBranch(@Param("branchId") branchId: string) {
-    return this.inventoryService.getStockByBranch(branchId);
+  getStockByBranch(@CurrentUser() user: JwtPayload, @Param("branchId") branchId: string) {
+    return this.inventoryService.getStockByBranch(user.organizationId, branchId);
   }
 
   @Post("adjust")
@@ -60,7 +64,7 @@ export class InventoryController {
       notes?: string;
     },
   ) {
-    return this.inventoryService.adjustStock(body.branchId, user.sub, {
+    return this.inventoryService.adjustStock(user.organizationId, body.branchId, user.sub, {
       productId: body.productId,
       quantity: body.quantity,
       notes: body.notes,
@@ -69,7 +73,11 @@ export class InventoryController {
 
   @Get("movements/:branchId")
   @Permissions("inventarios:view")
-  getMovements(@Param("branchId") branchId: string, @Query("productId") productId?: string) {
-    return this.inventoryService.getMovements(branchId, productId);
+  getMovements(
+    @CurrentUser() user: JwtPayload,
+    @Param("branchId") branchId: string,
+    @Query("productId") productId?: string,
+  ) {
+    return this.inventoryService.getMovements(user.organizationId, branchId, productId);
   }
 }

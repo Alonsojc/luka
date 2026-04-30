@@ -41,6 +41,7 @@ export class TransfersService {
   ) {
     const where: any = {
       fromBranch: { organizationId },
+      toBranch: { organizationId },
     };
 
     if (filters?.status) {
@@ -72,9 +73,13 @@ export class TransfersService {
     return { data, total, page, totalPages: Math.ceil(total / limit) };
   }
 
-  async findOne(id: string) {
-    const transfer = await this.prisma.interBranchTransfer.findUnique({
-      where: { id },
+  async findOne(organizationId: string, id: string) {
+    const transfer = await this.prisma.interBranchTransfer.findFirst({
+      where: {
+        id,
+        fromBranch: { organizationId },
+        toBranch: { organizationId },
+      },
       include: TRANSFER_INCLUDE,
     });
     if (!transfer) {
@@ -144,7 +149,7 @@ export class TransfersService {
   }
 
   async approve(id: string, userId: string, organizationId: string) {
-    const transfer = await this.findOne(id);
+    const transfer = await this.findOne(organizationId, id);
     if (transfer.status !== TransferStatus.PENDING) {
       throw new BadRequestException("Solo se pueden aprobar transferencias pendientes");
     }
@@ -172,7 +177,7 @@ export class TransfersService {
   }
 
   async ship(id: string, dto: ShipTransferDto, userId: string, organizationId: string) {
-    const transfer = await this.findOne(id);
+    const transfer = await this.findOne(organizationId, id);
     if (transfer.status !== TransferStatus.APPROVED) {
       throw new BadRequestException("Solo se pueden enviar transferencias aprobadas");
     }
@@ -266,7 +271,7 @@ export class TransfersService {
   }
 
   async receive(id: string, dto: ReceiveTransferDto, userId: string, organizationId: string) {
-    const transfer = await this.findOne(id);
+    const transfer = await this.findOne(organizationId, id);
     if (transfer.status !== TransferStatus.IN_TRANSIT) {
       throw new BadRequestException("Solo se pueden recibir transferencias en transito");
     }
@@ -349,7 +354,7 @@ export class TransfersService {
   }
 
   async cancel(id: string, userId: string, organizationId: string) {
-    const transfer = await this.findOne(id);
+    const transfer = await this.findOne(organizationId, id);
 
     if (
       transfer.status === TransferStatus.RECEIVED ||
@@ -416,7 +421,7 @@ export class TransfersService {
       description: `Transferencia cancelada de ${transfer.fromBranch.name} a ${transfer.toBranch.name}`,
     });
 
-    return this.findOne(id);
+    return this.findOne(organizationId, id);
   }
 
   private buildShipmentItems(
