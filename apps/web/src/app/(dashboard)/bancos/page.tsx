@@ -169,6 +169,22 @@ export default function BancosPage() {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("Cuentas Bancarias");
 
+  useEffect(() => {
+    const tab = new URLSearchParams(window.location.search).get("tab");
+    const aliases: Record<string, string> = {
+      cuentas: "Cuentas Bancarias",
+      movimientos: "Movimientos",
+      cxp: "Cuentas por Pagar",
+      cxc: "Cuentas por Cobrar",
+      conciliacion: "Conciliacion",
+      flujo: "Flujo de Efectivo",
+    };
+    const target = tab ? aliases[tab] : undefined;
+    if (target && TABS.includes(target)) {
+      setActiveTab(target);
+    }
+  }, []);
+
   // ---- Search & Pagination state ----
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -327,7 +343,10 @@ export default function BancosPage() {
   const fetchPayables = useCallback(async () => {
     setPayablesLoading(true);
     try {
-      const data = await authFetch<Payable[] | PaginatedResponse<Payable>>("get", "/bancos/payable");
+      const data = await authFetch<Payable[] | PaginatedResponse<Payable>>(
+        "get",
+        "/bancos/payable",
+      );
       setPayables(unwrapListResponse(data));
     } catch (err) {
       toast(err instanceof Error ? err.message : "Error al cargar datos", "error");
@@ -440,7 +459,15 @@ export default function BancosPage() {
     } finally {
       setImportLoading(false);
     }
-  }, [authFetch, toast, recAccountId, csvPreview, fetchRecSummary, fetchRecTransactions, fetchAccounts]);
+  }, [
+    authFetch,
+    toast,
+    recAccountId,
+    csvPreview,
+    fetchRecSummary,
+    fetchRecTransactions,
+    fetchAccounts,
+  ]);
 
   const handleImportManual = useCallback(async () => {
     if (!recAccountId || !manualImportForm.date || !manualImportForm.amount) return;

@@ -297,12 +297,13 @@ export default function PrediccionesPage() {
   const createRequisitionFromSuggested = async () => {
     if (!selectedBranchId || suggestedRequisition.length === 0) return;
     try {
-      await authFetch("post", "/requisiciones", {
+      await authFetch("post", "/requisitions", {
         requestingBranchId: selectedBranchId,
         notes: "Requisicion generada automaticamente por predicciones",
         items: suggestedRequisition.map((item) => ({
           productId: item.productId,
           requestedQuantity: item.suggestedQuantity,
+          unitOfMeasure: item.unitOfMeasure,
           notes: `Stock actual: ${item.currentStock}, Dias restantes: ${item.daysOfStockLeft ?? "N/A"}`,
         })),
       });

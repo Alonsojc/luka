@@ -398,6 +398,13 @@ export default function InventariosPage() {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<TabKey>("productos");
 
+  useEffect(() => {
+    const tab = new URLSearchParams(window.location.search).get("tab") as TabKey | null;
+    if (tab && TABS.some((item) => item.key === tab)) {
+      setActiveTab(tab);
+    }
+  }, []);
+
   // ---- Search & Pagination state ----
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);

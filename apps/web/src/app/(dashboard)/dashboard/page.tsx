@@ -622,7 +622,7 @@ function CedisDashboard({ data, loading }: { data: any; loading: boolean }) {
         </h2>
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <QuickAction label="Ver Requisiciones" href="/requisiciones" icon={ClipboardList} />
-          <QuickAction label="Transferencias" href="/inventarios/transferencias" icon={Truck} />
+          <QuickAction label="Transferencias" href="/inventarios?tab=transferencias" icon={Truck} />
           <QuickAction label="Inventarios" href="/inventarios" icon={Package} />
           <QuickAction label="Compras" href="/compras" icon={ShoppingCart} />
         </div>
@@ -1048,8 +1048,8 @@ function AccountantDashboard({ data, loading }: { data: any; loading: boolean })
           Acciones Rapidas
         </h2>
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <QuickAction label="Generar Polizas" href="/contabilidad/polizas" icon={FileText} />
-          <QuickAction label="Conciliacion" href="/bancos/conciliacion" icon={Calculator} />
+          <QuickAction label="Generar Polizas" href="/contabilidad?tab=polizas" icon={FileText} />
+          <QuickAction label="Conciliacion" href="/bancos?tab=conciliacion" icon={Calculator} />
           <QuickAction label="Facturacion" href="/facturacion" icon={Receipt} />
           <QuickAction label="Reportes" href="/reportes" icon={BarChart3} />
         </div>

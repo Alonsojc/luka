@@ -1455,21 +1455,21 @@ async function main() {
         severity: "critical",
         title: "Cuenta por pagar vencida",
         message: "Factura FAC-KIK-0008 de Kikkoman Mexico ($42,500 MXN) vencio hace 12 dias.",
-        link: "/finanzas/cxp",
+        link: "/bancos?tab=cxp",
       },
       {
         type: "OVERDUE_PAYABLE",
         severity: "warning",
         title: "CxP proxima a vencer",
         message: "Factura de Plasticos EcoPack por $18,200 MXN vence en 3 dias.",
-        link: "/finanzas/cxp",
+        link: "/bancos?tab=cxp",
       },
       {
         type: "OVERDUE_PAYABLE",
         severity: "critical",
         title: "3 facturas vencidas",
         message: "Tienes 3 facturas de proveedores vencidas por un total de $87,300 MXN.",
-        link: "/finanzas/cxp",
+        link: "/bancos?tab=cxp",
       },
       {
         type: "PAYROLL_PENDING",
@@ -1493,28 +1493,28 @@ async function main() {
         title: "Cambio de turno solicitado",
         message:
           "Alejandro Ramirez solicita cambio de turno Matutino a Vespertino para el 10/04/2026.",
-        link: "/rrhh/turnos",
+        link: "/horarios",
       },
       {
         type: "SHIFT_CHANGE",
         severity: "info",
         title: "Asistencia incompleta",
         message: "3 empleados no registraron salida ayer en Luka Roma.",
-        link: "/rrhh/asistencia",
+        link: "/asistencia",
       },
       {
         type: "REQUISITION_STATUS",
         severity: "info",
         title: "Nueva requisicion",
         message: "Luka Cancun solicita resurtido de 15 productos. Prioridad: ALTA.",
-        link: "/inventarios/requisiciones",
+        link: "/requisiciones",
       },
       {
         type: "REQUISITION_STATUS",
         severity: "info",
         title: "Requisicion aprobada",
         message: "Requisicion de Luka San Pedro ha sido aprobada. 8 productos listos para envio.",
-        link: "/inventarios/requisiciones",
+        link: "/requisiciones",
       },
       {
         type: "DELIVERY_UPDATE",
@@ -1536,7 +1536,7 @@ async function main() {
         severity: "info",
         title: "Sincronizacion Corntech exitosa",
         message: "Se sincronizaron 45 ventas de 5 sucursales. Ultima sincronizacion: hace 2 horas.",
-        link: "/integraciones/corntech",
+        link: "/pos",
       },
       {
         type: "SYSTEM",
@@ -1551,7 +1551,7 @@ async function main() {
         severity: "warning",
         title: "Periodo fiscal por cerrar",
         message: "El periodo fiscal de Marzo 2026 aun no se ha cerrado. Fecha limite: 17 de abril.",
-        link: "/contabilidad/periodos",
+        link: "/contabilidad?tab=declaraciones",
       },
       {
         type: "CUSTOM",
@@ -1566,7 +1566,7 @@ async function main() {
         title: "Nuevo cliente frecuente",
         message:
           "Santiago Diaz Ordaz alcanzo nivel Oro en el programa de lealtad con 3,100 puntos.",
-        link: "/crm/clientes",
+        link: "/crm",
       },
       {
         type: "LOW_STOCK",
@@ -1597,7 +1597,7 @@ async function main() {
         title: "Pago registrado",
         message:
           "Se registro el pago de $85,000 MXN a Pescaderia del Pacifico. Saldo pendiente: $0.",
-        link: "/finanzas/cxp",
+        link: "/bancos?tab=cxp",
       },
     ];
 
