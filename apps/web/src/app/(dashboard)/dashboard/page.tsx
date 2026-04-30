@@ -415,11 +415,11 @@ function StoreDashboard({
             <div className="grid grid-cols-2 gap-3">
               <QuickAction
                 label="Nueva Requisicion"
-                href="/requisiciones/nueva"
+                href="/requisiciones?crear=1"
                 icon={ClipboardList}
               />
               <QuickAction label="Nuevo Conteo" href="/inventarios/conteo" icon={Package} />
-              <QuickAction label="Registrar Merma" href="/inventarios/merma" icon={AlertTriangle} />
+              <QuickAction label="Registrar Merma" href="/merma" icon={AlertTriangle} />
               <QuickAction label="Ver Inventario" href="/inventarios" icon={Warehouse} />
             </div>
           </div>

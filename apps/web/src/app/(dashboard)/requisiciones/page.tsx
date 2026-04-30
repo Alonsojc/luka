@@ -192,6 +192,18 @@ export default function RequisicionesPage() {
   // Expandable rows for "Por Aprobar" tab
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("crear") !== "1") return;
+
+    setFormBranch("");
+    setFormPriority("NORMAL");
+    setFormDeliveryDate("");
+    setFormNotes("");
+    setFormItems([{ productId: "", requestedQuantity: "", unitOfMeasure: "", notes: "" }]);
+    setCreateOpen(true);
+  }, []);
+
   // ---------------------------------------------------------------------------
   // Data fetching
   // ---------------------------------------------------------------------------
@@ -280,7 +292,7 @@ export default function RequisicionesPage() {
           notes: i.notes || undefined,
         })),
       });
-      setCreateOpen(false);
+      closeCreateModal();
       resetCreateForm();
       fetchRequisitions();
       fetchSummary();
@@ -384,6 +396,21 @@ export default function RequisicionesPage() {
     setFormDeliveryDate("");
     setFormNotes("");
     setFormItems([{ productId: "", requestedQuantity: "", unitOfMeasure: "", notes: "" }]);
+  };
+
+  const closeCreateModal = () => {
+    setCreateOpen(false);
+
+    const url = new URL(window.location.href);
+    if (url.searchParams.get("crear") !== "1") return;
+
+    url.searchParams.delete("crear");
+    const search = url.searchParams.toString();
+    window.history.replaceState(
+      null,
+      "",
+      `${url.pathname}${search ? `?${search}` : ""}${url.hash}`,
+    );
   };
 
   const addFormItem = () => {
@@ -843,7 +870,7 @@ export default function RequisicionesPage() {
       {/* ----------------------------------------------------------------- */}
       {/* Create Modal                                                       */}
       {/* ----------------------------------------------------------------- */}
-      <Modal open={createOpen} onClose={() => setCreateOpen(false)} title="Nueva Requisicion" wide>
+      <Modal open={createOpen} onClose={closeCreateModal} title="Nueva Requisicion" wide>
         <div className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <FormField label="Sucursal solicitante" required>
@@ -938,7 +965,7 @@ export default function RequisicionesPage() {
 
           {/* Actions */}
           <div className="flex justify-end gap-3 pt-4 border-t">
-            <Button variant="outline" onClick={() => setCreateOpen(false)}>
+            <Button variant="outline" onClick={closeCreateModal}>
               Cancelar
             </Button>
             <Button variant="secondary" onClick={() => handleCreate(false)} disabled={saving}>
