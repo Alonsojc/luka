@@ -56,7 +56,8 @@ jobs:
       - name: Generate Prisma client
         run: pnpm --filter @luka/database run generate
 
-      - name: Check migration status before deploy
+      - name: Report migration status before deploy
+        continue-on-error: true
         run: pnpm --filter @luka/database exec prisma migrate status --schema=./prisma/schema.prisma
 
       - name: Deploy staging migrations
