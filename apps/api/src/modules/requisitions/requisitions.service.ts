@@ -269,8 +269,31 @@ export class RequisitionsService {
     const requisition = await this.findOne(id, organizationId);
     this.validateTransition(requisition.status, "APPROVED");
 
+    if (dto.fulfillingBranchId) {
+      const fulfillingBranch = await this.prisma.branch.findFirst({
+        where: { id: dto.fulfillingBranchId, organizationId },
+      });
+      if (!fulfillingBranch) {
+        throw new BadRequestException("Sucursal surtidor no valida");
+      }
+    }
+
     // Update approved quantities if provided
     if (dto.items && dto.items.length > 0) {
+      const requisitionItemIds = new Set(requisition.items.map((item) => item.id));
+      const seenItemIds = new Set<string>();
+
+      for (const item of dto.items) {
+        if (seenItemIds.has(item.itemId)) {
+          throw new BadRequestException("Item de requisicion duplicado");
+        }
+        seenItemIds.add(item.itemId);
+
+        if (!requisitionItemIds.has(item.itemId)) {
+          throw new BadRequestException("Item de requisicion no pertenece a esta requisicion");
+        }
+      }
+
       for (const item of dto.items) {
         await this.prisma.requisitionItem.update({
           where: { id: item.itemId },
@@ -278,11 +301,6 @@ export class RequisitionsService {
         });
       }
     } else {
-      // Auto-approve all items with requested quantities
-      await this.prisma.requisitionItem.updateMany({
-        where: { requisitionId: id },
-        data: { approvedQuantity: undefined },
-      });
       // Set each item's approved = requested
       for (const item of requisition.items) {
         await this.prisma.requisitionItem.update({
