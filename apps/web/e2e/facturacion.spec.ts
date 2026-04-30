@@ -8,11 +8,21 @@ test.describe("Facturacion", () => {
 
   test("carga lista de facturas", async ({ page }) => {
     // The "Facturas" tab should be visible
-    await expect(page.getByText("Facturas", { exact: true }).first()).toBeVisible({ timeout: 15000 });
+    await expect(page.getByText("Facturas", { exact: true }).first()).toBeVisible({
+      timeout: 15000,
+    });
 
     // The page should show either a data table or an empty state
-    const hasTable = await page.locator("table").first().isVisible().catch(() => false);
-    const hasContent = await page.locator("h1").first().isVisible().catch(() => false);
+    const hasTable = await page
+      .locator("table")
+      .first()
+      .isVisible()
+      .catch(() => false);
+    const hasContent = await page
+      .locator("h1")
+      .first()
+      .isVisible()
+      .catch(() => false);
     expect(hasTable || hasContent).toBeTruthy();
   });
 

@@ -318,7 +318,10 @@ export class ReportesService {
           status,
         };
       })
-      .sort((a, b) => a.branchName.localeCompare(b.branchName) || a.productSku.localeCompare(b.productSku));
+      .sort(
+        (a, b) =>
+          a.branchName.localeCompare(b.branchName) || a.productSku.localeCompare(b.productSku),
+      );
 
     const issues = rows.filter((row) => row.status !== "OK");
 
@@ -480,7 +483,9 @@ export class ReportesService {
         .filter((recipe) => recipe.corntechProductId)
         .map((recipe) => [recipe.corntechProductId!, recipe]),
     );
-    const recipeByName = new Map(recipes.map((recipe) => [normalizeKey(recipe.menuItemName), recipe]));
+    const recipeByName = new Map(
+      recipes.map((recipe) => [normalizeKey(recipe.menuItemName), recipe]),
+    );
 
     const actualCostBySku = new Map<string, number>();
     for (const movement of movements.values()) {
@@ -492,7 +497,8 @@ export class ReportesService {
 
     const rows = [...salesBySku.values()]
       .map((sale) => {
-        const recipe = recipeBySku.get(sale.productSku) ?? recipeByName.get(normalizeKey(sale.productName));
+        const recipe =
+          recipeBySku.get(sale.productSku) ?? recipeByName.get(normalizeKey(sale.productName));
         const costPerServing = toNumber(recipe?.costPerServing);
         const theoreticalCost = costPerServing * sale.quantitySold;
         const actualCost = actualCostBySku.get(sale.productSku) ?? 0;
@@ -518,7 +524,8 @@ export class ReportesService {
           theoreticalCost: round2(theoreticalCost),
           actualCost: round2(actualCost),
           costDifference: round2(costDifference),
-          theoreticalFoodCostPct: sale.revenue > 0 ? round2((theoreticalCost / sale.revenue) * 100) : 0,
+          theoreticalFoodCostPct:
+            sale.revenue > 0 ? round2((theoreticalCost / sale.revenue) * 100) : 0,
           actualFoodCostPct: sale.revenue > 0 ? round2((actualCost / sale.revenue) * 100) : 0,
           status,
         };
@@ -653,7 +660,9 @@ export class ReportesService {
         recalculatedNetRevenue: round2(platform.recalculatedNetRevenue),
         feePct:
           platform.grossRevenue > 0
-            ? round2(((platform.deliveryFees + platform.platformFees) / platform.grossRevenue) * 100)
+            ? round2(
+                ((platform.deliveryFees + platform.platformFees) / platform.grossRevenue) * 100,
+              )
             : 0,
       })),
       rows,

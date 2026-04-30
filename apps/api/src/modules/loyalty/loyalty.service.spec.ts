@@ -80,10 +80,7 @@ describe("LoyaltyService", () => {
     };
 
     const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        LoyaltyService,
-        { provide: PrismaService, useValue: mockPrisma },
-      ],
+      providers: [LoyaltyService, { provide: PrismaService, useValue: mockPrisma }],
     }).compile();
 
     service = module.get<LoyaltyService>(LoyaltyService);
@@ -291,9 +288,9 @@ describe("LoyaltyService", () => {
     it("should throw NotFoundException if customer not found", async () => {
       mockPrisma.customer.findFirst.mockResolvedValue(null);
 
-      await expect(
-        service.getCustomerDetail(ORG_ID, "nonexistent"),
-      ).rejects.toThrow(NotFoundException);
+      await expect(service.getCustomerDetail(ORG_ID, "nonexistent")).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 

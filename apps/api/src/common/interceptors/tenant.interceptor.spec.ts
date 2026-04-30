@@ -13,10 +13,7 @@ describe("TenantInterceptor", () => {
       }),
     }) as ExecutionContext;
 
-  const createHandler = (
-    tenantContext: TenantContextService,
-    delayMs: number,
-  ): CallHandler => ({
+  const createHandler = (tenantContext: TenantContextService, delayMs: number): CallHandler => ({
     handle: () =>
       new Observable<string>((subscriber) => {
         setTimeout(() => {
@@ -62,10 +59,7 @@ describe("TenantInterceptor", () => {
         ),
       );
 
-    const [first, second] = await Promise.all([
-      runRequest("org-1", 25),
-      runRequest("org-2", 5),
-    ]);
+    const [first, second] = await Promise.all([runRequest("org-1", 25), runRequest("org-2", 5)]);
 
     expect(first).toBe("org-1");
     expect(second).toBe("org-2");

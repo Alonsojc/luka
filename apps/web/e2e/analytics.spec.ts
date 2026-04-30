@@ -32,7 +32,12 @@ test.describe("Modulos Analytics", () => {
     await expect(page.locator("text=ROI").first()).toBeVisible();
 
     // Ticket Promedio should not be $0.00 (we fixed this)
-    const ticketValue = page.locator("text=Ticket Promedio").first().locator("..").locator("p").last();
+    const ticketValue = page
+      .locator("text=Ticket Promedio")
+      .first()
+      .locator("..")
+      .locator("p")
+      .last();
     await expect(ticketValue).not.toContainText("$0.00");
   });
 });

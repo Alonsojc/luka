@@ -31,11 +31,16 @@ describe("Prisma tenant scoping", () => {
   });
 
   it("does not scope writes or non-tenant models", () => {
-    expect(applyTenantScopeToArgs("branch", "create", { data: { name: "Sucursal" } }, "org-1")).toEqual(
-      { data: { name: "Sucursal" } },
-    );
     expect(
-      applyTenantScopeToArgs("userBranchRole", "findMany", { where: { userId: "user-1" } }, "org-1"),
+      applyTenantScopeToArgs("branch", "create", { data: { name: "Sucursal" } }, "org-1"),
+    ).toEqual({ data: { name: "Sucursal" } });
+    expect(
+      applyTenantScopeToArgs(
+        "userBranchRole",
+        "findMany",
+        { where: { userId: "user-1" } },
+        "org-1",
+      ),
     ).toEqual({
       where: {
         userId: "user-1",

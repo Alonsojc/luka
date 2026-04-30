@@ -1565,7 +1565,9 @@ export default function ReportesPage() {
                     primaryMetric={formatMXN(
                       reconciliationData.deliveryNetRevenue.summary.grossRevenue,
                     )}
-                    secondaryMetric={formatPct(reconciliationData.deliveryNetRevenue.summary.feePct)}
+                    secondaryMetric={formatPct(
+                      reconciliationData.deliveryNetRevenue.summary.feePct,
+                    )}
                     icon={DollarSign}
                   />
                 </div>

@@ -101,7 +101,9 @@ export class CorntechService {
           const missingSkus = skus.filter((sku) => !productMap.has(sku));
 
           if (missingSkus.length > 0) {
-            throw new BadRequestException(`SKU sin producto inventariable: ${missingSkus.join(", ")}`);
+            throw new BadRequestException(
+              `SKU sin producto inventariable: ${missingSkus.join(", ")}`,
+            );
           }
 
           const createdSale = await tx.posSale.create({

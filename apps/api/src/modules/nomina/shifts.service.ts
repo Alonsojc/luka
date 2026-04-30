@@ -5,7 +5,9 @@ import { PrismaService } from "../../common/prisma/prisma.service";
 type ShiftAssignmentWithDetails = Prisma.ShiftAssignmentGetPayload<{
   include: {
     employee: { select: { id: true; firstName: true; lastName: true } };
-    shiftTemplate: { select: { id: true; name: true; startTime: true; endTime: true; color: true } };
+    shiftTemplate: {
+      select: { id: true; name: true; startTime: true; endTime: true; color: true };
+    };
   };
 }>;
 

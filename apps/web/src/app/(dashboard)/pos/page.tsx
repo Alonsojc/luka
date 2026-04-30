@@ -1,14 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
-import {
-  RefreshCw,
-  DollarSign,
-  ShoppingCart,
-  Store,
-  Clock,
-  Loader2,
-} from "lucide-react";
+import { RefreshCw, DollarSign, ShoppingCart, Store, Clock, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { DataTable } from "@/components/ui/data-table";
 import { Modal } from "@/components/ui/modal";

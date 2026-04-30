@@ -52,8 +52,7 @@ import { useTheme } from "@/hooks/use-theme";
  * useLayoutEffect fires synchronously before paint on the client, which
  * prevents the flash of unauthenticated content.
  */
-const useIsomorphicLayoutEffect =
-  typeof window !== "undefined" ? useLayoutEffect : useEffect;
+const useIsomorphicLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
 const NAV_SECTIONS = [
   {
@@ -337,12 +336,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         } lg:translate-x-0`}
       >
         <div className="relative flex items-center justify-center border-b border-white/10 px-3 py-4">
-          <a
-            href="/dashboard"
-            onClick={() => setSidebarOpen(false)}
-            className="block w-full"
-          >
-            <img src="/luka-logo.png" alt="Luka" className="w-full h-auto max-h-32 object-contain" />
+          <a href="/dashboard" onClick={() => setSidebarOpen(false)} className="block w-full">
+            <img
+              src="/luka-logo.png"
+              alt="Luka"
+              className="w-full h-auto max-h-32 object-contain"
+            />
           </a>
           <button
             onClick={() => setSidebarOpen(false)}
