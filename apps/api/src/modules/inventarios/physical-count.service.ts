@@ -3,6 +3,14 @@ import { PrismaService } from "../../common/prisma/prisma.service";
 import { Prisma } from "@prisma/client";
 const Decimal = Prisma.Decimal;
 
+type UpdatedPhysicalCountItem = Prisma.PhysicalCountItemGetPayload<{
+  include: {
+    product: {
+      select: { id: true; name: true; sku: true; unitOfMeasure: true; costPerUnit: true };
+    };
+  };
+}>;
+
 @Injectable()
 export class PhysicalCountService {
   constructor(private prisma: PrismaService) {}
@@ -253,7 +261,7 @@ export class PhysicalCountService {
     }
 
     const results = await this.prisma.$transaction(async (tx) => {
-      const updated = [];
+      const updated: UpdatedPhysicalCountItem[] = [];
       for (const entry of items) {
         const item = await tx.physicalCountItem.findFirst({
           where: { id: entry.itemId, physicalCountId: countId },

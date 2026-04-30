@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
+import type { BankTransaction } from "@luka/database";
 import { PrismaService } from "../../common/prisma/prisma.service";
 import { ImportTransactionItemDto } from "./dto/import-transactions.dto";
 
@@ -24,7 +25,7 @@ export class ReconciliationService {
     }
 
     const created = await this.prisma.$transaction(async (tx) => {
-      const results = [];
+      const results: BankTransaction[] = [];
 
       for (const txn of transactions) {
         const record = await tx.bankTransaction.create({

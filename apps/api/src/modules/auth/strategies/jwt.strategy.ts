@@ -4,6 +4,7 @@ import { ExtractJwt, Strategy } from "passport-jwt";
 import type { Request } from "express";
 import { JwtPayload } from "../../../common/decorators/current-user.decorator";
 import { ACCESS_COOKIE_NAME } from "../../../common/config/cookie.config";
+import { getJwtSecret } from "../jwt-config";
 
 /**
  * Extract JWT from the httpOnly cookie first, then fall back to
@@ -22,7 +23,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     super({
       jwtFromRequest: extractJwt,
       ignoreExpiration: false,
-      secretOrKey: process.env.JWT_SECRET,
+      secretOrKey: getJwtSecret("JWT_SECRET"),
     });
   }
 

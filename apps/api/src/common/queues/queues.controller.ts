@@ -1,9 +1,11 @@
 import { Controller, Get, Post, Param, Query, UseGuards, Logger } from "@nestjs/common";
 import { InjectQueue } from "@nestjs/bullmq";
 import { Queue } from "bullmq";
+import type { JobType } from "bullmq";
 import { JwtAuthGuard } from "../guards/jwt-auth.guard";
 import { RolesGuard } from "../guards/roles.guard";
 import { Roles } from "../decorators/roles.decorator";
+import { getErrorMessage } from "./queue-error.util";
 import {
   QUEUE_CORNTECH_SYNC,
   QUEUE_CFDI_TIMBRADO,
@@ -11,9 +13,18 @@ import {
   ALL_QUEUES,
 } from "./queues.constants";
 
+const JOB_STATUSES = ["waiting", "active", "completed", "failed", "delayed"] as const satisfies
+  readonly JobType[];
+
+type QueueJobStatus = (typeof JOB_STATUSES)[number];
+
+function isQueueJobStatus(status: string | undefined): status is QueueJobStatus {
+  return typeof status === "string" && (JOB_STATUSES as readonly string[]).includes(status);
+}
+
 @Controller("queues")
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles("OWNER", "ADMIN")
+@Roles("owner")
 export class QueuesController {
   private readonly logger = new Logger(QueuesController.name);
 
@@ -85,11 +96,12 @@ export class QueuesController {
         redis: pong === "PONG" ? "connected" : "error",
         timestamp: new Date().toISOString(),
       };
-    } catch (error: any) {
-      this.logger.error(`Redis health check failed: ${error.message}`);
+    } catch (error: unknown) {
+      const message = getErrorMessage(error);
+      this.logger.error(`Redis health check failed: ${message}`);
       return {
         redis: "disconnected",
-        error: error.message,
+        error: message,
         timestamp: new Date().toISOString(),
       };
     }
@@ -112,12 +124,11 @@ export class QueuesController {
     const start = (pageNum - 1) * limitNum;
     const end = start + limitNum - 1;
 
-    const validStatuses = ["waiting", "active", "completed", "failed", "delayed"];
-    const jobStatus = validStatuses.includes(status || "") ? (status as any) : undefined;
+    const jobStatus = isQueueJobStatus(status) ? status : undefined;
 
     const jobs = jobStatus
       ? await queue.getJobs([jobStatus], start, end)
-      : await queue.getJobs(["waiting", "active", "completed", "failed", "delayed"], start, end);
+      : await queue.getJobs([...JOB_STATUSES], start, end);
 
     return {
       queue: name,
@@ -159,8 +170,8 @@ export class QueuesController {
       try {
         await job.retry();
         retried++;
-      } catch (error: any) {
-        this.logger.warn(`Could not retry job ${job.id}: ${error.message}`);
+      } catch (error: unknown) {
+        this.logger.warn(`Could not retry job ${job.id}: ${getErrorMessage(error)}`);
       }
     }
 

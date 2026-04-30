@@ -1,6 +1,7 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { PrismaService } from "../../common/prisma/prisma.service";
 import { WhatsAppService } from "./whatsapp.service";
+import { parseWhatsAppRecipients } from "./whatsapp-recipient.util";
 
 @Injectable()
 export class AlertEngineService {
@@ -306,10 +307,10 @@ export class AlertEngineService {
     },
     data: Record<string, string>,
   ) {
-    const recipients = (rule.recipients as any[]) || [];
+    const recipients = parseWhatsAppRecipients(rule.recipients);
     const rendered = this.whatsApp.renderTemplate(rule.messageTemplate, data);
 
-    const results = [];
+    const results: Array<Awaited<ReturnType<WhatsAppService["sendMessage"]>>> = [];
     for (const recipient of recipients) {
       const result = await this.whatsApp.sendMessage(
         rule.organizationId,

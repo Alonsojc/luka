@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException, ConflictException } from "@nestjs/common";
+import type { AttendanceRecord } from "@luka/database";
 import { PrismaService } from "../../common/prisma/prisma.service";
 import { Prisma } from "@prisma/client";
 const Decimal = Prisma.Decimal;
@@ -278,7 +279,7 @@ export class AttendanceService {
       where: { organizationId: orgId, branchId, isActive: true },
     });
 
-    const results = [];
+    const results: AttendanceRecord[] = [];
     for (const emp of employees) {
       const record = await this.prisma.attendanceRecord.upsert({
         where: { employeeId_date: { employeeId: emp.id, date: d } },

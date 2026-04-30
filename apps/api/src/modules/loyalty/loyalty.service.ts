@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
 import { PrismaService } from "../../common/prisma/prisma.service";
+import { toPrismaJsonArray } from "../../common/utils/prisma-json";
 
 interface TierConfig {
   name: string;
@@ -35,7 +36,7 @@ export class LoyaltyService {
           pointValue: 0.1,
           minRedemption: 100,
           isActive: true,
-          tiers: DEFAULT_TIERS,
+          tiers: toPrismaJsonArray(DEFAULT_TIERS),
         },
       });
     }
@@ -71,7 +72,7 @@ export class LoyaltyService {
           expirationDays: data.expirationDays,
         }),
         ...(data.isActive !== undefined && { isActive: data.isActive }),
-        ...(data.tiers !== undefined && { tiers: data.tiers }),
+        ...(data.tiers !== undefined && { tiers: toPrismaJsonArray(data.tiers) }),
       },
     });
   }
