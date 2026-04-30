@@ -3,6 +3,7 @@ import { AsyncLocalStorage } from "node:async_hooks";
 
 export interface TenantContextStore {
   organizationId?: string;
+  requireTenant?: boolean;
 }
 
 @Injectable()
@@ -19,5 +20,9 @@ export class TenantContextService {
 
   getOrganizationId(): string | undefined {
     return this.getStore()?.organizationId;
+  }
+
+  isTenantRequired(): boolean {
+    return this.getStore()?.requireTenant === true;
   }
 }
