@@ -116,7 +116,6 @@ export async function generateInventoryPDF(products: InventoryProduct[], branchN
     branchName ? `Sucursal: ${branchName}` : undefined,
   );
 
-   
   (doc as any).autoTable({
     startY,
     head: [["SKU", "Producto", "Categoria", "Unidad", "Costo", "Activo"]],
@@ -132,7 +131,7 @@ export async function generateInventoryPDF(products: InventoryProduct[], branchN
   });
 
   // Summary row
-   
+
   const finalY = (doc as any).lastAutoTable?.finalY ?? startY + 20;
   doc.setFontSize(10);
   doc.setFont("helvetica", "bold");
@@ -223,7 +222,7 @@ export async function generateInvoicePDF(invoice: Invoice) {
   y += 31;
 
   // --- Items table ---
-   
+
   (doc as any).autoTable({
     startY: y,
     head: [["Cantidad", "Clave", "Descripcion", "P. Unitario", "Importe"]],
@@ -243,7 +242,7 @@ export async function generateInvoicePDF(invoice: Invoice) {
   });
 
   // --- Totals ---
-   
+
   const tableEndY = (doc as any).lastAutoTable?.finalY ?? y + 20;
   let ty = tableEndY + 8;
   const subtotal = Number(invoice.subtotal);
@@ -299,7 +298,6 @@ export async function generatePayrollPDF(
   const doc = await createDoc();
   const startY = addHeader(doc, "Reporte de Nomina", period ? `Periodo: ${period}` : undefined);
 
-   
   (doc as any).autoTable({
     startY,
     head: [["No. Empleado", "Nombre", "RFC", "Puesto", "Salario Diario", "Sucursal", "Estado"]],
@@ -316,7 +314,7 @@ export async function generatePayrollPDF(
   });
 
   // Summary
-   
+
   const finalY = (doc as any).lastAutoTable?.finalY ?? startY + 20;
   const activeCount = employees.filter((e) => e.isActive).length;
   const totalMonthly = employees.reduce((s, e) => s + Number(e.dailySalary || 0) * 30, 0);
@@ -408,7 +406,6 @@ export async function generateFinancialPDF(data: FinancialData) {
   doc.text("Balance por Sucursal", 14, y);
   y += 4;
 
-   
   (doc as any).autoTable({
     startY: y,
     head: [
@@ -443,14 +440,13 @@ export async function generateFinancialPDF(data: FinancialData) {
   });
 
   // --- Totals row ---
-   
+
   const tableEndY = (doc as any).lastAutoTable?.finalY ?? y + 20;
   const totalCogs = data.profitability.reduce((s, b) => s + b.cogs, 0);
   const totalGross = data.profitability.reduce((s, b) => s + b.grossProfit, 0);
   const totalOpex = data.profitability.reduce((s, b) => s + b.operatingExpenses, 0);
   const totalMargin = totalRevenue > 0 ? (totalNetProfit / totalRevenue) * 100 : 0;
 
-   
   (doc as any).autoTable({
     startY: tableEndY,
     body: [

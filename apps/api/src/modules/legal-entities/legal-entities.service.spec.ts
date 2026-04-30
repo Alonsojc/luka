@@ -49,10 +49,7 @@ describe("LegalEntitiesService", () => {
     };
 
     const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        LegalEntitiesService,
-        { provide: PrismaService, useValue: mockPrisma },
-      ],
+      providers: [LegalEntitiesService, { provide: PrismaService, useValue: mockPrisma }],
     }).compile();
 
     service = module.get<LegalEntitiesService>(LegalEntitiesService);
@@ -103,9 +100,7 @@ describe("LegalEntitiesService", () => {
     it("should throw NotFoundException when not found", async () => {
       mockPrisma.legalEntity.findFirst.mockResolvedValue(null);
 
-      await expect(
-        service.findOne(ORG_ID, "nonexistent"),
-      ).rejects.toThrow(NotFoundException);
+      await expect(service.findOne(ORG_ID, "nonexistent")).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -155,9 +150,7 @@ describe("LegalEntitiesService", () => {
 
       mockPrisma.legalEntity.findUnique.mockResolvedValue(mockEntity);
 
-      await expect(service.create(ORG_ID, dto as any)).rejects.toThrow(
-        ConflictException,
-      );
+      await expect(service.create(ORG_ID, dto as any)).rejects.toThrow(ConflictException);
     });
   });
 
@@ -195,17 +188,17 @@ describe("LegalEntitiesService", () => {
         .mockResolvedValueOnce(mockEntityWithBranches) // findOne
         .mockResolvedValueOnce({ id: "entity-2", rfc: "DUPLICATE_RFC" }); // duplicate check
 
-      await expect(
-        service.update(ORG_ID, "entity-1", dto as any),
-      ).rejects.toThrow(ConflictException);
+      await expect(service.update(ORG_ID, "entity-1", dto as any)).rejects.toThrow(
+        ConflictException,
+      );
     });
 
     it("should throw NotFoundException when entity does not exist", async () => {
       mockPrisma.legalEntity.findFirst.mockResolvedValue(null);
 
-      await expect(
-        service.update(ORG_ID, "nonexistent", { name: "Test" } as any),
-      ).rejects.toThrow(NotFoundException);
+      await expect(service.update(ORG_ID, "nonexistent", { name: "Test" } as any)).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -230,9 +223,7 @@ describe("LegalEntitiesService", () => {
     it("should throw NotFoundException for non-existing entity", async () => {
       mockPrisma.legalEntity.findFirst.mockResolvedValue(null);
 
-      await expect(
-        service.deactivate(ORG_ID, "nonexistent"),
-      ).rejects.toThrow(NotFoundException);
+      await expect(service.deactivate(ORG_ID, "nonexistent")).rejects.toThrow(NotFoundException);
     });
   });
 });

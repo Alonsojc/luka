@@ -4,7 +4,6 @@ import { navigateTo } from "./helpers/navigation";
 // The sidebar sections and items defined in the dashboard layout
 const EXPECTED_SECTIONS = ["OPERACIONES", "FINANZAS", "ANALYTICS", "CLIENTES", "SISTEMA"];
 
-
 test.describe("Navegacion", () => {
   test.beforeEach(async ({ page }) => {
     await navigateTo(page, "/dashboard");
@@ -59,7 +58,10 @@ test.describe("Navegacion", () => {
     await expect(sidebar).toBeAttached();
 
     // Find the mobile menu trigger (bottom nav or hamburger)
-    const menuButton = page.locator("button").filter({ has: page.locator("svg.lucide-menu") }).first();
+    const menuButton = page
+      .locator("button")
+      .filter({ has: page.locator("svg.lucide-menu") })
+      .first();
     if (await menuButton.isVisible().catch(() => false)) {
       await menuButton.click();
       await page.waitForTimeout(400);

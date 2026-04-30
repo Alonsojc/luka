@@ -11,8 +11,7 @@ import { api, ApiError, clearTokens } from "@/lib/api-client";
  * measure, but useEffect fires too late (after paint) and causes a visible
  * flash of the "loading" state.
  */
-const useIsomorphicLayoutEffect =
-  typeof window !== "undefined" ? useLayoutEffect : useEffect;
+const useIsomorphicLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
 /**
  * Provides auth state (user, loading) plus helpers (logout, authFetch).

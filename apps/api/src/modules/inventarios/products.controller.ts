@@ -75,11 +75,7 @@ export class ProductsController {
 
   @Patch(":id")
   @Permissions("inventarios:update")
-  update(
-    @CurrentUser() user: JwtPayload,
-    @Param("id") id: string,
-    @Body() body: UpdateProductDto,
-  ) {
+  update(@CurrentUser() user: JwtPayload, @Param("id") id: string, @Body() body: UpdateProductDto) {
     return this.productsService.update(user.organizationId, id, body, user);
   }
 

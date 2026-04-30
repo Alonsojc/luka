@@ -295,8 +295,7 @@ export class AnalyticsService {
       Number(prevCorntechSales._sum.total || 0) + Number(prevPosSales._sum.total || 0);
     const currentSaleCount =
       (currentCorntechSales._count.id || 0) + (currentPosSales._count.id || 0);
-    const previousSaleCount =
-      (prevCorntechSales._count.id || 0) + (prevPosSales._count.id || 0);
+    const previousSaleCount = (prevCorntechSales._count.id || 0) + (prevPosSales._count.id || 0);
 
     const hasCurrentSales = currentSaleCount > 0;
     const hasPreviousSales = previousSaleCount > 0;
@@ -307,9 +306,7 @@ export class AnalyticsService {
         : 0;
 
     const averageTicket =
-      currentSaleCount > 0
-        ? Math.round((currentMonthSales / currentSaleCount) * 100) / 100
-        : 0;
+      currentSaleCount > 0 ? Math.round((currentMonthSales / currentSaleCount) * 100) / 100 : 0;
 
     // --- Top selling products (from PosSaleItem) ---
     const topProducts = await this.prisma.posSaleItem.groupBy({
@@ -422,9 +419,7 @@ export class AnalyticsService {
     const cogs = Number(cogsAgg._sum.total || 0);
 
     const inventoryTurnover =
-      avgInventoryValue > 0
-        ? Math.round((cogs / avgInventoryValue) * 100) / 100
-        : 0;
+      avgInventoryValue > 0 ? Math.round((cogs / avgInventoryValue) * 100) / 100 : 0;
 
     // --- Cash position (bank balances) ---
     const bankAgg = await this.prisma.bankAccount.aggregate({
@@ -465,9 +460,7 @@ export class AnalyticsService {
     const payrollCost =
       Number(payrollAgg._sum.totalEmployerCost || 0) + Number(payrollAgg._sum.totalGross || 0);
     const employeeCostRatio =
-      currentMonthSales > 0
-        ? Math.round((payrollCost / currentMonthSales) * 10000) / 100
-        : 0;
+      currentMonthSales > 0 ? Math.round((payrollCost / currentMonthSales) * 10000) / 100 : 0;
 
     return {
       currentMonthSales: round2(currentMonthSales),

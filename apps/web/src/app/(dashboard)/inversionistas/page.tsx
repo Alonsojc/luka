@@ -209,17 +209,17 @@ export default function InversionistasPage() {
 
   const hasAnalyticsSales = Boolean(
     analyticsKpis?.dataQuality?.hasCurrentSales ??
-      (analyticsKpis ? safeNum(analyticsKpis.currentMonthSales) !== 0 : false),
+    (analyticsKpis ? safeNum(analyticsKpis.currentMonthSales) !== 0 : false),
   );
   const hasSalesGrowthData = Boolean(
     analyticsKpis?.dataQuality?.salesGrowthAvailable ??
-      (analyticsKpis ? safeNum(analyticsKpis.previousMonthSales) !== 0 : false),
+    (analyticsKpis ? safeNum(analyticsKpis.previousMonthSales) !== 0 : false),
   );
   const trendHasCashFlowData = Boolean(
     trends &&
-      trends.dataStatus !== "NO_DATA" &&
-      (trends.sales.some((value) => safeNum(value) !== 0) ||
-        trends.expenses.some((value) => safeNum(value) !== 0)),
+    trends.dataStatus !== "NO_DATA" &&
+    (trends.sales.some((value) => safeNum(value) !== 0) ||
+      trends.expenses.some((value) => safeNum(value) !== 0)),
   );
   const estimatedAnnualReturn =
     analyticsKpis && hasAnalyticsSales

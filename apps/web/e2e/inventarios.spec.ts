@@ -40,7 +40,11 @@ test.describe("Inventarios", () => {
     if (await addButton.isVisible().catch(() => false)) {
       await addButton.click();
     } else {
-      await page.locator("button").filter({ has: page.locator("svg.lucide-plus") }).first().click();
+      await page
+        .locator("button")
+        .filter({ has: page.locator("svg.lucide-plus") })
+        .first()
+        .click();
     }
 
     // Wait for custom modal (no role="dialog")

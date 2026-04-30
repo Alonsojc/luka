@@ -12,16 +12,36 @@ test.describe("Compras", () => {
     await proveedoresTab.evaluate((el) => (el as HTMLElement).click());
 
     await page.waitForTimeout(1000);
-    const hasTable = await page.locator("table").first().isVisible().catch(() => false);
-    const hasContent = await page.locator("text=/Proveedores|proveedor/i").first().isVisible().catch(() => false);
+    const hasTable = await page
+      .locator("table")
+      .first()
+      .isVisible()
+      .catch(() => false);
+    const hasContent = await page
+      .locator("text=/Proveedores|proveedor/i")
+      .first()
+      .isVisible()
+      .catch(() => false);
     expect(hasTable || hasContent).toBeTruthy();
   });
 
   test("cambiar a tab Ordenes de Compra", async ({ page }) => {
     // "Ordenes de Compra" is the default tab
-    const hasTable = await page.locator("table").first().isVisible().catch(() => false);
-    const hasContent = await page.locator("text=/Ordenes|orden/i").first().isVisible().catch(() => false);
-    const hasH1 = await page.locator("h1").first().isVisible().catch(() => false);
+    const hasTable = await page
+      .locator("table")
+      .first()
+      .isVisible()
+      .catch(() => false);
+    const hasContent = await page
+      .locator("text=/Ordenes|orden/i")
+      .first()
+      .isVisible()
+      .catch(() => false);
+    const hasH1 = await page
+      .locator("h1")
+      .first()
+      .isVisible()
+      .catch(() => false);
     expect(hasTable || hasContent || hasH1).toBeTruthy();
   });
 

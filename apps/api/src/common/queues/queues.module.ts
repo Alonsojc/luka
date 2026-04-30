@@ -56,20 +56,10 @@ const queueImports = areQueuesDisabled()
 
 const queueProviders = areQueuesDisabled()
   ? []
-  : [
-      CorntechSyncProcessor,
-      CfdiTimbradoProcessor,
-      BankReconciliationProcessor,
-      AuditLogProcessor,
-    ];
+  : [CorntechSyncProcessor, CfdiTimbradoProcessor, BankReconciliationProcessor, AuditLogProcessor];
 
 @Module({
-  imports: [
-    ...queueImports,
-    CorntechModule,
-    FacturacionModule,
-    BancosModule,
-  ],
+  imports: [...queueImports, CorntechModule, FacturacionModule, BancosModule],
   controllers: [QueuesController],
   providers: queueProviders,
   exports: areQueuesDisabled() ? [] : [BullModule],

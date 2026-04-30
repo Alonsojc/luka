@@ -224,7 +224,10 @@ export default function ComprasPage() {
     try {
       const [s, o, b, p] = await Promise.all([
         authFetch<Supplier[]>("get", "/compras/suppliers"),
-        authFetch<PurchaseOrder[] | PaginatedResponse<PurchaseOrder>>("get", "/compras/purchase-orders"),
+        authFetch<PurchaseOrder[] | PaginatedResponse<PurchaseOrder>>(
+          "get",
+          "/compras/purchase-orders",
+        ),
         authFetch<Branch[]>("get", "/branches"),
         authFetch<Product[]>("get", "/inventarios/products"),
       ]);

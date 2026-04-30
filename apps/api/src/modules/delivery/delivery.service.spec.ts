@@ -48,10 +48,7 @@ describe("DeliveryService", () => {
     };
 
     const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        DeliveryService,
-        { provide: PrismaService, useValue: mockPrisma },
-      ],
+      providers: [DeliveryService, { provide: PrismaService, useValue: mockPrisma }],
     }).compile();
 
     service = module.get<DeliveryService>(DeliveryService);
@@ -132,9 +129,7 @@ describe("DeliveryService", () => {
     it("should throw NotFoundException when order not found", async () => {
       mockPrisma.deliveryOrder.findFirst.mockResolvedValue(null);
 
-      await expect(
-        service.findOneOrder(ORG_ID, "nonexistent"),
-      ).rejects.toThrow(NotFoundException);
+      await expect(service.findOneOrder(ORG_ID, "nonexistent")).rejects.toThrow(NotFoundException);
     });
   });
 

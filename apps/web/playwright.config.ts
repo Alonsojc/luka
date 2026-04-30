@@ -12,8 +12,7 @@ const e2eApiEnv = {
     process.env.DATABASE_URL ||
     "postgresql://luka:luka_dev_2024@localhost:5432/luka_system?schema=public",
   JWT_SECRET: process.env.JWT_SECRET || "test-secret-minimum-32-characters-long",
-  JWT_REFRESH_SECRET:
-    process.env.JWT_REFRESH_SECRET || "test-refresh-secret-minimum-32-chars",
+  JWT_REFRESH_SECRET: process.env.JWT_REFRESH_SECRET || "test-refresh-secret-minimum-32-chars",
   JWT_EXPIRATION: process.env.JWT_EXPIRATION || "20h",
   JWT_REFRESH_EXPIRATION: process.env.JWT_REFRESH_EXPIRATION || "7d",
   WEB_URL: baseURL,
