@@ -12,8 +12,7 @@ test.describe("Dashboard", () => {
   });
 
   test("muestra tarjetas de estadisticas", async ({ page }) => {
-    // Verify known stat labels are present on the investor dashboard
-    const labels = ["Ingresos", "Gastos", "Caja"];
+    const labels = ["Stock Total", "Ventas Hoy", "Requisiciones"];
     for (const label of labels) {
       await expect(page.locator(`text=${label}`).first()).toBeVisible({ timeout: 15000 });
     }
