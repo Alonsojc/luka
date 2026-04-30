@@ -9,6 +9,12 @@
 - [ ] `pnpm test`
 - [ ] `pnpm build`
 
+## Release / Staging
+
+- [ ] Prisma schema changes include a migration.
+- [ ] Staging migration was run, or this PR does not change the database.
+- [ ] Smoke test result is documented for touched user-facing or operational flows.
+
 ## Type Safety
 
 - [ ] No new `any` in tenant scoping, queues, or core domain services.
