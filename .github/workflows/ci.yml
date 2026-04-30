@@ -78,7 +78,7 @@ jobs:
         run: pnpm --filter @luka/web exec tsc --noEmit
 
       - name: Security audit
-        run: pnpm audit --audit-level=critical 2>/dev/null || true
+        run: pnpm audit --audit-level=high
 
   e2e:
     runs-on: ubuntu-latest
@@ -152,7 +152,7 @@ jobs:
         run: |
           # Start API in background (cd for pnpm node_modules resolution)
           cd apps/api
-          nohup node dist/main.js > /tmp/api.log 2>&1 &
+          nohup node dist/src/main.js > /tmp/api.log 2>&1 &
           echo "API PID: $!"
           cd ../..
 
