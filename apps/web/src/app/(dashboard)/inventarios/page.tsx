@@ -397,12 +397,15 @@ export default function InventariosPage() {
   const { authFetch, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<TabKey>("productos");
+  const [queryTransferId, setQueryTransferId] = useState<string | null>(null);
 
   useEffect(() => {
-    const tab = new URLSearchParams(window.location.search).get("tab") as TabKey | null;
+    const params = new URLSearchParams(window.location.search);
+    const tab = params.get("tab") as TabKey | null;
     if (tab && TABS.some((item) => item.key === tab)) {
       setActiveTab(tab);
     }
+    setQueryTransferId(params.get("transferId"));
   }, []);
 
   // ---- Search & Pagination state ----
@@ -949,6 +952,33 @@ export default function InventariosPage() {
     }
   }, [transferStatusFilter, transferFromFilter, transferToFilter]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  useEffect(() => {
+    if (authLoading || activeTab !== "transferencias" || !queryTransferId) return;
+
+    const transferId = queryTransferId;
+    let cancelled = false;
+    async function openTransferFromQuery() {
+      try {
+        const detail = await authFetch<Transfer>("get", `/inventarios/transfers/${transferId}`);
+        if (cancelled) return;
+        setSelectedTransfer(detail);
+        setDetailModalOpen(true);
+        setSearchTerm(transferId);
+        setQueryTransferId(null);
+      } catch (err) {
+        if (!cancelled) {
+          toast(err instanceof Error ? err.message : "Error al cargar transferencia", "error");
+          setQueryTransferId(null);
+        }
+      }
+    }
+
+    openTransferFromQuery();
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab, authFetch, authLoading, queryTransferId, toast]);
+
   // =======================================================================
   // Image upload helper
   // =======================================================================
@@ -1447,6 +1477,7 @@ export default function InventariosPage() {
     const q = normalize(searchTerm);
     return transfers.filter(
       (t) =>
+        normalize(t.id || "").includes(q) ||
         normalize(t.fromBranch.name || "").includes(q) ||
         normalize(t.toBranch.name || "").includes(q),
     );

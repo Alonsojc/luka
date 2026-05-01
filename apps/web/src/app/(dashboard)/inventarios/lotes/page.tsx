@@ -243,11 +243,24 @@ export default function LotesPage() {
   });
   const [listLoading, setListLoading] = useState(false);
   const [filterBranch, setFilterBranch] = useState("");
-  const [filterProduct, _setFilterProduct] = useState("");
+  const [filterProduct, setFilterProduct] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
   const [filterExpiring, setFilterExpiring] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tab = params.get("tab") as TabKey | null;
+    if (tab && TABS.some((item) => item.key === tab)) {
+      setActiveTab(tab);
+    }
+    setSearchTerm(params.get("search") || "");
+    setFilterBranch(params.get("branchId") || "");
+    setFilterProduct(params.get("productId") || "");
+    setFilterStatus(params.get("status") || "");
+    setCurrentPage(1);
+  }, []);
 
   // ---- Create lot modal ----
   const [createOpen, setCreateOpen] = useState(false);

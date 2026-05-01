@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
 import {
   ClipboardList,
   Send,
@@ -16,6 +17,7 @@ import {
   ChevronDown,
   ChevronUp,
   Trash2,
+  ExternalLink,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useApiQuery } from "@/hooks/use-api-query";
@@ -252,11 +254,36 @@ export default function RequisicionesPage() {
     }
   }, [authFetch]);
 
+  const openRequisitionFromQuery = useCallback(
+    async (id: string) => {
+      try {
+        const requisition = await authFetch<Requisition>("get", `/requisitions/${id}`);
+        setActiveTab("mis");
+        setFilterStatus(requisition.status);
+        setFilterBranch(requisition.requestingBranchId);
+        setPage(1);
+        setSelectedRequisition(requisition);
+        setDetailOpen(true);
+      } catch {
+        /* handled by authFetch */
+      }
+    },
+    [authFetch],
+  );
+
   useEffect(() => {
     if (!authLoading && user) {
       fetchSummary();
     }
   }, [authLoading, user, fetchSummary]);
+
+  useEffect(() => {
+    if (authLoading || !user) return;
+    const requisitionId = new URLSearchParams(window.location.search).get("requisitionId");
+    if (requisitionId) {
+      openRequisitionFromQuery(requisitionId);
+    }
+  }, [authLoading, user, openRequisitionFromQuery]);
 
   useEffect(() => {
     if (!authLoading && user) {
@@ -1051,9 +1078,13 @@ export default function RequisicionesPage() {
               {selectedRequisition.transferId && (
                 <div>
                   <span className="text-gray-500">Transferencia:</span>{" "}
-                  <span className="font-mono text-xs font-medium text-blue-600">
+                  <Link
+                    href={`/inventarios?tab=transferencias&transferId=${selectedRequisition.transferId}`}
+                    className="inline-flex items-center gap-1 font-mono text-xs font-medium text-blue-600 hover:text-blue-800"
+                  >
                     {selectedRequisition.transferId.slice(-6).toUpperCase()}
-                  </span>
+                    <ExternalLink className="h-3 w-3" />
+                  </Link>
                 </div>
               )}
             </div>
