@@ -119,6 +119,102 @@ describe("AlertEngineService", () => {
     });
   });
 
+  it("supports critical open inventory thresholds for operational reconciliation alerts", async () => {
+    const criticalRule = {
+      ...rule,
+      conditions: {
+        lookbackDays: 1,
+        minIssueCount: 1,
+        minCriticalOpenInventoryIssueCount: 2,
+      },
+      messageTemplate:
+        "Criticas {{criticalOpenInventoryIssueCount}} abiertas {{openInventoryIssueCount}}",
+    };
+    mockPrisma.alertRule.findMany.mockResolvedValue([criticalRule]);
+    mockReportes.operationalReconciliation.mockResolvedValue({
+      issueCount: 8,
+      posInventory: { summary: { issueCount: 1 } },
+      cedisTransfers: { summary: { issueCount: 1 } },
+      foodCost: { summary: { issueCount: 1 } },
+      deliveryNetRevenue: {
+        summary: { issueCount: 1, recalculatedNetRevenue: 8450 },
+      },
+      inventoryIntegrity: {
+        summary: {
+          issueCount: 4,
+          review: { openCount: 3, reviewedCount: 1, resolvedCount: 0, ignoredCount: 0 },
+        },
+        issues: [
+          { status: "STOCK_WITHOUT_LOTS", review: { status: "OPEN" } },
+          { status: "TERMINAL_LOT_WITH_STOCK", review: { status: "OPEN" } },
+          { status: "IN_TRANSIT_LOT_PENDING", review: { status: "OPEN" } },
+          { status: "LOT_STOCK_MISMATCH", review: { status: "REVIEWED" } },
+        ],
+      },
+    });
+    mockPrisma.alertLog.create.mockResolvedValue({ id: "dedupe-log-1" });
+    mockPrisma.alertRule.update.mockResolvedValue({ id: "rule-1" });
+
+    const result = await service.checkOperationalReconciliationAlerts("org-1");
+
+    expect(result).toEqual({ triggered: 1, issueCount: 8, deduped: 0 });
+    expect(mockWhatsApp.renderTemplate).toHaveBeenCalledWith(
+      criticalRule.messageTemplate,
+      expect.objectContaining({
+        inventoryIntegrityIssueCount: "4",
+        openInventoryIssueCount: "3",
+        reviewedInventoryIssueCount: "1",
+        criticalOpenInventoryIssueCount: "2",
+      }),
+    );
+    expect(mockWhatsApp.sendMessage).toHaveBeenCalledWith(
+      "org-1",
+      "+5214420000000",
+      "Criticas 2 abiertas 3",
+      "rule-1",
+    );
+  });
+
+  it("does not trigger critical open inventory alerts when only total issues reach the threshold", async () => {
+    mockPrisma.alertRule.findMany.mockResolvedValue([
+      {
+        ...rule,
+        conditions: {
+          lookbackDays: 1,
+          minIssueCount: 1,
+          minCriticalOpenInventoryIssueCount: 2,
+        },
+      },
+    ]);
+    mockReportes.operationalReconciliation.mockResolvedValue({
+      issueCount: 8,
+      posInventory: { summary: { issueCount: 1 } },
+      cedisTransfers: { summary: { issueCount: 1 } },
+      foodCost: { summary: { issueCount: 1 } },
+      deliveryNetRevenue: {
+        summary: { issueCount: 1, recalculatedNetRevenue: 8450 },
+      },
+      inventoryIntegrity: {
+        summary: {
+          issueCount: 4,
+          review: { openCount: 4, reviewedCount: 0, resolvedCount: 0, ignoredCount: 0 },
+        },
+        issues: [
+          { status: "STOCK_WITHOUT_LOTS", review: { status: "OPEN" } },
+          { status: "IN_TRANSIT_LOT_PENDING", review: { status: "OPEN" } },
+          { status: "TRANSFER_NOT_RECEIVED", review: { status: "OPEN" } },
+          { status: "LOT_STOCK_MISMATCH", review: { status: "RESOLVED" } },
+        ],
+      },
+    });
+
+    const result = await service.checkOperationalReconciliationAlerts("org-1");
+
+    expect(result).toEqual({ triggered: 0, issueCount: 0, deduped: 0 });
+    expect(mockPrisma.alertLog.create).not.toHaveBeenCalled();
+    expect(mockWhatsApp.sendMessage).not.toHaveBeenCalled();
+  });
+
   it("skips duplicate operational reconciliation alerts for the same rule, scope, and range", async () => {
     mockPrisma.alertRule.findMany.mockResolvedValue([rule]);
     mockReportes.operationalReconciliation.mockResolvedValue({

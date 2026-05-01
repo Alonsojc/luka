@@ -18,6 +18,17 @@ function formatMXN(value: number): string {
   });
 }
 
+const CRITICAL_INVENTORY_INTEGRITY_STATUSES = new Set([
+  "STOCK_WITHOUT_LOTS",
+  "LOTS_WITHOUT_STOCK",
+  "LOT_STOCK_MISMATCH",
+  "TERMINAL_LOT_WITH_STOCK",
+  "RECEIVED_ALLOCATION_SHORT",
+  "LINKED_TRANSFER_MISSING",
+  "REQUISITION_STATUS_NOT_CLOSED",
+  "TRANSFER_CANCELLED_REQUISITION_OPEN",
+]);
+
 @Injectable()
 export class AlertEngineService {
   private readonly logger = new Logger(AlertEngineService.name);
@@ -328,6 +339,9 @@ export class AlertEngineService {
         ? (conditions.branchIds as string[])
         : [];
       const minIssueCount = Number(conditions?.minIssueCount ?? 1);
+      const minCriticalOpenInventoryIssueCount = this.getOptionalPositiveInteger(
+        conditions?.minCriticalOpenInventoryIssueCount,
+      );
       const range = this.getOperationalReconciliationRange(conditions?.lookbackDays);
 
       const scopes =
@@ -344,8 +358,17 @@ export class AlertEngineService {
           endDate: range.endDate,
           branchId: scope.id,
         });
+        const inventoryReviewCounts = this.getInventoryIntegrityReviewCounts(reconciliation);
+        const criticalOpenInventoryIssueCount =
+          this.countCriticalOpenInventoryIssues(reconciliation);
 
-        if (reconciliation.issueCount < minIssueCount) {
+        const triggerIssueCount =
+          minCriticalOpenInventoryIssueCount === null
+            ? reconciliation.issueCount
+            : criticalOpenInventoryIssueCount;
+        const triggerThreshold = minCriticalOpenInventoryIssueCount ?? minIssueCount;
+
+        if (triggerIssueCount < triggerThreshold) {
           continue;
         }
 
@@ -374,6 +397,11 @@ export class AlertEngineService {
           inventoryIntegrityIssueCount: String(
             reconciliation.inventoryIntegrity?.summary?.issueCount ?? 0,
           ),
+          openInventoryIssueCount: String(inventoryReviewCounts.openCount),
+          reviewedInventoryIssueCount: String(inventoryReviewCounts.reviewedCount),
+          resolvedInventoryIssueCount: String(inventoryReviewCounts.resolvedCount),
+          ignoredInventoryIssueCount: String(inventoryReviewCounts.ignoredCount),
+          criticalOpenInventoryIssueCount: String(criticalOpenInventoryIssueCount),
           deliveryNetRevenue: formatMXN(
             reconciliation.deliveryNetRevenue.summary.recalculatedNetRevenue,
           ),
@@ -482,6 +510,32 @@ export class AlertEngineService {
       startDate: toDateOnly(start),
       endDate: toDateOnly(end),
     };
+  }
+
+  private getOptionalPositiveInteger(value: unknown) {
+    const numberValue = Number(value);
+    if (!Number.isFinite(numberValue) || numberValue < 1) return null;
+    return Math.floor(numberValue);
+  }
+
+  private getInventoryIntegrityReviewCounts(reconciliation: any) {
+    const review = reconciliation.inventoryIntegrity?.summary?.review;
+    return {
+      openCount: Number(review?.openCount ?? 0),
+      reviewedCount: Number(review?.reviewedCount ?? 0),
+      resolvedCount: Number(review?.resolvedCount ?? 0),
+      ignoredCount: Number(review?.ignoredCount ?? 0),
+    };
+  }
+
+  private countCriticalOpenInventoryIssues(reconciliation: any) {
+    const issues = reconciliation.inventoryIntegrity?.issues;
+    if (!Array.isArray(issues)) return 0;
+
+    return issues.filter((issue) => {
+      const reviewStatus = issue.review?.status ?? "OPEN";
+      return reviewStatus === "OPEN" && CRITICAL_INVENTORY_INTEGRITY_STATUSES.has(issue.status);
+    }).length;
   }
 
   private getOperationalReconciliationDedupeKey(
