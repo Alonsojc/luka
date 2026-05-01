@@ -399,6 +399,20 @@ interface InventoryIntegrityTableRow {
   reviewedAt: string | null;
 }
 
+interface InventoryOpenQueueRow {
+  id: string;
+  branch: string;
+  openCount: number;
+  criticalCount: number;
+  stockMismatchCount: number;
+  terminalLotCount: number;
+  transferLotIssueCount: number;
+  requisitionIssueCount: number;
+  nextAction: string;
+  reference: string;
+  priority: "Alta" | "Media";
+}
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -1100,6 +1114,49 @@ function buildInventoryIntegrityRows(
   return rows;
 }
 
+function buildOpenInventoryQueueRows(rows: InventoryIntegrityTableRow[]): InventoryOpenQueueRow[] {
+  const queueByBranch = new Map<string, InventoryOpenQueueRow>();
+
+  rows
+    .filter((row) => row.reviewStatus === "OPEN")
+    .forEach((row) => {
+      const existing = queueByBranch.get(row.branch) ?? {
+        id: row.branch,
+        branch: row.branch,
+        openCount: 0,
+        criticalCount: 0,
+        stockMismatchCount: 0,
+        terminalLotCount: 0,
+        transferLotIssueCount: 0,
+        requisitionIssueCount: 0,
+        nextAction: row.action,
+        reference: row.reference,
+        priority: "Media" as const,
+      };
+
+      existing.openCount++;
+      if (statusVariant(row.status) === "red") {
+        existing.criticalCount++;
+        existing.priority = "Alta";
+        existing.nextAction = row.action;
+        existing.reference = row.reference;
+      }
+      if (row.type === "Stock vs lotes") existing.stockMismatchCount++;
+      else if (row.type === "Lote terminal") existing.terminalLotCount++;
+      else if (row.type === "Transfer lotes") existing.transferLotIssueCount++;
+      else if (row.type === "Requisicion") existing.requisitionIssueCount++;
+
+      queueByBranch.set(row.branch, existing);
+    });
+
+  return [...queueByBranch.values()].sort(
+    (a, b) =>
+      b.criticalCount - a.criticalCount ||
+      b.openCount - a.openCount ||
+      a.branch.localeCompare(b.branch),
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Page Component
 // ---------------------------------------------------------------------------
@@ -1482,6 +1539,10 @@ export default function ReportesPage() {
     if (inventoryReviewFilter === "ALL") return inventoryIntegrityRows;
     return inventoryIntegrityRows.filter((row) => row.reviewStatus === inventoryReviewFilter);
   }, [inventoryIntegrityRows, inventoryReviewFilter]);
+  const openInventoryQueueRows = useMemo(
+    () => buildOpenInventoryQueueRows(inventoryIntegrityRows),
+    [inventoryIntegrityRows],
+  );
 
   const reconciliationMetrics = {
     issueCount: reconciliationData?.issueCount ?? 0,
@@ -1746,6 +1807,67 @@ export default function ReportesPage() {
     },
   ];
 
+  const openInventoryQueueColumns = [
+    {
+      key: "branch",
+      header: "Sucursal / Ruta",
+      render: (r: InventoryOpenQueueRow) => <span className="font-medium">{r.branch}</span>,
+    },
+    {
+      key: "priority",
+      header: "Prioridad",
+      render: (r: InventoryOpenQueueRow) => (
+        <StatusBadge label={r.priority} variant={r.priority === "Alta" ? "red" : "yellow"} />
+      ),
+    },
+    {
+      key: "openCount",
+      header: "Abiertas",
+      className: "text-right",
+      render: (r: InventoryOpenQueueRow) => formatNumber(r.openCount),
+    },
+    {
+      key: "criticalCount",
+      header: "Criticas",
+      className: "text-right",
+      render: (r: InventoryOpenQueueRow) => formatNumber(r.criticalCount),
+    },
+    {
+      key: "stockMismatchCount",
+      header: "Stock/Lotes",
+      className: "text-right",
+      render: (r: InventoryOpenQueueRow) => formatNumber(r.stockMismatchCount),
+    },
+    {
+      key: "terminalLotCount",
+      header: "Lotes Cerrados",
+      className: "text-right",
+      render: (r: InventoryOpenQueueRow) => formatNumber(r.terminalLotCount),
+    },
+    {
+      key: "transferLotIssueCount",
+      header: "Transfer",
+      className: "text-right",
+      render: (r: InventoryOpenQueueRow) => formatNumber(r.transferLotIssueCount),
+    },
+    {
+      key: "requisitionIssueCount",
+      header: "Req.",
+      className: "text-right",
+      render: (r: InventoryOpenQueueRow) => formatNumber(r.requisitionIssueCount),
+    },
+    {
+      key: "nextAction",
+      header: "Accion",
+      render: (r: InventoryOpenQueueRow) => (
+        <div>
+          <p className="font-medium text-gray-900">{r.nextAction}</p>
+          <p className="mt-1 font-mono text-xs text-gray-500">{r.reference}</p>
+        </div>
+      ),
+    },
+  ];
+
   const inventoryIntegrityColumns = [
     {
       key: "type",
@@ -1884,6 +2006,21 @@ export default function ReportesPage() {
       { key: "product", label: "Producto/Plataforma" },
       { key: "difference", label: "Diferencia" },
       { key: "impact", label: "Impacto" },
+    ]);
+  }
+
+  function handleExportOpenInventoryQueue() {
+    exportToCSV(openInventoryQueueRows, `Cola_Abierta_Inventario_${startDate}_${endDate}`, [
+      { key: "branch", label: "Sucursal/Ruta" },
+      { key: "priority", label: "Prioridad" },
+      { key: "openCount", label: "Abiertas" },
+      { key: "criticalCount", label: "Criticas" },
+      { key: "stockMismatchCount", label: "Stock/Lotes" },
+      { key: "terminalLotCount", label: "Lotes Cerrados" },
+      { key: "transferLotIssueCount", label: "Transfer" },
+      { key: "requisitionIssueCount", label: "Requisiciones" },
+      { key: "nextAction", label: "Accion" },
+      { key: "reference", label: "Referencia" },
     ]);
   }
 
@@ -2394,6 +2531,30 @@ export default function ReportesPage() {
                         </button>
                       );
                     })}
+                  </div>
+
+                  <div className="space-y-3">
+                    <div>
+                      <h3 className="text-sm font-semibold text-gray-900">Cola diaria abierta</h3>
+                      <p className="mt-1 text-sm text-gray-500">
+                        Incidencias abiertas agrupadas por sucursal o ruta
+                      </p>
+                    </div>
+                    <DataTable
+                      columns={openInventoryQueueColumns}
+                      data={openInventoryQueueRows}
+                      searchable
+                      searchPlaceholder="Buscar sucursal o ruta..."
+                      pageSize={5}
+                      onExport={
+                        openInventoryQueueRows.length > 0
+                          ? handleExportOpenInventoryQueue
+                          : undefined
+                      }
+                      exportLabel="Exportar cola"
+                      loading={reconciliationLoading}
+                      emptyMessage="No hay incidencias abiertas de integridad"
+                    />
                   </div>
 
                   <DataTable
