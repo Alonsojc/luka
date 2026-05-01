@@ -200,6 +200,92 @@ interface DeliveryNetRevenueReconciliationRow {
   status: string;
 }
 
+interface InventoryIntegrityStockRow {
+  type: "LOT_STOCK_BALANCE";
+  branchName: string;
+  branchCode: string | null;
+  productSku: string | null;
+  productName: string;
+  unitOfMeasure: string | null;
+  stockQuantity: number;
+  lotQuantity: number;
+  difference: number;
+  status: string;
+}
+
+interface InventoryIntegrityTerminalLotIssue {
+  type: "TERMINAL_LOT_WITH_STOCK";
+  lotId: string;
+  lotNumber: string;
+  status: string;
+  lotStatus: string;
+  branchName: string;
+  branchCode: string | null;
+  productSku: string | null;
+  productName: string;
+  unitOfMeasure: string | null;
+  quantity: number;
+  updatedAt: string;
+}
+
+interface InventoryIntegrityTransferLotIssue {
+  type: "TRANSFER_LOT_ALLOCATION";
+  allocationId: string;
+  transferId: string;
+  status: string;
+  transferStatus: string;
+  fromBranchName: string;
+  toBranchName: string;
+  productSku: string | null;
+  productName: string;
+  unitOfMeasure: string | null;
+  lotNumber: string;
+  allocatedQuantity: number;
+  receivedQuantity: number;
+  pendingQuantity: number;
+  expirationDate: string;
+}
+
+interface InventoryIntegrityStalledRequisition {
+  type: "APPROVED_REQUISITION_WITH_OPEN_TRANSFER";
+  requisitionId: string;
+  status: string;
+  requisitionStatus: string;
+  priority: string;
+  transferId: string | null;
+  transferStatus: string;
+  requestingBranchName: string;
+  fulfillingBranchName: string | null;
+  itemCount: number;
+  requestedQuantity: number;
+  transferLineCount: number;
+  updatedAt: string;
+}
+
+type InventoryIntegrityIssue =
+  | InventoryIntegrityStockRow
+  | InventoryIntegrityTerminalLotIssue
+  | InventoryIntegrityTransferLotIssue
+  | InventoryIntegrityStalledRequisition;
+
+interface InventoryIntegrityReconciliation {
+  summary: {
+    stockPairCount: number;
+    stockMismatchCount: number;
+    terminalLotCount: number;
+    transferLotIssueCount: number;
+    stalledRequisitionCount: number;
+    issueCount: number;
+    [key: string]: number;
+  };
+  stockRows: InventoryIntegrityStockRow[];
+  stockMismatches: InventoryIntegrityStockRow[];
+  terminalLots: InventoryIntegrityTerminalLotIssue[];
+  transferLotAllocations: InventoryIntegrityTransferLotIssue[];
+  stalledRequisitions: InventoryIntegrityStalledRequisition[];
+  issues: InventoryIntegrityIssue[];
+}
+
 interface ReconciliationSection<T> {
   summary: Record<string, number>;
   rows: T[];
@@ -226,6 +312,7 @@ interface OperationalReconciliationData {
       feePct: number;
     }>;
   };
+  inventoryIntegrity: InventoryIntegrityReconciliation;
 }
 
 interface ReconciliationIssueRow {
@@ -238,6 +325,19 @@ interface ReconciliationIssueRow {
   difference: string;
   impact: string;
   severity: "critical" | "warning";
+}
+
+interface InventoryIntegrityTableRow {
+  id: string;
+  type: string;
+  status: string;
+  branch: string;
+  reference: string;
+  product: string;
+  systemStock: string;
+  lotStock: string;
+  difference: string;
+  action: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -278,6 +378,17 @@ function statusLabel(status: string): string {
     COST_MISMATCH: "Costo distinto",
     NET_REVENUE_MISMATCH: "Neto distinto",
     NEGATIVE_NET_REVENUE: "Neto negativo",
+    STOCK_WITHOUT_LOTS: "Stock sin lotes",
+    LOTS_WITHOUT_STOCK: "Lotes sin stock",
+    LOT_STOCK_MISMATCH: "Stock/lote distinto",
+    TERMINAL_LOT_WITH_STOCK: "Lote cerrado con stock",
+    IN_TRANSIT_LOT_PENDING: "Lote en transito",
+    RECEIVED_ALLOCATION_SHORT: "Recepcion lote corta",
+    LINKED_TRANSFER_MISSING: "Transfer faltante",
+    TRANSFER_NOT_SHIPPED: "Transfer sin envio",
+    TRANSFER_NOT_RECEIVED: "Transfer sin recepcion",
+    REQUISITION_STATUS_NOT_CLOSED: "Req. abierta",
+    TRANSFER_CANCELLED_REQUISITION_OPEN: "Transfer cancelada",
   };
   return labels[status] ?? status;
 }
@@ -291,11 +402,29 @@ function statusVariant(status: string): "green" | "red" | "yellow" | "gray" {
       "NEGATIVE_NET_REVENUE",
       "MISSING_RECIPE",
       "MISSING_RECIPE_COST",
+      "STOCK_WITHOUT_LOTS",
+      "LOTS_WITHOUT_STOCK",
+      "LOT_STOCK_MISMATCH",
+      "TERMINAL_LOT_WITH_STOCK",
+      "RECEIVED_ALLOCATION_SHORT",
+      "LINKED_TRANSFER_MISSING",
+      "REQUISITION_STATUS_NOT_CLOSED",
+      "TRANSFER_CANCELLED_REQUISITION_OPEN",
     ].includes(status)
   ) {
     return "red";
   }
-  if (status === "REVIEW_REQUIRED" || status === "PENDING_RECEIPT") return "yellow";
+  if (
+    [
+      "REVIEW_REQUIRED",
+      "PENDING_RECEIPT",
+      "IN_TRANSIT_LOT_PENDING",
+      "TRANSFER_NOT_SHIPPED",
+      "TRANSFER_NOT_RECEIVED",
+    ].includes(status)
+  ) {
+    return "yellow";
+  }
   return "gray";
 }
 
@@ -618,6 +747,149 @@ function buildReconciliationIssues(
       difference: formatMXN(issue.delta),
       impact: `${formatPct(issue.feePct)} comision`,
       severity: "critical",
+    });
+  });
+
+  data.inventoryIntegrity?.stockMismatches.forEach((issue, index) => {
+    rows.push({
+      id: `inventory-stock-${index}`,
+      area: "Integridad Inventario",
+      status: issue.status,
+      branch: issue.branchName,
+      reference: issue.productSku || "SIN_SKU",
+      product: issue.productName,
+      difference: `${formatQty(issue.difference)} ${issue.unitOfMeasure || "und"}`,
+      impact: `${formatQty(issue.stockQuantity)} sistema / ${formatQty(issue.lotQuantity)} lotes`,
+      severity: "critical",
+    });
+  });
+
+  data.inventoryIntegrity?.terminalLots.forEach((issue, index) => {
+    rows.push({
+      id: `inventory-terminal-${index}`,
+      area: "Integridad Inventario",
+      status: issue.status,
+      branch: issue.branchName,
+      reference: issue.lotNumber,
+      product: issue.productName,
+      difference: `${formatQty(issue.quantity)} ${issue.unitOfMeasure || "und"}`,
+      impact: issue.lotStatus,
+      severity: "critical",
+    });
+  });
+
+  data.inventoryIntegrity?.transferLotAllocations.forEach((issue, index) => {
+    rows.push({
+      id: `inventory-transfer-lot-${index}`,
+      area: "Integridad Inventario",
+      status: issue.status,
+      branch: `${issue.fromBranchName} -> ${issue.toBranchName}`,
+      reference: issue.transferId,
+      product: issue.productName,
+      difference: `${formatQty(issue.pendingQuantity)} ${issue.unitOfMeasure || "und"}`,
+      impact: issue.lotNumber,
+      severity: issue.status === "RECEIVED_ALLOCATION_SHORT" ? "critical" : "warning",
+    });
+  });
+
+  data.inventoryIntegrity?.stalledRequisitions.forEach((issue, index) => {
+    rows.push({
+      id: `inventory-requisition-${index}`,
+      area: "Integridad Inventario",
+      status: issue.status,
+      branch: `${issue.fulfillingBranchName || "CEDIS"} -> ${issue.requestingBranchName}`,
+      reference: issue.requisitionId,
+      product: `${formatNumber(issue.itemCount)} partida(s)`,
+      difference: issue.transferStatus,
+      impact: `${formatQty(issue.requestedQuantity)} solicitadas`,
+      severity: issue.status === "TRANSFER_NOT_RECEIVED" ? "warning" : "critical",
+    });
+  });
+
+  return rows;
+}
+
+function inventoryActionLabel(status: string): string {
+  const labels: Record<string, string> = {
+    STOCK_WITHOUT_LOTS: "Reconstruir lote",
+    LOTS_WITHOUT_STOCK: "Ajustar lote",
+    LOT_STOCK_MISMATCH: "Reconciliar par",
+    TERMINAL_LOT_WITH_STOCK: "Cerrar en cero",
+    IN_TRANSIT_LOT_PENDING: "Confirmar recepcion",
+    RECEIVED_ALLOCATION_SHORT: "Auditar recepcion",
+    LINKED_TRANSFER_MISSING: "Revisar liga",
+    TRANSFER_NOT_SHIPPED: "Enviar transfer",
+    TRANSFER_NOT_RECEIVED: "Recibir transfer",
+    REQUISITION_STATUS_NOT_CLOSED: "Cerrar req.",
+    TRANSFER_CANCELLED_REQUISITION_OPEN: "Reabrir/cancelar",
+  };
+  return labels[status] ?? "Revisar";
+}
+
+function buildInventoryIntegrityRows(
+  data: OperationalReconciliationData | null,
+): InventoryIntegrityTableRow[] {
+  if (!data?.inventoryIntegrity) return [];
+
+  const rows: InventoryIntegrityTableRow[] = [];
+
+  data.inventoryIntegrity.stockMismatches.forEach((issue, index) => {
+    rows.push({
+      id: `stock-${index}`,
+      type: "Stock vs lotes",
+      status: issue.status,
+      branch: issue.branchName,
+      reference: issue.productSku || "SIN_SKU",
+      product: issue.productName,
+      systemStock: `${formatQty(issue.stockQuantity)} ${issue.unitOfMeasure || "und"}`,
+      lotStock: `${formatQty(issue.lotQuantity)} ${issue.unitOfMeasure || "und"}`,
+      difference: `${formatQty(issue.difference)} ${issue.unitOfMeasure || "und"}`,
+      action: inventoryActionLabel(issue.status),
+    });
+  });
+
+  data.inventoryIntegrity.terminalLots.forEach((issue, index) => {
+    rows.push({
+      id: `terminal-${index}`,
+      type: "Lote terminal",
+      status: issue.status,
+      branch: issue.branchName,
+      reference: issue.lotNumber,
+      product: issue.productName,
+      systemStock: "-",
+      lotStock: `${formatQty(issue.quantity)} ${issue.unitOfMeasure || "und"}`,
+      difference: `${formatQty(issue.quantity)} ${issue.unitOfMeasure || "und"}`,
+      action: inventoryActionLabel(issue.status),
+    });
+  });
+
+  data.inventoryIntegrity.transferLotAllocations.forEach((issue, index) => {
+    rows.push({
+      id: `transfer-lot-${index}`,
+      type: "Transfer lotes",
+      status: issue.status,
+      branch: `${issue.fromBranchName} -> ${issue.toBranchName}`,
+      reference: issue.transferId,
+      product: issue.productName,
+      systemStock: `${formatQty(issue.allocatedQuantity)} enviada`,
+      lotStock: `${formatQty(issue.receivedQuantity)} recibida`,
+      difference: `${formatQty(issue.pendingQuantity)} pendiente`,
+      action: inventoryActionLabel(issue.status),
+    });
+  });
+
+  data.inventoryIntegrity.stalledRequisitions.forEach((issue, index) => {
+    rows.push({
+      id: `requisition-${index}`,
+      type: "Requisicion",
+      status: issue.status,
+      branch: `${issue.fulfillingBranchName || "CEDIS"} -> ${issue.requestingBranchName}`,
+      reference: issue.requisitionId,
+      product: `${formatNumber(issue.itemCount)} partida(s)`,
+      systemStock: `${formatQty(issue.requestedQuantity)} solicitadas`,
+      lotStock: `${formatNumber(issue.transferLineCount)} linea(s) transfer`,
+      difference: issue.transferStatus,
+      action: inventoryActionLabel(issue.status),
     });
   });
 
@@ -997,11 +1269,24 @@ export default function ReportesPage() {
     () => buildReconciliationIssues(reconciliationData),
     [reconciliationData],
   );
+  const inventoryIntegrityRows = useMemo(
+    () => buildInventoryIntegrityRows(reconciliationData),
+    [reconciliationData],
+  );
 
   const reconciliationMetrics = {
     issueCount: reconciliationData?.issueCount ?? 0,
     posIssueCount: reconciliationData?.posInventory.summary.issueCount ?? 0,
     transferIssueCount: reconciliationData?.cedisTransfers.summary.issueCount ?? 0,
+    inventoryIntegrityIssueCount: reconciliationData?.inventoryIntegrity.summary.issueCount ?? 0,
+    inventoryStockMismatchCount:
+      reconciliationData?.inventoryIntegrity.summary.stockMismatchCount ?? 0,
+    terminalLotCount: reconciliationData?.inventoryIntegrity.summary.terminalLotCount ?? 0,
+    transferLotIssueCount:
+      reconciliationData?.inventoryIntegrity.summary.transferLotIssueCount ?? 0,
+    stalledRequisitionCount:
+      reconciliationData?.inventoryIntegrity.summary.stalledRequisitionCount ?? 0,
+    stockPairCount: reconciliationData?.inventoryIntegrity.summary.stockPairCount ?? 0,
     saleCount: reconciliationData?.posInventory.summary.saleCount ?? 0,
     transferCount: reconciliationData?.cedisTransfers.summary.transferCount ?? 0,
     deliveryOrders: reconciliationData?.deliveryNetRevenue.summary.orderCount ?? 0,
@@ -1179,6 +1464,53 @@ export default function ReportesPage() {
     },
   ];
 
+  const inventoryIntegrityColumns = [
+    {
+      key: "type",
+      header: "Tipo",
+      render: (r: InventoryIntegrityTableRow) => <span className="font-medium">{r.type}</span>,
+    },
+    {
+      key: "status",
+      header: "Estado",
+      render: (r: InventoryIntegrityTableRow) => (
+        <StatusBadge label={statusLabel(r.status)} variant={statusVariant(r.status)} />
+      ),
+    },
+    {
+      key: "branch",
+      header: "Sucursal / Ruta",
+    },
+    {
+      key: "reference",
+      header: "Referencia",
+      className: "font-mono",
+    },
+    {
+      key: "product",
+      header: "Producto",
+    },
+    {
+      key: "systemStock",
+      header: "Sistema",
+      className: "text-right",
+    },
+    {
+      key: "lotStock",
+      header: "Lote / Recepcion",
+      className: "text-right",
+    },
+    {
+      key: "difference",
+      header: "Diferencia",
+      className: "text-right",
+    },
+    {
+      key: "action",
+      header: "Accion",
+    },
+  ];
+
   function handleExportReconciliationIssues() {
     exportToCSV(reconciliationIssues, `Reconciliacion_Operativa_${startDate}_${endDate}`, [
       { key: "area", label: "Area" },
@@ -1188,6 +1520,20 @@ export default function ReportesPage() {
       { key: "product", label: "Producto/Plataforma" },
       { key: "difference", label: "Diferencia" },
       { key: "impact", label: "Impacto" },
+    ]);
+  }
+
+  function handleExportInventoryIntegrity() {
+    exportToCSV(inventoryIntegrityRows, `Integridad_Inventario_${startDate}_${endDate}`, [
+      { key: "type", label: "Tipo" },
+      { key: "status", label: "Estado" },
+      { key: "branch", label: "Sucursal/Ruta" },
+      { key: "reference", label: "Referencia" },
+      { key: "product", label: "Producto" },
+      { key: "systemStock", label: "Sistema" },
+      { key: "lotStock", label: "Lote/Recepcion" },
+      { key: "difference", label: "Diferencia" },
+      { key: "action", label: "Accion" },
     ]);
   }
 
@@ -1504,7 +1850,7 @@ export default function ReportesPage() {
 
             {!reconciliationLoading && reconciliationData && (
               <>
-                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-5">
                   <MetricCard
                     title="Estado"
                     value={reconciliationData.status === "OK" ? "OK" : "Revisar"}
@@ -1524,6 +1870,12 @@ export default function ReportesPage() {
                     icon={Warehouse}
                   />
                   <MetricCard
+                    title="Integridad Inv."
+                    value={formatNumber(reconciliationMetrics.inventoryIntegrityIssueCount)}
+                    sub="stock, lotes y requisiciones"
+                    icon={AlertTriangle}
+                  />
+                  <MetricCard
                     title="Delivery Neto"
                     value={formatMXN(reconciliationMetrics.deliveryNetRevenue)}
                     sub={`${formatNumber(reconciliationMetrics.deliveryOrders)} orden(es)`}
@@ -1531,7 +1883,7 @@ export default function ReportesPage() {
                   />
                 </div>
 
-                <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+                <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
                   <ReconciliationAreaPanel
                     title="POS vs Inventario"
                     issueCount={reconciliationData.posInventory.summary.issueCount}
@@ -1569,6 +1921,87 @@ export default function ReportesPage() {
                       reconciliationData.deliveryNetRevenue.summary.feePct,
                     )}
                     icon={DollarSign}
+                  />
+                  <ReconciliationAreaPanel
+                    title="Integridad Inventario"
+                    issueCount={reconciliationMetrics.inventoryIntegrityIssueCount}
+                    primaryMetric={`${formatNumber(reconciliationMetrics.stockPairCount)} pares`}
+                    secondaryMetric={`${formatNumber(
+                      reconciliationMetrics.inventoryStockMismatchCount,
+                    )} diferencias`}
+                    icon={AlertTriangle}
+                  />
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <h2 className="text-base font-semibold text-gray-900">
+                        Integridad de Inventario
+                      </h2>
+                      <p className="mt-1 text-sm text-gray-500">
+                        Stock, lotes, transferencias y requisiciones abiertas
+                      </p>
+                    </div>
+                    <StatusBadge
+                      label={
+                        reconciliationMetrics.inventoryIntegrityIssueCount > 0
+                          ? `${formatNumber(
+                              reconciliationMetrics.inventoryIntegrityIssueCount,
+                            )} incidencia(s)`
+                          : "OK"
+                      }
+                      variant={
+                        reconciliationMetrics.inventoryIntegrityIssueCount > 0 ? "yellow" : "green"
+                      }
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                    <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+                      <p className="text-xs font-medium text-gray-500">Stock vs lotes</p>
+                      <p className="mt-2 text-2xl font-bold text-gray-900">
+                        {formatNumber(reconciliationMetrics.inventoryStockMismatchCount)}
+                      </p>
+                      <p className="mt-1 text-xs text-gray-500">
+                        {formatNumber(reconciliationMetrics.stockPairCount)} pares revisados
+                      </p>
+                    </div>
+                    <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+                      <p className="text-xs font-medium text-gray-500">Lotes terminales</p>
+                      <p className="mt-2 text-2xl font-bold text-gray-900">
+                        {formatNumber(reconciliationMetrics.terminalLotCount)}
+                      </p>
+                      <p className="mt-1 text-xs text-gray-500">con cantidad mayor a cero</p>
+                    </div>
+                    <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+                      <p className="text-xs font-medium text-gray-500">Lotes en transferencia</p>
+                      <p className="mt-2 text-2xl font-bold text-gray-900">
+                        {formatNumber(reconciliationMetrics.transferLotIssueCount)}
+                      </p>
+                      <p className="mt-1 text-xs text-gray-500">pendientes de recepcion</p>
+                    </div>
+                    <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+                      <p className="text-xs font-medium text-gray-500">Requisiciones</p>
+                      <p className="mt-2 text-2xl font-bold text-gray-900">
+                        {formatNumber(reconciliationMetrics.stalledRequisitionCount)}
+                      </p>
+                      <p className="mt-1 text-xs text-gray-500">aprobadas con transfer abierta</p>
+                    </div>
+                  </div>
+
+                  <DataTable
+                    columns={inventoryIntegrityColumns}
+                    data={inventoryIntegrityRows}
+                    searchable
+                    searchPlaceholder="Buscar integridad..."
+                    pageSize={8}
+                    onExport={
+                      inventoryIntegrityRows.length > 0 ? handleExportInventoryIntegrity : undefined
+                    }
+                    exportLabel="Exportar integridad"
+                    loading={reconciliationLoading}
+                    emptyMessage="No hay incidencias de integridad de inventario"
                   />
                 </div>
 
