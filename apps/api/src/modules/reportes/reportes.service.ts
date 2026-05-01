@@ -5,6 +5,8 @@ import { CacheService } from "../../common/cache/cache.service";
 
 const _REPORT_TTL = 300; // 5 minutes
 const DECIMAL_EPSILON = 0.0001;
+const LOT_STOCK_STATUSES = ["ACTIVE", "LOW", "EXPIRED"];
+const LOT_TERMINAL_STATUSES = ["CONSUMED", "DISPOSED"];
 
 interface DateRange {
   start: Date;
@@ -37,6 +39,10 @@ function round4(value: number): number {
 
 function normalizeKey(value: string): string {
   return value.trim().toLowerCase();
+}
+
+function stockKey(branchId: string, productId: string): string {
+  return `${branchId}:${productId}`;
 }
 
 @Injectable()
@@ -251,18 +257,21 @@ export class ReportesService {
   ) {
     const range = this.normalizeDateRange(filters.startDate, filters.endDate);
 
-    const [posInventory, cedisTransfers, foodCost, deliveryNetRevenue] = await Promise.all([
-      this.getPosInventoryReconciliation(organizationId, range, filters.branchId),
-      this.getTransferDispatchReconciliation(organizationId, range, filters.branchId),
-      this.getFoodCostReconciliation(organizationId, range, filters.branchId),
-      this.getDeliveryNetRevenueReconciliation(organizationId, range, filters.branchId),
-    ]);
+    const [posInventory, cedisTransfers, foodCost, deliveryNetRevenue, inventoryIntegrity] =
+      await Promise.all([
+        this.getPosInventoryReconciliation(organizationId, range, filters.branchId),
+        this.getTransferDispatchReconciliation(organizationId, range, filters.branchId),
+        this.getFoodCostReconciliation(organizationId, range, filters.branchId),
+        this.getDeliveryNetRevenueReconciliation(organizationId, range, filters.branchId),
+        this.getInventoryIntegrityReconciliation(organizationId, filters.branchId),
+      ]);
 
     const issueCount =
       posInventory.summary.issueCount +
       cedisTransfers.summary.issueCount +
       foodCost.summary.issueCount +
-      deliveryNetRevenue.summary.issueCount;
+      deliveryNetRevenue.summary.issueCount +
+      inventoryIntegrity.summary.issueCount;
 
     return {
       period: {
@@ -276,6 +285,7 @@ export class ReportesService {
       cedisTransfers,
       foodCost,
       deliveryNetRevenue,
+      inventoryIntegrity,
     };
   }
 
@@ -668,6 +678,327 @@ export class ReportesService {
       rows,
       issues,
     };
+  }
+
+  private async getInventoryIntegrityReconciliation(organizationId: string, branchId?: string) {
+    const [inventories, stockLots, terminalLots, transferLotAllocations, linkedRequisitions] =
+      await Promise.all([
+        this.prisma.branchInventory.findMany({
+          where: {
+            ...(branchId ? { branchId } : {}),
+            branch: { organizationId },
+            product: { organizationId },
+            currentQuantity: { not: 0 },
+          },
+          include: {
+            branch: { select: { id: true, name: true, code: true } },
+            product: { select: { id: true, name: true, sku: true, unitOfMeasure: true } },
+          },
+        }),
+        this.prisma.productLot.findMany({
+          where: {
+            organizationId,
+            ...(branchId ? { branchId } : {}),
+            status: { in: LOT_STOCK_STATUSES },
+            quantity: { not: 0 },
+          },
+          include: {
+            branch: { select: { id: true, name: true, code: true } },
+            product: { select: { id: true, name: true, sku: true, unitOfMeasure: true } },
+          },
+        }),
+        this.prisma.productLot.findMany({
+          where: {
+            organizationId,
+            ...(branchId ? { branchId } : {}),
+            status: { in: LOT_TERMINAL_STATUSES },
+            quantity: { gt: 0 },
+          },
+          include: {
+            branch: { select: { id: true, name: true, code: true } },
+            product: { select: { id: true, name: true, sku: true, unitOfMeasure: true } },
+          },
+          orderBy: [{ updatedAt: "desc" }],
+        }),
+        this.prisma.interBranchTransferLotAllocation.findMany({
+          where: {
+            quantity: { gt: 0 },
+            transferItem: {
+              transfer: {
+                fromBranch: { organizationId },
+                toBranch: { organizationId },
+                status: { in: ["IN_TRANSIT", "RECEIVED"] },
+                ...(branchId ? { OR: [{ fromBranchId: branchId }, { toBranchId: branchId }] } : {}),
+              },
+            },
+          },
+          include: {
+            sourceLot: { select: { id: true, status: true, quantity: true } },
+            transferItem: {
+              include: {
+                product: { select: { id: true, name: true, sku: true, unitOfMeasure: true } },
+                transfer: {
+                  include: {
+                    fromBranch: { select: { id: true, name: true, code: true } },
+                    toBranch: { select: { id: true, name: true, code: true } },
+                  },
+                },
+              },
+            },
+          },
+          orderBy: [{ expirationDate: "asc" }, { createdAt: "asc" }],
+        }),
+        this.prisma.requisition.findMany({
+          where: {
+            organizationId,
+            status: "APPROVED",
+            transferId: { not: null },
+            ...(branchId
+              ? { OR: [{ requestingBranchId: branchId }, { fulfillingBranchId: branchId }] }
+              : {}),
+          },
+          include: {
+            requestingBranch: { select: { id: true, name: true, code: true } },
+            fulfillingBranch: { select: { id: true, name: true, code: true } },
+            items: { select: { id: true, approvedQuantity: true, requestedQuantity: true } },
+          },
+          orderBy: { updatedAt: "desc" },
+        }),
+      ]);
+
+    const inventoryByPair = new Map<string, (typeof inventories)[number]>();
+    for (const inventory of inventories) {
+      inventoryByPair.set(stockKey(inventory.branchId, inventory.productId), inventory);
+    }
+
+    const lotByPair = new Map<
+      string,
+      {
+        branchId: string;
+        productId: string;
+        branch: (typeof stockLots)[number]["branch"];
+        product: (typeof stockLots)[number]["product"];
+        quantity: number;
+      }
+    >();
+
+    for (const lot of stockLots) {
+      const key = stockKey(lot.branchId, lot.productId);
+      const existing = lotByPair.get(key);
+      if (existing) {
+        existing.quantity += toNumber(lot.quantity);
+      } else {
+        lotByPair.set(key, {
+          branchId: lot.branchId,
+          productId: lot.productId,
+          branch: lot.branch,
+          product: lot.product,
+          quantity: toNumber(lot.quantity),
+        });
+      }
+    }
+
+    const stockKeys = new Set([...inventoryByPair.keys(), ...lotByPair.keys()]);
+    const stockRows = [...stockKeys]
+      .map((key) => {
+        const inventory = inventoryByPair.get(key);
+        const lotGroup = lotByPair.get(key);
+        const lotQuantity = round4(lotGroup?.quantity ?? 0);
+        const stockQuantity = round4(toNumber(inventory?.currentQuantity));
+        const difference = round4(stockQuantity - lotQuantity);
+        const status =
+          Math.abs(difference) <= DECIMAL_EPSILON
+            ? "OK"
+            : stockQuantity > 0 && lotQuantity <= DECIMAL_EPSILON
+              ? "STOCK_WITHOUT_LOTS"
+              : stockQuantity <= DECIMAL_EPSILON && lotQuantity > 0
+                ? "LOTS_WITHOUT_STOCK"
+                : "LOT_STOCK_MISMATCH";
+
+        return {
+          type: "LOT_STOCK_BALANCE",
+          branchId: inventory?.branchId ?? lotGroup?.branchId ?? null,
+          branchName: inventory?.branch.name ?? lotGroup?.branch.name ?? "Sucursal desconocida",
+          branchCode: inventory?.branch.code ?? lotGroup?.branch.code ?? null,
+          productId: inventory?.productId ?? lotGroup?.productId ?? null,
+          productSku: inventory?.product.sku ?? lotGroup?.product.sku ?? null,
+          productName: inventory?.product.name ?? lotGroup?.product.name ?? "Producto desconocido",
+          unitOfMeasure:
+            inventory?.product.unitOfMeasure ?? lotGroup?.product.unitOfMeasure ?? null,
+          stockQuantity,
+          lotQuantity,
+          difference,
+          status,
+        };
+      })
+      .sort(
+        (a, b) =>
+          a.branchName.localeCompare(b.branchName) ||
+          String(a.productSku ?? "").localeCompare(String(b.productSku ?? "")),
+      );
+
+    const stockMismatches = stockRows.filter((row) => row.status !== "OK");
+
+    const terminalLotIssues = terminalLots.map((lot) => ({
+      type: "TERMINAL_LOT_WITH_STOCK",
+      lotId: lot.id,
+      lotNumber: lot.lotNumber,
+      status: "TERMINAL_LOT_WITH_STOCK",
+      lotStatus: lot.status,
+      branchId: lot.branchId,
+      branchName: lot.branch.name,
+      branchCode: lot.branch.code,
+      productId: lot.productId,
+      productSku: lot.product.sku,
+      productName: lot.product.name,
+      unitOfMeasure: lot.product.unitOfMeasure,
+      quantity: round4(toNumber(lot.quantity)),
+      updatedAt: lot.updatedAt,
+    }));
+
+    const transferLotIssues = transferLotAllocations
+      .map((allocation) => {
+        const allocatedQuantity = toNumber(allocation.quantity);
+        const receivedQuantity = toNumber(allocation.receivedQuantity);
+        const pendingQuantity = round4(allocatedQuantity - receivedQuantity);
+        const transfer = allocation.transferItem.transfer;
+
+        return {
+          type: "TRANSFER_LOT_ALLOCATION",
+          allocationId: allocation.id,
+          transferId: transfer.id,
+          transferItemId: allocation.transferItemId,
+          status:
+            transfer.status === "RECEIVED" ? "RECEIVED_ALLOCATION_SHORT" : "IN_TRANSIT_LOT_PENDING",
+          transferStatus: transfer.status,
+          fromBranchId: transfer.fromBranchId,
+          fromBranchName: transfer.fromBranch.name,
+          toBranchId: transfer.toBranchId,
+          toBranchName: transfer.toBranch.name,
+          productId: allocation.transferItem.productId,
+          productSku: allocation.transferItem.product.sku,
+          productName: allocation.transferItem.product.name,
+          unitOfMeasure: allocation.transferItem.product.unitOfMeasure,
+          lotNumber: allocation.lotNumber,
+          sourceLotId: allocation.sourceLotId,
+          sourceLotStatus: allocation.sourceLot?.status ?? null,
+          allocatedQuantity: round4(allocatedQuantity),
+          receivedQuantity: round4(receivedQuantity),
+          pendingQuantity,
+          expirationDate: allocation.expirationDate,
+        };
+      })
+      .filter((row) => row.pendingQuantity > DECIMAL_EPSILON);
+
+    const stalledRequisitions = await this.getStalledLinkedRequisitions(
+      organizationId,
+      linkedRequisitions,
+    );
+
+    const issues = [
+      ...stockMismatches,
+      ...terminalLotIssues,
+      ...transferLotIssues,
+      ...stalledRequisitions,
+    ];
+
+    return {
+      summary: {
+        stockPairCount: stockRows.length,
+        stockMismatchCount: stockMismatches.length,
+        terminalLotCount: terminalLotIssues.length,
+        transferLotIssueCount: transferLotIssues.length,
+        stalledRequisitionCount: stalledRequisitions.length,
+        issueCount: issues.length,
+      },
+      stockRows,
+      stockMismatches,
+      terminalLots: terminalLotIssues,
+      transferLotAllocations: transferLotIssues,
+      stalledRequisitions,
+      issues,
+    };
+  }
+
+  private async getStalledLinkedRequisitions(
+    organizationId: string,
+    requisitions: Array<{
+      id: string;
+      status: string;
+      priority: string;
+      transferId: string | null;
+      createdAt: Date;
+      updatedAt: Date;
+      requestingBranchId: string;
+      fulfillingBranchId: string | null;
+      requestingBranch: { id: string; name: string; code: string | null };
+      fulfillingBranch: { id: string; name: string; code: string | null } | null;
+      items: Array<{ id: string; approvedQuantity: unknown; requestedQuantity: unknown }>;
+    }>,
+  ) {
+    const transferIds = requisitions
+      .map((requisition) => requisition.transferId)
+      .filter((id): id is string => Boolean(id));
+
+    if (transferIds.length === 0) {
+      return [];
+    }
+
+    const transfers = await this.prisma.interBranchTransfer.findMany({
+      where: {
+        id: { in: transferIds },
+        fromBranch: { organizationId },
+        toBranch: { organizationId },
+      },
+      include: {
+        items: true,
+      },
+    });
+    const transferById = new Map(transfers.map((transfer) => [transfer.id, transfer]));
+
+    return requisitions
+      .map((requisition) => {
+        const transfer = requisition.transferId
+          ? transferById.get(requisition.transferId)
+          : undefined;
+        const transferStatus = transfer?.status ?? "MISSING";
+        const status = !transfer
+          ? "LINKED_TRANSFER_MISSING"
+          : ["PENDING", "APPROVED"].includes(transfer.status)
+            ? "TRANSFER_NOT_SHIPPED"
+            : transfer.status === "IN_TRANSIT"
+              ? "TRANSFER_NOT_RECEIVED"
+              : transfer.status === "RECEIVED"
+                ? "REQUISITION_STATUS_NOT_CLOSED"
+                : transfer.status === "CANCELLED"
+                  ? "TRANSFER_CANCELLED_REQUISITION_OPEN"
+                  : "OK";
+
+        return {
+          type: "APPROVED_REQUISITION_WITH_OPEN_TRANSFER",
+          requisitionId: requisition.id,
+          status,
+          requisitionStatus: requisition.status,
+          priority: requisition.priority,
+          transferId: requisition.transferId,
+          transferStatus,
+          requestingBranchId: requisition.requestingBranchId,
+          requestingBranchName: requisition.requestingBranch.name,
+          fulfillingBranchId: requisition.fulfillingBranchId,
+          fulfillingBranchName: requisition.fulfillingBranch?.name ?? null,
+          itemCount: requisition.items.length,
+          requestedQuantity: round4(
+            requisition.items.reduce(
+              (sum, item) => sum + toNumber(item.approvedQuantity ?? item.requestedQuantity),
+              0,
+            ),
+          ),
+          transferLineCount: transfer?.items.length ?? 0,
+          createdAt: requisition.createdAt,
+          updatedAt: requisition.updatedAt,
+        };
+      })
+      .filter((row) => row.status !== "OK");
   }
 
   private async getPosSaleItemAggregates(
