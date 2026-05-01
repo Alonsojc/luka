@@ -133,6 +133,12 @@ const EVENT_VARIABLES: Record<string, string[]> = {
     "cedisIssueCount",
     "foodCostIssueCount",
     "deliveryIssueCount",
+    "inventoryIntegrityIssueCount",
+    "openInventoryIssueCount",
+    "reviewedInventoryIssueCount",
+    "resolvedInventoryIssueCount",
+    "ignoredInventoryIssueCount",
+    "criticalOpenInventoryIssueCount",
     "deliveryNetRevenue",
     "reportUrl",
   ],
@@ -907,7 +913,7 @@ export default function AlertasPage() {
           )}
 
           {ruleForm.eventType === "OPERATIONAL_RECONCILIATION" && (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               <FormField label="Dias a revisar">
                 <Input
                   type="number"
@@ -926,7 +932,7 @@ export default function AlertasPage() {
                   placeholder="1"
                 />
               </FormField>
-              <FormField label="Minimo de incidencias">
+              <FormField label="Minimo total">
                 <Input
                   type="number"
                   min={1}
@@ -942,6 +948,27 @@ export default function AlertasPage() {
                     }))
                   }
                   placeholder="1"
+                />
+              </FormField>
+              <FormField label="Criticas inventario abiertas">
+                <Input
+                  type="number"
+                  min={1}
+                  max={999}
+                  value={ruleForm.conditions.minCriticalOpenInventoryIssueCount ?? ""}
+                  onChange={(e) =>
+                    setRuleForm((f) => {
+                      const conditions = { ...f.conditions };
+                      const value = parseInt(e.target.value, 10);
+                      if (Number.isFinite(value) && value > 0) {
+                        conditions.minCriticalOpenInventoryIssueCount = value;
+                      } else {
+                        delete conditions.minCriticalOpenInventoryIssueCount;
+                      }
+                      return { ...f, conditions };
+                    })
+                  }
+                  placeholder="Opcional"
                 />
               </FormField>
             </div>

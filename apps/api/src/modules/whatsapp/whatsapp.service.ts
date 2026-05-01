@@ -16,7 +16,7 @@ export const DEFAULT_TEMPLATES: Record<string, string> = {
   DAILY_SUMMARY:
     "\ud83d\udcca *Resumen Diario - {{date}}*\n\n\ud83d\udcb0 Ventas: ${{totalSales}}\n\ud83d\udce6 Requisiciones pendientes: {{pendingRequisitions}}\n\u26a0\ufe0f Productos bajo m\u00ednimo: {{lowStockCount}}\n\ud83d\udd34 Lotes por vencer: {{expiringLots}}\n\ud83d\udccb Transferencias activas: {{activeTransfers}}\n\n_Luka System_",
   OPERATIONAL_RECONCILIATION:
-    "*Reconciliacion operativa - {{startDate}} a {{endDate}}*\n\nSucursal: {{branchName}}\nIncidencias: {{issueCount}}\nPOS vs inventario: {{posIssueCount}}\nCEDIS vs sucursal: {{cedisIssueCount}}\nFood cost: {{foodCostIssueCount}}\nDelivery neto: {{deliveryIssueCount}}\nIntegridad inventario: {{inventoryIntegrityIssueCount}}\nVenta neta delivery: {{deliveryNetRevenue}}\n\nRevisar: {{reportUrl}}\n\n_Luka System_",
+    "*Reconciliacion operativa - {{startDate}} a {{endDate}}*\n\nSucursal: {{branchName}}\nIncidencias: {{issueCount}}\nPOS vs inventario: {{posIssueCount}}\nCEDIS vs sucursal: {{cedisIssueCount}}\nFood cost: {{foodCostIssueCount}}\nDelivery neto: {{deliveryIssueCount}}\nIntegridad inventario: {{inventoryIntegrityIssueCount}}\nInventario abierto: {{openInventoryIssueCount}}\nInventario critico abierto: {{criticalOpenInventoryIssueCount}}\nVenta neta delivery: {{deliveryNetRevenue}}\n\nRevisar: {{reportUrl}}\n\n_Luka System_",
 };
 
 @Injectable()
