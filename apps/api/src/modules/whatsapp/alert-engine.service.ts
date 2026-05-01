@@ -371,6 +371,9 @@ export class AlertEngineService {
           cedisIssueCount: String(reconciliation.cedisTransfers.summary.issueCount),
           foodCostIssueCount: String(reconciliation.foodCost.summary.issueCount),
           deliveryIssueCount: String(reconciliation.deliveryNetRevenue.summary.issueCount),
+          inventoryIntegrityIssueCount: String(
+            reconciliation.inventoryIntegrity?.summary?.issueCount ?? 0,
+          ),
           deliveryNetRevenue: formatMXN(
             reconciliation.deliveryNetRevenue.summary.recalculatedNetRevenue,
           ),
