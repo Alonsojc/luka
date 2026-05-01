@@ -17,6 +17,10 @@ import {
   ClipboardCheck,
   AlertTriangle,
   ExternalLink,
+  Check,
+  CheckCircle2,
+  Ban,
+  RotateCcw,
 } from "lucide-react";
 import {
   BarChart,
@@ -202,8 +206,30 @@ interface DeliveryNetRevenueReconciliationRow {
   status: string;
 }
 
+type ReconciliationReviewStatus = "OPEN" | "REVIEWED" | "RESOLVED" | "IGNORED";
+
+interface ReconciliationIssueReview {
+  status: ReconciliationReviewStatus;
+  note: string | null;
+  reviewedById: string | null;
+  reviewedByName: string | null;
+  reviewedAt: string | null;
+  resolvedAt: string | null;
+  ignoredAt: string | null;
+  updatedAt: string | null;
+}
+
+interface ReconciliationReviewSummary {
+  openCount: number;
+  reviewedCount: number;
+  resolvedCount: number;
+  ignoredCount: number;
+}
+
 interface InventoryIntegrityStockRow {
   type: "LOT_STOCK_BALANCE";
+  fingerprint: string;
+  review: ReconciliationIssueReview;
   branchId: string | null;
   branchName: string;
   branchCode: string | null;
@@ -219,6 +245,8 @@ interface InventoryIntegrityStockRow {
 
 interface InventoryIntegrityTerminalLotIssue {
   type: "TERMINAL_LOT_WITH_STOCK";
+  fingerprint: string;
+  review: ReconciliationIssueReview;
   lotId: string;
   lotNumber: string;
   status: string;
@@ -236,12 +264,17 @@ interface InventoryIntegrityTerminalLotIssue {
 
 interface InventoryIntegrityTransferLotIssue {
   type: "TRANSFER_LOT_ALLOCATION";
+  fingerprint: string;
+  review: ReconciliationIssueReview;
   allocationId: string;
   transferId: string;
   status: string;
   transferStatus: string;
+  fromBranchId: string;
   fromBranchName: string;
+  toBranchId: string;
   toBranchName: string;
+  productId: string;
   productSku: string | null;
   productName: string;
   unitOfMeasure: string | null;
@@ -254,13 +287,17 @@ interface InventoryIntegrityTransferLotIssue {
 
 interface InventoryIntegrityStalledRequisition {
   type: "APPROVED_REQUISITION_WITH_OPEN_TRANSFER";
+  fingerprint: string;
+  review: ReconciliationIssueReview;
   requisitionId: string;
   status: string;
   requisitionStatus: string;
   priority: string;
   transferId: string | null;
   transferStatus: string;
+  requestingBranchId: string;
   requestingBranchName: string;
+  fulfillingBranchId: string | null;
   fulfillingBranchName: string | null;
   itemCount: number;
   requestedQuantity: number;
@@ -282,7 +319,8 @@ interface InventoryIntegrityReconciliation {
     transferLotIssueCount: number;
     stalledRequisitionCount: number;
     issueCount: number;
-    [key: string]: number;
+    review?: ReconciliationReviewSummary;
+    [key: string]: number | ReconciliationReviewSummary | undefined;
   };
   stockRows: InventoryIntegrityStockRow[];
   stockMismatches: InventoryIntegrityStockRow[];
@@ -335,6 +373,15 @@ interface ReconciliationIssueRow {
 
 interface InventoryIntegrityTableRow {
   id: string;
+  fingerprint: string;
+  issueArea: string;
+  issueType: string;
+  issueStatus: string;
+  branchId: string | null;
+  branchName: string;
+  referenceId: string | null;
+  productId: string | null;
+  productSku: string | null;
   type: string;
   status: string;
   branch: string;
@@ -345,6 +392,10 @@ interface InventoryIntegrityTableRow {
   difference: string;
   action: string;
   actionHref: string;
+  reviewStatus: ReconciliationReviewStatus;
+  reviewNote: string | null;
+  reviewedByName: string | null;
+  reviewedAt: string | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -433,6 +484,25 @@ function statusVariant(status: string): "green" | "red" | "yellow" | "gray" {
     return "yellow";
   }
   return "gray";
+}
+
+function reviewStatusLabel(status: ReconciliationReviewStatus): string {
+  const labels: Record<ReconciliationReviewStatus, string> = {
+    OPEN: "Abierta",
+    REVIEWED: "Revisada",
+    RESOLVED: "Resuelta",
+    IGNORED: "Ignorada",
+  };
+  return labels[status];
+}
+
+function reviewStatusVariant(
+  status: ReconciliationReviewStatus,
+): "green" | "red" | "yellow" | "gray" {
+  if (status === "RESOLVED") return "green";
+  if (status === "IGNORED") return "gray";
+  if (status === "REVIEWED") return "yellow";
+  return "red";
 }
 
 function formatQty(value: unknown): string {
@@ -896,6 +966,15 @@ function buildInventoryIntegrityRows(
   data.inventoryIntegrity.stockMismatches.forEach((issue, index) => {
     rows.push({
       id: `stock-${index}`,
+      fingerprint: issue.fingerprint,
+      issueArea: "INVENTORY_INTEGRITY",
+      issueType: issue.type,
+      issueStatus: issue.status,
+      branchId: issue.branchId,
+      branchName: issue.branchName,
+      referenceId: issue.productSku || issue.productId,
+      productId: issue.productId,
+      productSku: issue.productSku,
       type: "Stock vs lotes",
       status: issue.status,
       branch: issue.branchName,
@@ -906,12 +985,25 @@ function buildInventoryIntegrityRows(
       difference: `${formatQty(issue.difference)} ${issue.unitOfMeasure || "und"}`,
       action: inventoryActionLabel(issue.status),
       actionHref: inventoryActionHref(issue),
+      reviewStatus: issue.review.status,
+      reviewNote: issue.review.note,
+      reviewedByName: issue.review.reviewedByName,
+      reviewedAt: issue.review.reviewedAt,
     });
   });
 
   data.inventoryIntegrity.terminalLots.forEach((issue, index) => {
     rows.push({
       id: `terminal-${index}`,
+      fingerprint: issue.fingerprint,
+      issueArea: "INVENTORY_INTEGRITY",
+      issueType: issue.type,
+      issueStatus: issue.status,
+      branchId: issue.branchId,
+      branchName: issue.branchName,
+      referenceId: issue.lotId,
+      productId: issue.productId,
+      productSku: issue.productSku,
       type: "Lote terminal",
       status: issue.status,
       branch: issue.branchName,
@@ -922,12 +1014,25 @@ function buildInventoryIntegrityRows(
       difference: `${formatQty(issue.quantity)} ${issue.unitOfMeasure || "und"}`,
       action: inventoryActionLabel(issue.status),
       actionHref: inventoryActionHref(issue),
+      reviewStatus: issue.review.status,
+      reviewNote: issue.review.note,
+      reviewedByName: issue.review.reviewedByName,
+      reviewedAt: issue.review.reviewedAt,
     });
   });
 
   data.inventoryIntegrity.transferLotAllocations.forEach((issue, index) => {
     rows.push({
       id: `transfer-lot-${index}`,
+      fingerprint: issue.fingerprint,
+      issueArea: "INVENTORY_INTEGRITY",
+      issueType: issue.type,
+      issueStatus: issue.status,
+      branchId: issue.toBranchId,
+      branchName: `${issue.fromBranchName} -> ${issue.toBranchName}`,
+      referenceId: issue.transferId,
+      productId: issue.productId,
+      productSku: issue.productSku,
       type: "Transfer lotes",
       status: issue.status,
       branch: `${issue.fromBranchName} -> ${issue.toBranchName}`,
@@ -938,12 +1043,25 @@ function buildInventoryIntegrityRows(
       difference: `${formatQty(issue.pendingQuantity)} pendiente`,
       action: inventoryActionLabel(issue.status),
       actionHref: inventoryActionHref(issue),
+      reviewStatus: issue.review.status,
+      reviewNote: issue.review.note,
+      reviewedByName: issue.review.reviewedByName,
+      reviewedAt: issue.review.reviewedAt,
     });
   });
 
   data.inventoryIntegrity.stalledRequisitions.forEach((issue, index) => {
     rows.push({
       id: `requisition-${index}`,
+      fingerprint: issue.fingerprint,
+      issueArea: "INVENTORY_INTEGRITY",
+      issueType: issue.type,
+      issueStatus: issue.status,
+      branchId: issue.requestingBranchId,
+      branchName: issue.requestingBranchName,
+      referenceId: issue.requisitionId,
+      productId: null,
+      productSku: null,
       type: "Requisicion",
       status: issue.status,
       branch: `${issue.fulfillingBranchName || "CEDIS"} -> ${issue.requestingBranchName}`,
@@ -954,6 +1072,10 @@ function buildInventoryIntegrityRows(
       difference: issue.transferStatus,
       action: inventoryActionLabel(issue.status),
       actionHref: inventoryActionHref(issue),
+      reviewStatus: issue.review.status,
+      reviewNote: issue.review.note,
+      reviewedByName: issue.review.reviewedByName,
+      reviewedAt: issue.review.reviewedAt,
     });
   });
 
@@ -1350,6 +1472,10 @@ export default function ReportesPage() {
       reconciliationData?.inventoryIntegrity.summary.transferLotIssueCount ?? 0,
     stalledRequisitionCount:
       reconciliationData?.inventoryIntegrity.summary.stalledRequisitionCount ?? 0,
+    reviewOpenCount: reconciliationData?.inventoryIntegrity.summary.review?.openCount ?? 0,
+    reviewReviewedCount: reconciliationData?.inventoryIntegrity.summary.review?.reviewedCount ?? 0,
+    reviewResolvedCount: reconciliationData?.inventoryIntegrity.summary.review?.resolvedCount ?? 0,
+    reviewIgnoredCount: reconciliationData?.inventoryIntegrity.summary.review?.ignoredCount ?? 0,
     stockPairCount: reconciliationData?.inventoryIntegrity.summary.stockPairCount ?? 0,
     saleCount: reconciliationData?.posInventory.summary.saleCount ?? 0,
     transferCount: reconciliationData?.cedisTransfers.summary.transferCount ?? 0,
@@ -1366,6 +1492,44 @@ export default function ReportesPage() {
         : 0,
     days: trendsData.length,
   };
+
+  const updateInventoryIssueReview = useCallback(
+    async (row: InventoryIntegrityTableRow, reviewStatus: ReconciliationReviewStatus) => {
+      let note: string | null = row.reviewNote;
+
+      if (reviewStatus === "RESOLVED" || reviewStatus === "IGNORED") {
+        note = window.prompt("Nota de cierre", row.reviewNote || "")?.trim() || null;
+        if (!note) {
+          toast("La nota es obligatoria para resolver o ignorar", "error");
+          return;
+        }
+      }
+
+      try {
+        await authFetch(
+          "patch",
+          `/reportes/operational-reconciliation/issues/${row.fingerprint}/review`,
+          {
+            reviewStatus,
+            note,
+            issueArea: row.issueArea,
+            issueType: row.issueType,
+            issueStatus: row.issueStatus,
+            branchId: row.branchId ?? undefined,
+            branchName: row.branchName,
+            referenceId: row.referenceId ?? undefined,
+            productId: row.productId ?? undefined,
+            productSku: row.productSku ?? undefined,
+          },
+        );
+        toast("Seguimiento actualizado");
+        await fetchOperationalReconciliation();
+      } catch (err: any) {
+        toast(err?.message || "Error al actualizar seguimiento", "error");
+      }
+    },
+    [authFetch, fetchOperationalReconciliation, toast],
+  );
 
   // =======================================================================
   // Column definitions (existing)
@@ -1570,6 +1734,79 @@ export default function ReportesPage() {
       className: "text-right",
     },
     {
+      key: "reviewStatus",
+      header: "Seguimiento",
+      render: (r: InventoryIntegrityTableRow) => (
+        <div className="min-w-32">
+          <StatusBadge
+            label={reviewStatusLabel(r.reviewStatus)}
+            variant={reviewStatusVariant(r.reviewStatus)}
+          />
+          {r.reviewedAt && (
+            <p className="mt-1 text-xs text-gray-500">
+              {new Date(r.reviewedAt).toLocaleDateString("es-MX", {
+                day: "2-digit",
+                month: "short",
+              })}
+              {r.reviewedByName ? ` · ${r.reviewedByName}` : ""}
+            </p>
+          )}
+          {r.reviewNote && (
+            <p className="mt-1 max-w-44 truncate text-xs text-gray-500">{r.reviewNote}</p>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: "reviewActions",
+      header: "Control",
+      render: (r: InventoryIntegrityTableRow) => (
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            title="Marcar revisada"
+            aria-label="Marcar revisada"
+            disabled={r.reviewStatus === "REVIEWED"}
+            onClick={() => updateInventoryIssueReview(r, "REVIEWED")}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-gray-200 text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <Check className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            title="Resolver con nota"
+            aria-label="Resolver con nota"
+            disabled={r.reviewStatus === "RESOLVED"}
+            onClick={() => updateInventoryIssueReview(r, "RESOLVED")}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-gray-200 text-green-700 transition-colors hover:bg-green-50 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <CheckCircle2 className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            title="Ignorar con nota"
+            aria-label="Ignorar con nota"
+            disabled={r.reviewStatus === "IGNORED"}
+            onClick={() => updateInventoryIssueReview(r, "IGNORED")}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-gray-200 text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <Ban className="h-4 w-4" />
+          </button>
+          {r.reviewStatus !== "OPEN" && (
+            <button
+              type="button"
+              title="Reabrir"
+              aria-label="Reabrir"
+              onClick={() => updateInventoryIssueReview(r, "OPEN")}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-gray-200 text-gray-700 transition-colors hover:bg-gray-50"
+            >
+              <RotateCcw className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+      ),
+    },
+    {
       key: "action",
       header: "Accion",
       render: (r: InventoryIntegrityTableRow) => (
@@ -1606,6 +1843,10 @@ export default function ReportesPage() {
       { key: "systemStock", label: "Sistema" },
       { key: "lotStock", label: "Lote/Recepcion" },
       { key: "difference", label: "Diferencia" },
+      { key: "reviewStatus", label: "Seguimiento" },
+      { key: "reviewNote", label: "Nota" },
+      { key: "reviewedByName", label: "Revisado por" },
+      { key: "reviewedAt", label: "Fecha revision" },
       { key: "action", label: "Accion" },
       { key: "actionHref", label: "Liga" },
     ]);
@@ -2062,6 +2303,25 @@ export default function ReportesPage() {
                       </p>
                       <p className="mt-1 text-xs text-gray-500">aprobadas con transfer abierta</p>
                     </div>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    <StatusBadge
+                      label={`${formatNumber(reconciliationMetrics.reviewOpenCount)} abiertas`}
+                      variant="red"
+                    />
+                    <StatusBadge
+                      label={`${formatNumber(reconciliationMetrics.reviewReviewedCount)} revisadas`}
+                      variant="yellow"
+                    />
+                    <StatusBadge
+                      label={`${formatNumber(reconciliationMetrics.reviewResolvedCount)} resueltas`}
+                      variant="green"
+                    />
+                    <StatusBadge
+                      label={`${formatNumber(reconciliationMetrics.reviewIgnoredCount)} ignoradas`}
+                      variant="gray"
+                    />
                   </div>
 
                   <DataTable

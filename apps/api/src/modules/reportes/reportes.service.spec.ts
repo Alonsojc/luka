@@ -15,6 +15,10 @@ describe("ReportesService", () => {
       productLot: { findMany: vi.fn().mockResolvedValue([]) },
       interBranchTransferLotAllocation: { findMany: vi.fn().mockResolvedValue([]) },
       requisition: { findMany: vi.fn().mockResolvedValue([]) },
+      operationalReconciliationReview: {
+        findMany: vi.fn().mockResolvedValue([]),
+        upsert: vi.fn(),
+      },
       recipe: { findMany: vi.fn() },
       deliveryOrder: { findMany: vi.fn() },
     };
@@ -244,6 +248,128 @@ describe("ReportesService", () => {
         "IN_TRANSIT_LOT_PENDING",
       );
       expect(result.inventoryIntegrity.stalledRequisitions[0].status).toBe("TRANSFER_NOT_SHIPPED");
+    });
+
+    it("attaches review state to repeated inventory integrity issues", async () => {
+      mockPrisma.posSaleItem.findMany.mockResolvedValue([]);
+      mockPrisma.inventoryMovement.findMany.mockResolvedValue([]);
+      mockPrisma.recipe.findMany.mockResolvedValue([]);
+      mockPrisma.deliveryOrder.findMany.mockResolvedValue([]);
+      mockPrisma.interBranchTransfer.findMany.mockResolvedValue([]);
+      mockPrisma.branchInventory.findMany.mockResolvedValue([
+        {
+          branchId: "branch-stock",
+          productId: "product-stock",
+          currentQuantity: 5,
+          branch: { id: "branch-stock", name: "Centro", code: "CTR" },
+          product: {
+            id: "product-stock",
+            sku: "SALMON",
+            name: "Salmon",
+            unitOfMeasure: "kg",
+          },
+        },
+      ]);
+      mockPrisma.productLot.findMany.mockResolvedValue([]);
+      mockPrisma.operationalReconciliationReview.findMany.mockImplementation((args: any) =>
+        Promise.resolve([
+          {
+            issueFingerprint: args.where.issueFingerprint.in[0],
+            reviewStatus: "REVIEWED",
+            note: "Conteo fisico asignado",
+            reviewedById: "user-1",
+            reviewedByName: "operaciones@lukapoke.com",
+            reviewedAt: new Date("2026-04-30T12:00:00Z"),
+            resolvedAt: null,
+            ignoredAt: null,
+            updatedAt: new Date("2026-04-30T12:00:00Z"),
+          },
+        ]),
+      );
+
+      const result = await service.operationalReconciliation("org-1", {
+        startDate: "2026-04-20",
+        endDate: "2026-04-20",
+      });
+
+      expect(result.inventoryIntegrity.stockMismatches[0].fingerprint).toMatch(/^[a-f0-9]{32}$/);
+      expect(result.inventoryIntegrity.stockMismatches[0].review).toMatchObject({
+        status: "REVIEWED",
+        note: "Conteo fisico asignado",
+        reviewedByName: "operaciones@lukapoke.com",
+      });
+      expect(result.inventoryIntegrity.summary.review).toMatchObject({
+        openCount: 0,
+        reviewedCount: 1,
+        resolvedCount: 0,
+        ignoredCount: 0,
+      });
+    });
+
+    it("requires a note before resolving or ignoring a reconciliation issue", async () => {
+      await expect(
+        service.updateOperationalReconciliationIssueReview(
+          "org-1",
+          {
+            sub: "user-1",
+            email: "admin@lukapoke.com",
+            organizationId: "org-1",
+            roles: [],
+          },
+          "abc123",
+          { reviewStatus: "RESOLVED" },
+        ),
+      ).rejects.toThrow("La nota es obligatoria");
+    });
+
+    it("upserts review decisions without mutating inventory", async () => {
+      mockPrisma.operationalReconciliationReview.upsert.mockResolvedValue({
+        issueFingerprint: "abc123",
+        reviewStatus: "RESOLVED",
+        note: "Lote ajustado desde modulo de lotes",
+        reviewedById: "user-1",
+        reviewedByName: "admin@lukapoke.com",
+        reviewedAt: new Date("2026-04-30T12:00:00Z"),
+        resolvedAt: new Date("2026-04-30T12:00:00Z"),
+        ignoredAt: null,
+        updatedAt: new Date("2026-04-30T12:00:00Z"),
+      });
+
+      const result = await service.updateOperationalReconciliationIssueReview(
+        "org-1",
+        {
+          sub: "user-1",
+          email: "admin@lukapoke.com",
+          organizationId: "org-1",
+          roles: [],
+        },
+        "abc123",
+        {
+          reviewStatus: "RESOLVED",
+          note: "Lote ajustado desde modulo de lotes",
+          issueArea: "INVENTORY_INTEGRITY",
+          issueType: "LOT_STOCK_BALANCE",
+          issueStatus: "STOCK_WITHOUT_LOTS",
+          branchId: "branch-stock",
+          productId: "product-stock",
+          productSku: "SALMON",
+        },
+      );
+
+      expect(mockPrisma.operationalReconciliationReview.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            organizationId_issueFingerprint: {
+              organizationId: "org-1",
+              issueFingerprint: "abc123",
+            },
+          },
+        }),
+      );
+      expect(result.review).toMatchObject({
+        status: "RESOLVED",
+        note: "Lote ajustado desde modulo de lotes",
+      });
     });
   });
 });

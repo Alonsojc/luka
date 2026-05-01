@@ -1,4 +1,4 @@
-import { Controller, Get, Query, Param, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, Patch, Query, Param, UseGuards } from "@nestjs/common";
 import { ApiTags, ApiBearerAuth } from "@nestjs/swagger";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
@@ -6,6 +6,7 @@ import { BranchAccessGuard } from "../../common/guards/branch-access.guard";
 import { Permissions } from "../../common/decorators/roles.decorator";
 import { CurrentUser, JwtPayload } from "../../common/decorators/current-user.decorator";
 import { ReportesService } from "./reportes.service";
+import { UpdateReconciliationReviewDto } from "./dto/update-reconciliation-review.dto";
 
 @ApiTags("Reportes")
 @ApiBearerAuth()
@@ -81,5 +82,20 @@ export class ReportesController {
       endDate,
       branchId,
     });
+  }
+
+  @Patch("operational-reconciliation/issues/:fingerprint/review")
+  @Permissions("reportes:view")
+  updateOperationalReconciliationIssueReview(
+    @CurrentUser() user: JwtPayload,
+    @Param("fingerprint") fingerprint: string,
+    @Body() dto: UpdateReconciliationReviewDto,
+  ) {
+    return this.reportesService.updateOperationalReconciliationIssueReview(
+      user.organizationId,
+      user,
+      fingerprint,
+      dto,
+    );
   }
 }
