@@ -74,6 +74,20 @@ interface WhatsAppConfig {
   updatedAt: string | null;
 }
 
+interface AlertCheckBucket {
+  triggered?: number;
+  lowStockCount?: number;
+  issueCount?: number;
+  deduped?: number;
+}
+
+interface CheckAlertsResult {
+  stockAlerts?: AlertCheckBucket;
+  expirationAlerts?: AlertCheckBucket;
+  operationalReconciliationAlerts?: AlertCheckBucket;
+  dailySummary?: AlertCheckBucket;
+}
+
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
@@ -150,6 +164,40 @@ const STATUS_VARIANT: Record<string, "green" | "red" | "yellow" | "gray" | "blue
   FAILED: "red",
   PENDING: "yellow",
 };
+
+function countValue(value: unknown): number {
+  const parsed = Number(value ?? 0);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function totalTriggered(result: CheckAlertsResult): number {
+  return (
+    countValue(result.stockAlerts?.triggered) +
+    countValue(result.expirationAlerts?.triggered) +
+    countValue(result.operationalReconciliationAlerts?.triggered) +
+    countValue(result.dailySummary?.triggered)
+  );
+}
+
+function formatPlural(count: number, singular: string, plural: string): string {
+  return `${count} ${count === 1 ? singular : plural}`;
+}
+
+function formatAlertCheckSummary(result: CheckAlertsResult): string {
+  const total = totalTriggered(result);
+  const deduped = countValue(result.operationalReconciliationAlerts?.deduped);
+  const issueCount = countValue(result.operationalReconciliationAlerts?.issueCount);
+  const parts = [formatPlural(total, "alerta disparada", "alertas disparadas")];
+
+  if (deduped > 0) {
+    parts.push(formatPlural(deduped, "duplicada", "duplicadas"));
+  }
+  if (issueCount > 0) {
+    parts.push(formatPlural(issueCount, "incidencia operativa", "incidencias operativas"));
+  }
+
+  return parts.join(" / ");
+}
 
 // ---------------------------------------------------------------------------
 // Page Component
@@ -245,6 +293,37 @@ export default function AlertasPage() {
 
   // Checking alerts
   const [checking, setChecking] = useState(false);
+  const [lastCheckResult, setLastCheckResult] = useState<CheckAlertsResult | null>(null);
+  const lastCheckStats = useMemo(() => {
+    if (!lastCheckResult) return [];
+
+    return [
+      {
+        label: "Stock",
+        value: countValue(lastCheckResult.stockAlerts?.triggered),
+        detail: `${countValue(lastCheckResult.stockAlerts?.lowStockCount)} bajo minimo`,
+      },
+      {
+        label: "Lotes",
+        value: countValue(lastCheckResult.expirationAlerts?.triggered),
+        detail: "por vencer",
+      },
+      {
+        label: "Reconciliacion",
+        value: countValue(lastCheckResult.operationalReconciliationAlerts?.triggered),
+        detail: `${countValue(lastCheckResult.operationalReconciliationAlerts?.deduped)} duplicadas`,
+      },
+      {
+        label: "Resumen",
+        value: countValue(lastCheckResult.dailySummary?.triggered),
+        detail: "diario",
+      },
+    ];
+  }, [lastCheckResult]);
+  const lastCheckTriggered = lastCheckResult ? totalTriggered(lastCheckResult) : 0;
+  const lastCheckDeduped = lastCheckResult
+    ? countValue(lastCheckResult.operationalReconciliationAlerts?.deduped)
+    : 0;
 
   // -------------------------------------------------------------------------
   // Rule CRUD
@@ -370,24 +449,19 @@ export default function AlertasPage() {
   async function checkAlerts() {
     setChecking(true);
     try {
-      const res = await authFetch<{
-        stockAlerts: { triggered: number; lowStockCount?: number };
-        expirationAlerts: { triggered: number };
-        dailySummary: { triggered: number };
-      }>("post", "/whatsapp/check-alerts");
+      const res = await authFetch<CheckAlertsResult>("post", "/whatsapp/check-alerts");
+      const total = totalTriggered(res);
+      const deduped = countValue(res.operationalReconciliationAlerts?.deduped);
 
-      const total =
-        (res.stockAlerts?.triggered || 0) +
-        (res.expirationAlerts?.triggered || 0) +
-        (res.dailySummary?.triggered || 0);
-
+      setLastCheckResult(res);
       toast(
-        total > 0 ? `${total} alerta(s) disparada(s)` : "Sin alertas pendientes",
+        total > 0 || deduped > 0 ? formatAlertCheckSummary(res) : "Sin alertas pendientes",
         total > 0 ? "success" : "info",
       );
       queryClient.invalidateQueries({ queryKey: ["alert-rules"] });
       if (tab === "Historial") queryClient.invalidateQueries({ queryKey: ["alert-logs"] });
     } catch {
+      setLastCheckResult(null);
       toast("Error al verificar alertas", "error");
     } finally {
       setChecking(false);
@@ -501,6 +575,39 @@ export default function AlertasPage() {
           )}
         </div>
       </div>
+
+      {lastCheckResult && (
+        <div
+          className={`rounded-lg border px-4 py-3 ${
+            lastCheckTriggered > 0
+              ? "border-green-200 bg-green-50"
+              : lastCheckDeduped > 0
+                ? "border-blue-200 bg-blue-50"
+                : "border-gray-200 bg-white"
+          }`}
+        >
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <p className="text-sm font-semibold text-gray-900">Ultima verificacion</p>
+              <p className="mt-1 text-sm text-gray-600">
+                {formatAlertCheckSummary(lastCheckResult)}
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {lastCheckStats.map((stat) => (
+                <div
+                  key={stat.label}
+                  className="min-w-[8rem] rounded-md border border-white/70 bg-white px-3 py-2"
+                >
+                  <p className="text-xs text-gray-500">{stat.label}</p>
+                  <p className="mt-1 text-lg font-semibold text-gray-900">{stat.value}</p>
+                  <p className="text-xs text-gray-500">{stat.detail}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="flex gap-1 border-b">
