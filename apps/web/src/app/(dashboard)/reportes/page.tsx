@@ -207,6 +207,7 @@ interface DeliveryNetRevenueReconciliationRow {
 }
 
 type ReconciliationReviewStatus = "OPEN" | "REVIEWED" | "RESOLVED" | "IGNORED";
+type InventoryReviewFilter = "ALL" | ReconciliationReviewStatus;
 
 interface ReconciliationIssueReview {
   status: ReconciliationReviewStatus;
@@ -494,6 +495,23 @@ function reviewStatusLabel(status: ReconciliationReviewStatus): string {
     IGNORED: "Ignorada",
   };
   return labels[status];
+}
+
+function inventoryReviewFilterLabel(status: InventoryReviewFilter): string {
+  if (status === "ALL") return "Todas";
+  return reviewStatusLabel(status);
+}
+
+function inventoryReviewSearchLabel(status: InventoryReviewFilter): string {
+  if (status === "ALL") return "integridad";
+  return inventoryReviewFilterLabel(status).toLowerCase();
+}
+
+function inventoryReviewEmptyMessage(status: InventoryReviewFilter): string {
+  if (status === "ALL") return "No hay incidencias de integridad de inventario";
+  return `No hay incidencias ${inventoryReviewFilterLabel(
+    status,
+  ).toLowerCase()} de integridad de inventario`;
 }
 
 function reviewStatusVariant(
@@ -1119,6 +1137,7 @@ export default function ReportesPage() {
   const [reconciliationData, setReconciliationData] =
     useState<OperationalReconciliationData | null>(null);
   const [reconciliationLoading, setReconciliationLoading] = useState(false);
+  const [inventoryReviewFilter, setInventoryReviewFilter] = useState<InventoryReviewFilter>("OPEN");
 
   // ---- Tendencias ----
   const [trendsBranchId, setTrendsBranchId] = useState("");
@@ -1459,6 +1478,10 @@ export default function ReportesPage() {
     () => buildInventoryIntegrityRows(reconciliationData),
     [reconciliationData],
   );
+  const filteredInventoryIntegrityRows = useMemo(() => {
+    if (inventoryReviewFilter === "ALL") return inventoryIntegrityRows;
+    return inventoryIntegrityRows.filter((row) => row.reviewStatus === inventoryReviewFilter);
+  }, [inventoryIntegrityRows, inventoryReviewFilter]);
 
   const reconciliationMetrics = {
     issueCount: reconciliationData?.issueCount ?? 0,
@@ -1482,6 +1505,37 @@ export default function ReportesPage() {
     deliveryOrders: reconciliationData?.deliveryNetRevenue.summary.orderCount ?? 0,
     deliveryNetRevenue: reconciliationData?.deliveryNetRevenue.summary.recalculatedNetRevenue ?? 0,
   };
+  const inventoryReviewFilterOptions: Array<{
+    status: InventoryReviewFilter;
+    label: string;
+    count: number;
+  }> = [
+    {
+      status: "OPEN",
+      label: "Abiertas",
+      count: reconciliationMetrics.reviewOpenCount,
+    },
+    {
+      status: "REVIEWED",
+      label: "Revisadas",
+      count: reconciliationMetrics.reviewReviewedCount,
+    },
+    {
+      status: "RESOLVED",
+      label: "Resueltas",
+      count: reconciliationMetrics.reviewResolvedCount,
+    },
+    {
+      status: "IGNORED",
+      label: "Ignoradas",
+      count: reconciliationMetrics.reviewIgnoredCount,
+    },
+    {
+      status: "ALL",
+      label: "Todas",
+      count: reconciliationMetrics.inventoryIntegrityIssueCount,
+    },
+  ];
 
   const trendsMetrics = {
     totalSales: trendsData.reduce((sum, r) => sum + safeNum(r.totalSales), 0),
@@ -1834,22 +1888,26 @@ export default function ReportesPage() {
   }
 
   function handleExportInventoryIntegrity() {
-    exportToCSV(inventoryIntegrityRows, `Integridad_Inventario_${startDate}_${endDate}`, [
-      { key: "type", label: "Tipo" },
-      { key: "status", label: "Estado" },
-      { key: "branch", label: "Sucursal/Ruta" },
-      { key: "reference", label: "Referencia" },
-      { key: "product", label: "Producto" },
-      { key: "systemStock", label: "Sistema" },
-      { key: "lotStock", label: "Lote/Recepcion" },
-      { key: "difference", label: "Diferencia" },
-      { key: "reviewStatus", label: "Seguimiento" },
-      { key: "reviewNote", label: "Nota" },
-      { key: "reviewedByName", label: "Revisado por" },
-      { key: "reviewedAt", label: "Fecha revision" },
-      { key: "action", label: "Accion" },
-      { key: "actionHref", label: "Liga" },
-    ]);
+    exportToCSV(
+      filteredInventoryIntegrityRows,
+      `Integridad_Inventario_${inventoryReviewFilter}_${startDate}_${endDate}`,
+      [
+        { key: "type", label: "Tipo" },
+        { key: "status", label: "Estado" },
+        { key: "branch", label: "Sucursal/Ruta" },
+        { key: "reference", label: "Referencia" },
+        { key: "product", label: "Producto" },
+        { key: "systemStock", label: "Sistema" },
+        { key: "lotStock", label: "Lote/Recepcion" },
+        { key: "difference", label: "Diferencia" },
+        { key: "reviewStatus", label: "Seguimiento" },
+        { key: "reviewNote", label: "Nota" },
+        { key: "reviewedByName", label: "Revisado por" },
+        { key: "reviewedAt", label: "Fecha revision" },
+        { key: "action", label: "Accion" },
+        { key: "actionHref", label: "Liga" },
+      ],
+    );
   }
 
   // --- Aging detail columns ---
@@ -2305,37 +2363,55 @@ export default function ReportesPage() {
                     </div>
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-2">
-                    <StatusBadge
-                      label={`${formatNumber(reconciliationMetrics.reviewOpenCount)} abiertas`}
-                      variant="red"
-                    />
-                    <StatusBadge
-                      label={`${formatNumber(reconciliationMetrics.reviewReviewedCount)} revisadas`}
-                      variant="yellow"
-                    />
-                    <StatusBadge
-                      label={`${formatNumber(reconciliationMetrics.reviewResolvedCount)} resueltas`}
-                      variant="green"
-                    />
-                    <StatusBadge
-                      label={`${formatNumber(reconciliationMetrics.reviewIgnoredCount)} ignoradas`}
-                      variant="gray"
-                    />
+                  <div
+                    className="flex flex-wrap items-center gap-2"
+                    role="group"
+                    aria-label="Seguimiento de integridad"
+                  >
+                    {inventoryReviewFilterOptions.map((option) => {
+                      const active = inventoryReviewFilter === option.status;
+
+                      return (
+                        <button
+                          key={option.status}
+                          type="button"
+                          onClick={() => setInventoryReviewFilter(option.status)}
+                          className={`inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm font-medium transition-colors ${
+                            active
+                              ? "border-black bg-black text-white"
+                              : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
+                          }`}
+                          aria-pressed={active}
+                        >
+                          <span>{option.label}</span>
+                          <span
+                            className={`rounded-full px-2 py-0.5 text-xs ${
+                              active ? "bg-white/20 text-white" : "bg-gray-100 text-gray-700"
+                            }`}
+                          >
+                            {formatNumber(option.count)}
+                          </span>
+                        </button>
+                      );
+                    })}
                   </div>
 
                   <DataTable
                     columns={inventoryIntegrityColumns}
-                    data={inventoryIntegrityRows}
+                    data={filteredInventoryIntegrityRows}
                     searchable
-                    searchPlaceholder="Buscar integridad..."
+                    searchPlaceholder={`Buscar ${inventoryReviewSearchLabel(
+                      inventoryReviewFilter,
+                    )}...`}
                     pageSize={8}
                     onExport={
-                      inventoryIntegrityRows.length > 0 ? handleExportInventoryIntegrity : undefined
+                      filteredInventoryIntegrityRows.length > 0
+                        ? handleExportInventoryIntegrity
+                        : undefined
                     }
                     exportLabel="Exportar integridad"
                     loading={reconciliationLoading}
-                    emptyMessage="No hay incidencias de integridad de inventario"
+                    emptyMessage={inventoryReviewEmptyMessage(inventoryReviewFilter)}
                   />
                 </div>
 
