@@ -986,29 +986,37 @@ export default function AlertasPage() {
             </div>
             <div className="space-y-2">
               {ruleForm.recipients.map((r, idx) => (
-                <div key={idx} className="flex items-center gap-2">
+                <div
+                  key={idx}
+                  className="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(11rem,1fr)_minmax(10rem,1fr)_minmax(9rem,0.75fr)_auto] sm:items-center"
+                >
+                  <Input
+                    type="tel"
+                    value={r.phone}
+                    onChange={(e) => updateRecipient(idx, "phone", e.target.value)}
+                    placeholder="Telefono (+52...)"
+                    aria-label="Telefono del destinatario"
+                    autoComplete="tel"
+                  />
                   <Input
                     value={r.name}
                     onChange={(e) => updateRecipient(idx, "name", e.target.value)}
                     placeholder="Nombre"
-                    className="flex-1"
-                  />
-                  <Input
-                    value={r.phone}
-                    onChange={(e) => updateRecipient(idx, "phone", e.target.value)}
-                    placeholder="+52 55 1234 5678"
-                    className="flex-1"
+                    aria-label="Nombre del destinatario"
+                    autoComplete="name"
                   />
                   <Input
                     value={r.role || ""}
                     onChange={(e) => updateRecipient(idx, "role", e.target.value)}
                     placeholder="Rol (opcional)"
-                    className="w-32"
+                    aria-label="Rol del destinatario"
                   />
                   {ruleForm.recipients.length > 1 && (
                     <button
+                      type="button"
                       onClick={() => removeRecipient(idx)}
-                      className="p-1.5 text-gray-400 hover:text-red-500 transition-colors"
+                      className="justify-self-start rounded-md p-2 text-gray-400 transition-colors hover:text-red-500 sm:justify-self-center"
+                      aria-label="Eliminar destinatario"
                     >
                       <X className="h-4 w-4" />
                     </button>
