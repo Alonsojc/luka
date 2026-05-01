@@ -1,7 +1,10 @@
 import { BadRequestException, Injectable } from "@nestjs/common";
+import { createHash } from "crypto";
 import { Prisma } from "@luka/database";
 import { PrismaService } from "../../common/prisma/prisma.service";
 import { CacheService } from "../../common/cache/cache.service";
+import { JwtPayload } from "../../common/decorators/current-user.decorator";
+import { UpdateReconciliationReviewDto } from "./dto/update-reconciliation-review.dto";
 
 const _REPORT_TTL = 300; // 5 minutes
 const DECIMAL_EPSILON = 0.0001;
@@ -22,6 +25,26 @@ interface PosSaleAggregate {
   quantitySold: number;
   revenue: number;
   saleIds: Set<string>;
+}
+
+type ReviewStatus = "OPEN" | "REVIEWED" | "RESOLVED" | "IGNORED";
+
+interface ReconciliationReviewSummary {
+  openCount: number;
+  reviewedCount: number;
+  resolvedCount: number;
+  ignoredCount: number;
+}
+
+interface ReconciliationIssueReview {
+  status: ReviewStatus;
+  note: string | null;
+  reviewedById: string | null;
+  reviewedByName: string | null;
+  reviewedAt: Date | null;
+  resolvedAt: Date | null;
+  ignoredAt: Date | null;
+  updatedAt: Date | null;
 }
 
 function toNumber(value: unknown): number {
@@ -45,12 +68,120 @@ function stockKey(branchId: string, productId: string): string {
   return `${branchId}:${productId}`;
 }
 
+function issueFingerprint(parts: Array<string | number | null | undefined>): string {
+  const payload = parts
+    .map((part) => (part === null || part === undefined ? "" : String(part).trim()))
+    .join("|");
+
+  return createHash("sha256").update(payload).digest("hex").slice(0, 32);
+}
+
+function openReview(): ReconciliationIssueReview {
+  return {
+    status: "OPEN",
+    note: null,
+    reviewedById: null,
+    reviewedByName: null,
+    reviewedAt: null,
+    resolvedAt: null,
+    ignoredAt: null,
+    updatedAt: null,
+  };
+}
+
+function reviewSummaryFromIssues(
+  issues: Array<{ review?: ReconciliationIssueReview }>,
+): ReconciliationReviewSummary {
+  return issues.reduce(
+    (summary, issue) => {
+      const status = issue.review?.status ?? "OPEN";
+      if (status === "REVIEWED") summary.reviewedCount++;
+      else if (status === "RESOLVED") summary.resolvedCount++;
+      else if (status === "IGNORED") summary.ignoredCount++;
+      else summary.openCount++;
+      return summary;
+    },
+    { openCount: 0, reviewedCount: 0, resolvedCount: 0, ignoredCount: 0 },
+  );
+}
+
 @Injectable()
 export class ReportesService {
   constructor(
     private prisma: PrismaService,
     private cache: CacheService,
   ) {}
+
+  private get reconciliationReviewDelegate() {
+    return (this.prisma as any).operationalReconciliationReview as {
+      findMany(args: any): Promise<any[]>;
+      upsert(args: any): Promise<any>;
+    };
+  }
+
+  async updateOperationalReconciliationIssueReview(
+    organizationId: string,
+    user: JwtPayload,
+    issueFingerprint: string,
+    dto: UpdateReconciliationReviewDto,
+  ) {
+    const note = dto.note?.trim() || null;
+
+    if (["RESOLVED", "IGNORED"].includes(dto.reviewStatus) && !note) {
+      throw new BadRequestException("La nota es obligatoria para resolver o ignorar incidencias");
+    }
+
+    const now = new Date();
+    const review = await this.reconciliationReviewDelegate.upsert({
+      where: {
+        organizationId_issueFingerprint: {
+          organizationId,
+          issueFingerprint,
+        },
+      },
+      create: {
+        organizationId,
+        issueFingerprint,
+        issueArea: dto.issueArea || "UNKNOWN",
+        issueType: dto.issueType || null,
+        issueStatus: dto.issueStatus || "UNKNOWN",
+        branchId: dto.branchId || null,
+        branchName: dto.branchName || null,
+        referenceId: dto.referenceId || null,
+        productId: dto.productId || null,
+        productSku: dto.productSku || null,
+        reviewStatus: dto.reviewStatus,
+        note,
+        reviewedById: user.sub,
+        reviewedByName: user.email,
+        reviewedAt: now,
+        resolvedAt: dto.reviewStatus === "RESOLVED" ? now : null,
+        ignoredAt: dto.reviewStatus === "IGNORED" ? now : null,
+      },
+      update: {
+        issueArea: dto.issueArea || undefined,
+        issueType: dto.issueType ?? undefined,
+        issueStatus: dto.issueStatus || undefined,
+        branchId: dto.branchId ?? undefined,
+        branchName: dto.branchName ?? undefined,
+        referenceId: dto.referenceId ?? undefined,
+        productId: dto.productId ?? undefined,
+        productSku: dto.productSku ?? undefined,
+        reviewStatus: dto.reviewStatus,
+        note,
+        reviewedById: user.sub,
+        reviewedByName: user.email,
+        reviewedAt: now,
+        resolvedAt: dto.reviewStatus === "RESOLVED" ? now : null,
+        ignoredAt: dto.reviewStatus === "IGNORED" ? now : null,
+      },
+    });
+
+    return {
+      issueFingerprint: review.issueFingerprint,
+      review: this.formatIssueReview(review),
+    };
+  }
 
   async salesByBranch(organizationId: string, startDate: string, endDate: string) {
     const branches = await this.prisma.branch.findMany({
@@ -680,6 +811,49 @@ export class ReportesService {
     };
   }
 
+  private async getIssueReviewsByFingerprint(
+    organizationId: string,
+    fingerprints: string[],
+  ): Promise<Map<string, ReconciliationIssueReview>> {
+    const uniqueFingerprints = [...new Set(fingerprints.filter(Boolean))];
+    if (uniqueFingerprints.length === 0) {
+      return new Map();
+    }
+
+    const reviews = await this.reconciliationReviewDelegate.findMany({
+      where: {
+        organizationId,
+        issueFingerprint: { in: uniqueFingerprints },
+      },
+    });
+
+    return new Map(
+      reviews.map((review) => [review.issueFingerprint, this.formatIssueReview(review)]),
+    );
+  }
+
+  private formatIssueReview(review: {
+    reviewStatus: ReviewStatus;
+    note: string | null;
+    reviewedById: string | null;
+    reviewedByName: string | null;
+    reviewedAt: Date | null;
+    resolvedAt: Date | null;
+    ignoredAt: Date | null;
+    updatedAt: Date;
+  }): ReconciliationIssueReview {
+    return {
+      status: review.reviewStatus,
+      note: review.note,
+      reviewedById: review.reviewedById,
+      reviewedByName: review.reviewedByName,
+      reviewedAt: review.reviewedAt,
+      resolvedAt: review.resolvedAt,
+      ignoredAt: review.ignoredAt,
+      updatedAt: review.updatedAt,
+    };
+  }
+
   private async getInventoryIntegrityReconciliation(organizationId: string, branchId?: string) {
     const [inventories, stockLots, terminalLots, transferLotAllocations, linkedRequisitions] =
       await Promise.all([
@@ -817,6 +991,16 @@ export class ReportesService {
 
         return {
           type: "LOT_STOCK_BALANCE",
+          fingerprint: issueFingerprint([
+            "INVENTORY_INTEGRITY",
+            "LOT_STOCK_BALANCE",
+            status,
+            inventory?.branchId ?? lotGroup?.branchId,
+            inventory?.productId ?? lotGroup?.productId,
+            stockQuantity,
+            lotQuantity,
+            difference,
+          ]),
           branchId: inventory?.branchId ?? lotGroup?.branchId ?? null,
           branchName: inventory?.branch.name ?? lotGroup?.branch.name ?? "Sucursal desconocida",
           branchCode: inventory?.branch.code ?? lotGroup?.branch.code ?? null,
@@ -841,6 +1025,13 @@ export class ReportesService {
 
     const terminalLotIssues = terminalLots.map((lot) => ({
       type: "TERMINAL_LOT_WITH_STOCK",
+      fingerprint: issueFingerprint([
+        "INVENTORY_INTEGRITY",
+        "TERMINAL_LOT_WITH_STOCK",
+        lot.id,
+        lot.status,
+        round4(toNumber(lot.quantity)),
+      ]),
       lotId: lot.id,
       lotNumber: lot.lotNumber,
       status: "TERMINAL_LOT_WITH_STOCK",
@@ -865,6 +1056,14 @@ export class ReportesService {
 
         return {
           type: "TRANSFER_LOT_ALLOCATION",
+          fingerprint: issueFingerprint([
+            "INVENTORY_INTEGRITY",
+            "TRANSFER_LOT_ALLOCATION",
+            transfer.status,
+            allocation.id,
+            transfer.id,
+            pendingQuantity,
+          ]),
           allocationId: allocation.id,
           transferId: transfer.id,
           transferItemId: allocation.transferItemId,
@@ -901,6 +1100,24 @@ export class ReportesService {
       ...transferLotIssues,
       ...stalledRequisitions,
     ];
+    const reviewsByFingerprint = await this.getIssueReviewsByFingerprint(
+      organizationId,
+      issues.map((issue) => issue.fingerprint),
+    );
+    const withReview = <T extends { fingerprint: string }>(issue: T) => ({
+      ...issue,
+      review: reviewsByFingerprint.get(issue.fingerprint) ?? openReview(),
+    });
+    const stockMismatchesWithReview = stockMismatches.map(withReview);
+    const terminalLotIssuesWithReview = terminalLotIssues.map(withReview);
+    const transferLotIssuesWithReview = transferLotIssues.map(withReview);
+    const stalledRequisitionsWithReview = stalledRequisitions.map(withReview);
+    const issuesWithReview = [
+      ...stockMismatchesWithReview,
+      ...terminalLotIssuesWithReview,
+      ...transferLotIssuesWithReview,
+      ...stalledRequisitionsWithReview,
+    ];
 
     return {
       summary: {
@@ -910,13 +1127,14 @@ export class ReportesService {
         transferLotIssueCount: transferLotIssues.length,
         stalledRequisitionCount: stalledRequisitions.length,
         issueCount: issues.length,
+        review: reviewSummaryFromIssues(issuesWithReview),
       },
       stockRows,
-      stockMismatches,
-      terminalLots: terminalLotIssues,
-      transferLotAllocations: transferLotIssues,
-      stalledRequisitions,
-      issues,
+      stockMismatches: stockMismatchesWithReview,
+      terminalLots: terminalLotIssuesWithReview,
+      transferLotAllocations: transferLotIssuesWithReview,
+      stalledRequisitions: stalledRequisitionsWithReview,
+      issues: issuesWithReview,
     };
   }
 
@@ -973,9 +1191,25 @@ export class ReportesService {
                 : transfer.status === "CANCELLED"
                   ? "TRANSFER_CANCELLED_REQUISITION_OPEN"
                   : "OK";
+        const requestedQuantity = round4(
+          requisition.items.reduce(
+            (sum, item) => sum + toNumber(item.approvedQuantity ?? item.requestedQuantity),
+            0,
+          ),
+        );
 
         return {
           type: "APPROVED_REQUISITION_WITH_OPEN_TRANSFER",
+          fingerprint: issueFingerprint([
+            "INVENTORY_INTEGRITY",
+            "APPROVED_REQUISITION_WITH_OPEN_TRANSFER",
+            status,
+            requisition.id,
+            requisition.transferId,
+            transferStatus,
+            requestedQuantity,
+            transfer?.items.length ?? 0,
+          ]),
           requisitionId: requisition.id,
           status,
           requisitionStatus: requisition.status,
@@ -987,12 +1221,7 @@ export class ReportesService {
           fulfillingBranchId: requisition.fulfillingBranchId,
           fulfillingBranchName: requisition.fulfillingBranch?.name ?? null,
           itemCount: requisition.items.length,
-          requestedQuantity: round4(
-            requisition.items.reduce(
-              (sum, item) => sum + toNumber(item.approvedQuantity ?? item.requestedQuantity),
-              0,
-            ),
-          ),
+          requestedQuantity,
           transferLineCount: transfer?.items.length ?? 0,
           createdAt: requisition.createdAt,
           updatedAt: requisition.updatedAt,

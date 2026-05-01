@@ -69,8 +69,9 @@ model Organization {
   workySyncLogs    WorkySyncLog[]
   attendanceRecords AttendanceRecord[]
   branchBudgets    BranchBudget[]
-  dataImports      DataImport[]
-  notifications    Notification[]
+  dataImports       DataImport[]
+  notifications     Notification[]
+  operationalReconciliationReviews OperationalReconciliationReview[]
 
   @@map("organizations")
 }
@@ -1552,6 +1553,48 @@ model ProductLot {
   @@index([branchId, productId])
   @@index([status])
   @@map("product_lots")
+}
+
+// ============================================================
+// OPERATIONAL RECONCILIATION REVIEW LEDGER
+// ============================================================
+
+enum OperationalReconciliationReviewStatus {
+  OPEN
+  REVIEWED
+  RESOLVED
+  IGNORED
+}
+
+model OperationalReconciliationReview {
+  id                 String                                  @id @default(cuid())
+  organizationId     String                                  @map("organization_id")
+  issueFingerprint   String                                  @map("issue_fingerprint")
+  issueArea          String                                  @map("issue_area")
+  issueType          String?                                 @map("issue_type")
+  issueStatus        String                                  @map("issue_status")
+  branchId           String?                                 @map("branch_id")
+  branchName         String?                                 @map("branch_name")
+  referenceId        String?                                 @map("reference_id")
+  productId          String?                                 @map("product_id")
+  productSku         String?                                 @map("product_sku")
+  reviewStatus       OperationalReconciliationReviewStatus   @default(OPEN) @map("review_status")
+  note               String?
+  reviewedById       String?                                 @map("reviewed_by_id")
+  reviewedByName     String?                                 @map("reviewed_by_name")
+  reviewedAt         DateTime?                               @map("reviewed_at")
+  resolvedAt         DateTime?                               @map("resolved_at")
+  ignoredAt          DateTime?                               @map("ignored_at")
+  createdAt          DateTime                                @default(now()) @map("created_at")
+  updatedAt          DateTime                                @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id])
+
+  @@unique([organizationId, issueFingerprint])
+  @@index([organizationId, reviewStatus])
+  @@index([organizationId, issueArea])
+  @@index([organizationId, branchId])
+  @@map("operational_reconciliation_reviews")
 }
 
 // ============================================================
