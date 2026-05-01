@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
+import Link from "next/link";
 import {
   BarChart3,
   TrendingUp,
@@ -15,6 +16,7 @@ import {
   Download,
   ClipboardCheck,
   AlertTriangle,
+  ExternalLink,
 } from "lucide-react";
 import {
   BarChart,
@@ -202,8 +204,10 @@ interface DeliveryNetRevenueReconciliationRow {
 
 interface InventoryIntegrityStockRow {
   type: "LOT_STOCK_BALANCE";
+  branchId: string | null;
   branchName: string;
   branchCode: string | null;
+  productId: string | null;
   productSku: string | null;
   productName: string;
   unitOfMeasure: string | null;
@@ -219,8 +223,10 @@ interface InventoryIntegrityTerminalLotIssue {
   lotNumber: string;
   status: string;
   lotStatus: string;
+  branchId: string;
   branchName: string;
   branchCode: string | null;
+  productId: string;
   productSku: string | null;
   productName: string;
   unitOfMeasure: string | null;
@@ -338,6 +344,7 @@ interface InventoryIntegrityTableRow {
   lotStock: string;
   difference: string;
   action: string;
+  actionHref: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -826,6 +833,59 @@ function inventoryActionLabel(status: string): string {
   return labels[status] ?? "Revisar";
 }
 
+function buildQueryHref(path: string, params: Record<string, string | null | undefined>): string {
+  const query = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value) query.set(key, value);
+  });
+  const qs = query.toString();
+  return qs ? `${path}?${qs}` : path;
+}
+
+function inventoryActionHref(issue: InventoryIntegrityIssue): string {
+  if (issue.type === "LOT_STOCK_BALANCE") {
+    return buildQueryHref("/inventarios/lotes", {
+      branchId: issue.branchId ?? undefined,
+      productId: issue.productId ?? undefined,
+      search: issue.productSku || issue.productName,
+    });
+  }
+
+  if (issue.type === "TERMINAL_LOT_WITH_STOCK") {
+    return buildQueryHref("/inventarios/lotes", {
+      branchId: issue.branchId,
+      productId: issue.productId,
+      status: issue.lotStatus,
+      search: issue.lotNumber,
+    });
+  }
+
+  if (issue.type === "TRANSFER_LOT_ALLOCATION") {
+    return buildQueryHref("/inventarios", {
+      tab: "transferencias",
+      transferId: issue.transferId,
+    });
+  }
+
+  if (
+    issue.transferId &&
+    [
+      "TRANSFER_NOT_SHIPPED",
+      "TRANSFER_NOT_RECEIVED",
+      "TRANSFER_CANCELLED_REQUISITION_OPEN",
+    ].includes(issue.status)
+  ) {
+    return buildQueryHref("/inventarios", {
+      tab: "transferencias",
+      transferId: issue.transferId,
+    });
+  }
+
+  return buildQueryHref("/requisiciones", {
+    requisitionId: issue.requisitionId,
+  });
+}
+
 function buildInventoryIntegrityRows(
   data: OperationalReconciliationData | null,
 ): InventoryIntegrityTableRow[] {
@@ -845,6 +905,7 @@ function buildInventoryIntegrityRows(
       lotStock: `${formatQty(issue.lotQuantity)} ${issue.unitOfMeasure || "und"}`,
       difference: `${formatQty(issue.difference)} ${issue.unitOfMeasure || "und"}`,
       action: inventoryActionLabel(issue.status),
+      actionHref: inventoryActionHref(issue),
     });
   });
 
@@ -860,6 +921,7 @@ function buildInventoryIntegrityRows(
       lotStock: `${formatQty(issue.quantity)} ${issue.unitOfMeasure || "und"}`,
       difference: `${formatQty(issue.quantity)} ${issue.unitOfMeasure || "und"}`,
       action: inventoryActionLabel(issue.status),
+      actionHref: inventoryActionHref(issue),
     });
   });
 
@@ -875,6 +937,7 @@ function buildInventoryIntegrityRows(
       lotStock: `${formatQty(issue.receivedQuantity)} recibida`,
       difference: `${formatQty(issue.pendingQuantity)} pendiente`,
       action: inventoryActionLabel(issue.status),
+      actionHref: inventoryActionHref(issue),
     });
   });
 
@@ -890,6 +953,7 @@ function buildInventoryIntegrityRows(
       lotStock: `${formatNumber(issue.transferLineCount)} linea(s) transfer`,
       difference: issue.transferStatus,
       action: inventoryActionLabel(issue.status),
+      actionHref: inventoryActionHref(issue),
     });
   });
 
@@ -1508,6 +1572,15 @@ export default function ReportesPage() {
     {
       key: "action",
       header: "Accion",
+      render: (r: InventoryIntegrityTableRow) => (
+        <Link
+          href={r.actionHref}
+          className="inline-flex items-center gap-1.5 rounded-md border border-gray-200 px-2.5 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-50"
+        >
+          {r.action}
+          <ExternalLink className="h-3.5 w-3.5" />
+        </Link>
+      ),
     },
   ];
 
@@ -1534,6 +1607,7 @@ export default function ReportesPage() {
       { key: "lotStock", label: "Lote/Recepcion" },
       { key: "difference", label: "Diferencia" },
       { key: "action", label: "Accion" },
+      { key: "actionHref", label: "Liga" },
     ]);
   }
 
