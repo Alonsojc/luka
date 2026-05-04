@@ -41,6 +41,18 @@ async function main() {
   }
   console.warn("Branches found:", Object.keys(branches).length);
 
+  function requiredBranchId(code: string): string {
+    const branchId = branches[code];
+    if (!branchId) {
+      throw new Error(
+        `Demo seed references missing branch code "${code}". Available: ${Object.keys(branches)
+          .sort()
+          .join(", ")}`,
+      );
+    }
+    return branchId;
+  }
+
   const categoryRecords = await prisma.productCategory.findMany({
     where: { organizationId: org.id },
   });
@@ -736,9 +748,9 @@ async function main() {
     notes: string;
     items: POItemInput[];
   }> = [
-    // PO 1 — RECEIVED (Pescadería → CDMX01)
+    // PO 1 — RECEIVED (Pescadería → Lomas del Marqués)
     {
-      branchCode: "CDMX01",
+      branchCode: "QRO-LDM",
       supplierRfc: "PPB201015ABC",
       status: "RECEIVED",
       notes: "Pedido semanal de proteínas marinas",
@@ -748,9 +760,9 @@ async function main() {
         { sku: "PROT-003", qty: 10, unitPrice: 280, unit: "kg", receivedQty: 10 },
       ],
     },
-    // PO 2 — RECEIVED (Yakimeshi → GDL01)
+    // PO 2 — RECEIVED (Yakimeshi → Juriquilla)
     {
-      branchCode: "GDL01",
+      branchCode: "QRO-JUR",
       supplierRfc: "DYA190322XYZ",
       status: "RECEIVED",
       notes: "Resurtido de arroz y bases",
@@ -760,9 +772,9 @@ async function main() {
         { sku: "BASE-004", qty: 30, unitPrice: 40, unit: "kg", receivedQty: 30 },
       ],
     },
-    // PO 3 — SENT (Verduras → MTY01)
+    // PO 3 — SENT (Verduras → Zibatá)
     {
-      branchCode: "MTY01",
+      branchCode: "QRO-ZIB",
       supplierRfc: "VFJ180601MNO",
       status: "SENT",
       notes: "Toppings de temporada",
@@ -772,9 +784,9 @@ async function main() {
         { sku: "TOP-002", qty: 30, unitPrice: 25, unit: "kg", receivedQty: 0 },
       ],
     },
-    // PO 4 — SENT (Kikkoman → QRO01)
+    // PO 4 — SENT (Kikkoman → U. Anáhuac)
     {
-      branchCode: "QRO01",
+      branchCode: "QRO-ANH",
       supplierRfc: "KME200101QRS",
       status: "SENT",
       notes: "Salsas para el mes",
@@ -785,9 +797,9 @@ async function main() {
         { sku: "SAL-004", qty: 15, unitPrice: 45, unit: "lt", receivedQty: 0 },
       ],
     },
-    // PO 5 — DRAFT (EcoPack → CAN01)
+    // PO 5 — DRAFT (EcoPack → Jardines Moral)
     {
-      branchCode: "CAN01",
+      branchCode: "LEON-JM",
       supplierRfc: "PEC210715TUV",
       status: "DRAFT",
       notes: "Empaques biodegradables — por aprobar",
@@ -797,9 +809,9 @@ async function main() {
         { sku: "EMP-003", qty: 300, unitPrice: 2.5, unit: "pza", receivedQty: 0 },
       ],
     },
-    // PO 6 — PARTIALLY_RECEIVED (Bebidas → CDMX02)
+    // PO 6 — PARTIALLY_RECEIVED (Bebidas → San Luis)
     {
-      branchCode: "CDMX02",
+      branchCode: "SLP-SL",
       supplierRfc: "BDV190801DEF",
       status: "PARTIALLY_RECEIVED",
       notes: "Bebidas — entrega parcial",
@@ -821,7 +833,7 @@ async function main() {
       await prisma.purchaseOrder.create({
         data: {
           organizationId: org.id,
-          branchId: branches[po.branchCode],
+          branchId: requiredBranchId(po.branchCode),
           supplierId: suppliers[po.supplierRfc],
           status: po.status,
           subtotal,
@@ -852,57 +864,57 @@ async function main() {
   console.warn("\n--- Creating Employees ---");
 
   const branchCodes = [
-    "CDMX01",
-    "CDMX02",
-    "GDL01",
-    "MTY01",
-    "QRO01",
-    "CAN01",
-    "PUE01",
-    "MER01",
-    "TIJ01",
-    "LEON01",
+    "QRO-LDM",
+    "QRO-JUR",
+    "QRO-LNO",
+    "QRO-ZIB",
+    "QRO-ANH",
+    "QRO-JHD",
+    "QRO-AIQ",
+    "LEON-JM",
+    "LEON-EM",
+    "SLP-SL",
   ];
 
   // Realistic Mexican names: [firstName, lastName]
   const employeeNames: [string, string][] = [
-    // CDMX01
+    // QRO-LDM
     ["Alejandro", "Ramírez Soto"],
     ["Daniela", "Flores Huerta"],
     ["Sofía", "Martínez López"],
-    // CDMX02
+    // QRO-JUR
     ["Fernando", "García Medina"],
     ["Valentina", "Hernández Ruiz"],
     ["Luis", "Pérez Castillo"],
-    // GDL01
+    // QRO-LNO
     ["Guadalupe", "Torres Rivera"],
     ["Miguel", "Sánchez Mora"],
     ["Carolina", "Reyes Vargas"],
-    // MTY01
+    // QRO-ZIB
     ["Roberto", "Garza Salinas"],
     ["Mariana", "Cavazos Treviño"],
     ["Eduardo", "Elizondo Cruz"],
-    // QRO01
+    // QRO-ANH
     ["Paola", "Mendoza Ríos"],
     ["Héctor", "Juárez Delgado"],
     ["Andrea", "Rojas Pineda"],
-    // CAN01
+    // QRO-JHD
     ["Jorge", "Chan Pat"],
     ["Ximena", "Poot Canul"],
     ["Diego", "Nah Couoh"],
-    // PUE01
+    // QRO-AIQ
     ["Gabriela", "Cuautle Romero"],
     ["Ricardo", "Huerta Solís"],
     ["Mónica", "Jiménez Téllez"],
-    // MER01
+    // LEON-JM
     ["Sergio", "Moguel Baqueiro"],
     ["Laura", "Cámara Escalante"],
     ["Emilio", "Peón Méndez"],
-    // TIJ01
+    // LEON-EM
     ["César", "Ochoa Valdez"],
     ["Karla", "Ramírez Ibarra"],
     ["Iván", "Soto Contreras"],
-    // LEON01
+    // SLP-SL
     ["Armando", "Rangel Muñoz"],
     ["Leticia", "Domínguez Lara"],
     ["Óscar", "Villalobos Herrera"],
@@ -955,7 +967,7 @@ async function main() {
         await prisma.employee.create({
           data: {
             organizationId: org.id,
-            branchId: branches[branchCodes[b]],
+            branchId: requiredBranchId(branchCodes[b]),
             employeeNumber: empNum,
             firstName,
             lastName,
@@ -1056,7 +1068,7 @@ async function main() {
         date: "2026-03-03",
         amount: 125000,
         type: "credit",
-        desc: "Depósito ventas semana 9 — CDMX01",
+        desc: "Depósito ventas semana 9 — QRO-LDM",
         ref: "DEP-001",
       },
       {
@@ -1072,7 +1084,7 @@ async function main() {
         date: "2026-03-10",
         amount: 98000,
         type: "credit",
-        desc: "Depósito ventas semana 10 — CDMX02+GDL01",
+        desc: "Depósito ventas semana 10 — QRO-LNO+QRO-JUR",
         ref: "DEP-002",
       },
       {
@@ -1080,7 +1092,7 @@ async function main() {
         date: "2026-03-15",
         amount: -35000,
         type: "debit",
-        desc: "Renta local Polanco — Marzo 2026",
+        desc: "Renta local Lomas del Marqués — Marzo 2026",
         ref: "SPEI-003",
       },
       {
@@ -1154,7 +1166,7 @@ async function main() {
         date: "2026-03-05",
         amount: -12500,
         type: "debit",
-        desc: "Pago CFE — Sucursales CDMX",
+        desc: "Pago CFE — Sucursales Querétaro",
         ref: "CFE-MAR",
       },
       {
@@ -1162,7 +1174,7 @@ async function main() {
         date: "2026-03-08",
         amount: -8700,
         type: "debit",
-        desc: "Pago agua — Sucursales CDMX+GDL",
+        desc: "Pago agua — Sucursales Querétaro+León",
         ref: "AGUA-MAR",
       },
       {
@@ -1170,7 +1182,7 @@ async function main() {
         date: "2026-03-12",
         amount: -5200,
         type: "debit",
-        desc: "Mantenimiento equipos refrigeración — MTY01",
+        desc: "Mantenimiento equipos refrigeración — QRO-ZIB",
         ref: "MANT-001",
       },
       {
@@ -1236,7 +1248,7 @@ async function main() {
       phone: "8112345678",
       points: 2450,
       tier: "GOLD" as const,
-      branch: "MTY01",
+      branch: "QRO-ZIB",
     },
     {
       name: "Santiago Díaz Ordaz",
@@ -1244,7 +1256,7 @@ async function main() {
       phone: "5534567890",
       points: 3100,
       tier: "GOLD" as const,
-      branch: "CDMX01",
+      branch: "QRO-LDM",
     },
     {
       name: "Fernanda Ochoa Reyes",
@@ -1252,7 +1264,7 @@ async function main() {
       phone: "3323456789",
       points: 2780,
       tier: "GOLD" as const,
-      branch: "GDL01",
+      branch: "QRO-JUR",
     },
     // SILVER (4)
     {
@@ -1261,7 +1273,7 @@ async function main() {
       phone: "5545678901",
       points: 1200,
       tier: "SILVER" as const,
-      branch: "CDMX02",
+      branch: "QRO-LNO",
     },
     {
       name: "Camila Estrada Mejía",
@@ -1269,7 +1281,7 @@ async function main() {
       phone: "4421234567",
       points: 980,
       tier: "SILVER" as const,
-      branch: "QRO01",
+      branch: "QRO-ANH",
     },
     {
       name: "Andrés Moreno Fuentes",
@@ -1277,7 +1289,7 @@ async function main() {
       phone: "9981234567",
       points: 1550,
       tier: "SILVER" as const,
-      branch: "CAN01",
+      branch: "QRO-JHD",
     },
     {
       name: "Luisa Herrera Campos",
@@ -1285,7 +1297,7 @@ async function main() {
       phone: "2229876543",
       points: 1100,
       tier: "SILVER" as const,
-      branch: "PUE01",
+      branch: "QRO-AIQ",
     },
     // BRONZE (8)
     {
@@ -1294,7 +1306,7 @@ async function main() {
       phone: "9991234567",
       points: 350,
       tier: "BRONZE" as const,
-      branch: "MER01",
+      branch: "LEON-JM",
     },
     {
       name: "Natalia Rivas Coronado",
@@ -1302,7 +1314,7 @@ async function main() {
       phone: "6641234567",
       points: 120,
       tier: "BRONZE" as const,
-      branch: "TIJ01",
+      branch: "LEON-EM",
     },
     {
       name: "Emiliano Vega Durán",
@@ -1310,7 +1322,7 @@ async function main() {
       phone: "4771234567",
       points: 580,
       tier: "BRONZE" as const,
-      branch: "LEON01",
+      branch: "SLP-SL",
     },
     {
       name: "Valeria Montes de Oca",
@@ -1318,7 +1330,7 @@ async function main() {
       phone: "5556789012",
       points: 200,
       tier: "BRONZE" as const,
-      branch: "CDMX01",
+      branch: "QRO-LDM",
     },
     {
       name: "Tomás Aguirre Peña",
@@ -1326,7 +1338,7 @@ async function main() {
       phone: "8187654321",
       points: 75,
       tier: "BRONZE" as const,
-      branch: "MTY01",
+      branch: "QRO-ZIB",
     },
     {
       name: "Isabella Cruz Navarro",
@@ -1334,7 +1346,7 @@ async function main() {
       phone: "3345678901",
       points: 420,
       tier: "BRONZE" as const,
-      branch: "GDL01",
+      branch: "QRO-JUR",
     },
     {
       name: "Mateo López Serrano",
@@ -1342,7 +1354,7 @@ async function main() {
       phone: "4429876543",
       points: 680,
       tier: "BRONZE" as const,
-      branch: "QRO01",
+      branch: "QRO-ANH",
     },
     {
       name: "Renata Solís Ibarra",
@@ -1350,7 +1362,7 @@ async function main() {
       phone: "9989876543",
       points: 50,
       tier: "BRONZE" as const,
-      branch: "CAN01",
+      branch: "QRO-JHD",
     },
   ];
 
@@ -1367,7 +1379,7 @@ async function main() {
           phone: c.phone,
           loyaltyPoints: c.points,
           tier: c.tier,
-          preferredBranchId: branches[c.branch],
+          preferredBranchId: requiredBranchId(c.branch),
         },
       });
     }
@@ -1458,13 +1470,13 @@ async function main() {
       await prisma.branchInventory.upsert({
         where: {
           branchId_productId: {
-            branchId: branches[bCode],
+            branchId: requiredBranchId(bCode),
             productId: products[pDef.sku],
           },
         },
         update: {},
         create: {
-          branchId: branches[bCode],
+          branchId: requiredBranchId(bCode),
           productId: products[pDef.sku],
           currentQuantity: currentQty,
           minimumStock: minStock,
