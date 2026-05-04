@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import * as bcrypt from "bcryptjs";
+import { seedLukaMasterData } from "./luka-master-seed";
 
 const prisma = new PrismaClient();
 
@@ -228,148 +229,48 @@ async function main() {
   }
   console.warn("Roles created:", Object.keys(roles).join(", "));
 
-  // 3. Create Demo Branches
-  const branches = [
-    {
-      code: "CEDIS01",
-      name: "CEDIS Central",
-      city: "Ciudad de México",
-      state: "CMX",
-      address: "Parque Industrial Vallejo, Nave 5",
-      postalCode: "07700",
-      branchType: "CEDIS",
-    },
-    {
-      code: "CDMX01",
-      name: "Luka Polanco",
-      city: "Ciudad de México",
-      state: "CMX",
-      address: "Av. Presidente Masaryk 123",
-      postalCode: "11560",
-      branchType: "TIENDA",
-    },
-    {
-      code: "CDMX02",
-      name: "Luka Roma",
-      city: "Ciudad de México",
-      state: "CMX",
-      address: "Calle Orizaba 45",
-      postalCode: "06700",
-      branchType: "TIENDA",
-    },
-    {
-      code: "GDL01",
-      name: "Luka Providencia",
-      city: "Guadalajara",
-      state: "JAL",
-      address: "Av. Providencia 890",
-      postalCode: "44630",
-      branchType: "TIENDA",
-    },
-    {
-      code: "MTY01",
-      name: "Luka San Pedro",
-      city: "Monterrey",
-      state: "NLE",
-      address: "Calzada del Valle 200",
-      postalCode: "66220",
-      branchType: "TIENDA",
-    },
-    {
-      code: "QRO01",
-      name: "Luka Juriquilla",
-      city: "Querétaro",
-      state: "QUE",
-      address: "Blvd. Juriquilla 500",
-      postalCode: "76226",
-      branchType: "TIENDA",
-    },
-    {
-      code: "CAN01",
-      name: "Luka Cancún",
-      city: "Cancún",
-      state: "ROO",
-      address: "Blvd. Kukulcán km 12",
-      postalCode: "77500",
-      branchType: "TIENDA",
-    },
-    {
-      code: "PUE01",
-      name: "Luka Angelópolis",
-      city: "Puebla",
-      state: "PUE",
-      address: "Blvd. del Niño Poblano 2510",
-      postalCode: "72197",
-      branchType: "TIENDA",
-    },
-    {
-      code: "MER01",
-      name: "Luka Montejo",
-      city: "Mérida",
-      state: "YUC",
-      address: "Paseo de Montejo 480",
-      postalCode: "97000",
-      branchType: "TIENDA",
-    },
-    {
-      code: "TIJ01",
-      name: "Luka Zona Río",
-      city: "Tijuana",
-      state: "BCN",
-      address: "Blvd. Sánchez Taboada 100",
-      postalCode: "22320",
-      branchType: "TIENDA",
-    },
-    {
-      code: "LEON01",
-      name: "Luka Centro Max",
-      city: "León",
-      state: "GUA",
-      address: "Blvd. Adolfo López Mateos 1102",
-      postalCode: "37150",
-      branchType: "TIENDA",
-    },
-  ];
-
-  const branchIds: Record<string, string> = {};
-  for (const b of branches) {
-    const branch = await prisma.branch.upsert({
-      where: { organizationId_code: { organizationId: org.id, code: b.code } },
-      update: {},
-      create: { organizationId: org.id, ...b },
-    });
-    branchIds[b.code] = branch.id;
-  }
-  console.warn("Branches created:", branches.length);
+  // 3. Create Luka real branches, CEDIS, POS catalog, and recipe skeletons
+  const lukaMasterSeed = await seedLukaMasterData(prisma, org.id);
+  const branchIds = lukaMasterSeed.branchIds;
+  console.warn("Luka master data seeded:", lukaMasterSeed);
 
   // 3b. Create Legal Entities (Razones Sociales)
   const legalEntities = [
     {
-      name: "Food Now, S.A. de C.V.",
-      rfc: "FNO150101ABC",
-      razonSocial: "Food Now, S.A. de C.V.",
+      name: "Luka Pokes Querétaro",
+      rfc: "LPQ240101AAA",
+      razonSocial: "Luka Pokes Querétaro S.A. de C.V.",
       regimenFiscal: "601",
-      address: "Av. Presidente Masaryk 123, Col. Polanco",
-      postalCode: "11560",
-      branchCodes: ["CDMX01", "CDMX02", "GDL01"],
+      address: "Querétaro, Querétaro",
+      postalCode: "00000",
+      branchCodes: [
+        "CEDIS01",
+        "QRO-LDM",
+        "QRO-JUR",
+        "QRO-LNO",
+        "QRO-ZIB",
+        "QRO-ANH",
+        "QRO-JHD",
+        "QRO-AIQ",
+      ],
     },
     {
-      name: "Poke Fresh, S.A. de C.V.",
-      rfc: "PFR180601XYZ",
-      razonSocial: "Poke Fresh, S.A. de C.V.",
+      name: "Luka Pokes León",
+      rfc: "LPL240101AAA",
+      razonSocial: "Luka Pokes León S.A. de C.V.",
       regimenFiscal: "601",
-      address: "Calzada del Valle 200, Col. Del Valle",
-      postalCode: "66220",
-      branchCodes: ["MTY01", "QRO01"],
+      address: "León, Guanajuato",
+      postalCode: "00000",
+      branchCodes: ["LEON-JM", "LEON-EM"],
     },
     {
-      name: "Luka Foods del Sureste, S.A. de C.V.",
-      rfc: "LFS200301DEF",
-      razonSocial: "Luka Foods del Sureste, S.A. de C.V.",
+      name: "Luka Pokes San Luis",
+      rfc: "LPS240101AAA",
+      razonSocial: "Luka Pokes San Luis S.A. de C.V.",
       regimenFiscal: "601",
-      address: "Blvd. Kukulcan km 12, Zona Hotelera",
-      postalCode: "77500",
-      branchCodes: ["CAN01", "MER01", "PUE01"],
+      address: "San Luis Potosí, San Luis Potosí",
+      postalCode: "00000",
+      branchCodes: ["SLP-SL"],
     },
   ];
 
@@ -396,13 +297,9 @@ async function main() {
       }
     }
   }
-  console.warn(
-    "Legal entities created:",
-    legalEntities.length,
-    "(CEDIS01, TIJ01, LEON01 remain unassigned)",
-  );
+  console.warn("Legal entities created:", legalEntities.length);
 
-  // 4. Create Demo Users
+  // 4. Create initial users
   const passwordHash = await bcrypt.hash("Admin123!", 12);
 
   const owner = await prisma.user.upsert({
@@ -417,18 +314,19 @@ async function main() {
     },
   });
 
+  async function ensureOrgWideRole(userId: string, roleId: string) {
+    const existing = await prisma.userBranchRole.findFirst({
+      where: { userId, branchId: null, roleId },
+    });
+    if (!existing) {
+      await prisma.userBranchRole.create({
+        data: { userId, branchId: null, roleId },
+      });
+    }
+  }
+
   // Assign owner role (org-wide, no specific branch)
-  await prisma.userBranchRole.upsert({
-    where: {
-      userId_branchId_roleId: {
-        userId: owner.id,
-        branchId: branchIds["CDMX01"],
-        roleId: roles["owner"],
-      },
-    },
-    update: {},
-    create: { userId: owner.id, branchId: null, roleId: roles["owner"] },
-  });
+  await ensureOrgWideRole(owner.id, roles["owner"]);
 
   const investor = await prisma.user.upsert({
     where: { email: "inversionista@lukapoke.com" },
@@ -442,17 +340,7 @@ async function main() {
     },
   });
 
-  await prisma.userBranchRole.upsert({
-    where: {
-      userId_branchId_roleId: {
-        userId: investor.id,
-        branchId: branchIds["CDMX01"],
-        roleId: roles["investor"],
-      },
-    },
-    update: {},
-    create: { userId: investor.id, branchId: null, roleId: roles["investor"] },
-  });
+  await ensureOrgWideRole(investor.id, roles["investor"]);
 
   console.warn(
     "Users created: admin@lukapoke.com / inversionista@lukapoke.com (password: Admin123!)",
@@ -620,16 +508,8 @@ async function main() {
   }
   console.warn("Chart of accounts seeded:", accounts.length, "accounts");
 
-  // 8. Create sample product categories
-  const categories = ["Proteínas", "Bases", "Toppings", "Salsas", "Bebidas", "Empaques"];
-  for (const name of categories) {
-    await prisma.productCategory.upsert({
-      where: { organizationId_name: { organizationId: org.id, name } },
-      update: {},
-      create: { organizationId: org.id, name },
-    });
-  }
-  console.warn("Product categories seeded:", categories.length);
+  // 8. Product categories are loaded from the Luka master POS catalog above.
+  console.warn("Product categories seeded:", lukaMasterSeed.categoriesSeeded);
 
   // 9. Open fiscal periods for 2026
   for (let month = 1; month <= 12; month++) {
