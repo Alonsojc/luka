@@ -12,3 +12,4 @@ coverage/
 /uploads/
 test-results/
 **/e2e/.auth/
+exports/

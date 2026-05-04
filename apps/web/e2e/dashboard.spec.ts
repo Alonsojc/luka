@@ -23,8 +23,10 @@ test.describe("Dashboard", () => {
     await expect(branchButton).toBeVisible({ timeout: 10000 });
     await branchButton.click();
 
-    // Dropdown should appear
-    await expect(page.locator("button", { hasText: /Luka/ }).first()).toBeVisible({
+    // Dropdown should show a real seeded branch.
+    await expect(
+      page.locator("button", { hasText: /CEDIS Central|Lomas del Marqués/ }).first(),
+    ).toBeVisible({
       timeout: 5000,
     });
   });

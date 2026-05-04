@@ -13,6 +13,7 @@
     "db:migrate": "pnpm --filter @luka/database migrate",
     "db:seed": "pnpm --filter @luka/database seed",
     "db:seed:demo": "pnpm --filter @luka/database seed:demo",
+    "db:seed:luka-master": "pnpm --filter @luka/database seed:luka-master",
     "db:studio": "pnpm --filter @luka/database studio"
   },
   "devDependencies": {
