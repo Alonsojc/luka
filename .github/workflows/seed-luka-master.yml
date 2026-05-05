@@ -146,6 +146,19 @@ jobs:
           const { PrismaClient } = require("@prisma/client");
 
           const prisma = new PrismaClient();
+          const expectedActiveBranchCodes = [
+            "CEDIS01",
+            "QRO-LDM",
+            "QRO-JRQ",
+            "QRO-LN",
+            "QRO-ZIB",
+            "QRO-ANH",
+            "QRO-JDH",
+            "QRO-AER",
+            "LEON-JM",
+            "LEON-MOL",
+            "SLP-SLP",
+          ];
 
           (async () => {
             const org = await prisma.organization.findFirstOrThrow({
@@ -161,15 +174,26 @@ jobs:
               prisma.product.count({ where: { organizationId: org.id, isActive: true } }),
               prisma.productCategory.count({ where: { organizationId: org.id } }),
             ]);
+            const unexpectedActiveBranches = await prisma.branch.findMany({
+              where: {
+                organizationId: org.id,
+                isActive: true,
+                code: { notIn: expectedActiveBranchCodes },
+              },
+              orderBy: { code: "asc" },
+              select: { code: true, name: true },
+            });
 
             console.log({
               activeBranches,
               cedisBranches,
               products,
               categories,
+              unexpectedActiveBranches,
             });
 
-            if (activeBranches < 11) throw new Error("Expected at least 11 active branches.");
+            if (activeBranches !== expectedActiveBranchCodes.length) throw new Error(`Expected exactly ${expectedActiveBranchCodes.length} active branches.`);
+            if (unexpectedActiveBranches.length) throw new Error("Unexpected active branches remain.");
             if (cedisBranches !== 1) throw new Error("Expected exactly one active CEDIS01 branch.");
             if (products < 183) throw new Error("Expected at least 183 active products.");
             if (categories < 21) throw new Error("Expected at least 21 product categories.");

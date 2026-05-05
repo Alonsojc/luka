@@ -8,6 +8,7 @@ import {
 
 type SeedOptions = {
   deactivateDemoBranches?: boolean;
+  enforceMasterBranches?: boolean;
 };
 
 export async function seedLukaMasterData(
@@ -16,6 +17,8 @@ export async function seedLukaMasterData(
   options: SeedOptions = {},
 ) {
   const deactivateDemoBranches = options.deactivateDemoBranches ?? true;
+  const enforceMasterBranches = options.enforceMasterBranches ?? true;
+  const masterBranchCodes = LUKA_MASTER_BRANCHES.map((branch) => branch.code);
 
   const branchIds: Record<string, string> = {};
   for (const branchData of LUKA_MASTER_BRANCHES) {
@@ -43,6 +46,7 @@ export async function seedLukaMasterData(
   }
 
   let deactivatedDemoBranches = 0;
+  let deactivatedNonMasterBranches = 0;
   if (deactivateDemoBranches) {
     const result = await prisma.branch.updateMany({
       where: {
@@ -53,6 +57,17 @@ export async function seedLukaMasterData(
       data: { isActive: false },
     });
     deactivatedDemoBranches = result.count;
+  }
+  if (enforceMasterBranches) {
+    const result = await prisma.branch.updateMany({
+      where: {
+        organizationId,
+        code: { notIn: masterBranchCodes },
+        isActive: true,
+      },
+      data: { isActive: false },
+    });
+    deactivatedNonMasterBranches = result.count;
   }
 
   const categoryIds: Record<string, string> = {};
@@ -184,6 +199,7 @@ export async function seedLukaMasterData(
     branchIds,
     branchesSeeded: LUKA_MASTER_BRANCHES.length,
     deactivatedDemoBranches,
+    deactivatedNonMasterBranches,
     categoriesSeeded: LUKA_MASTER_CATEGORIES.length,
     productsSeeded,
     recipesSeeded,
