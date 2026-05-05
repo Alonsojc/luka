@@ -19,7 +19,7 @@ test.describe("Dashboard", () => {
   });
 
   test("selector de sucursal se abre", async ({ page }) => {
-    const branchButton = page.locator("button", { hasText: "Todas las Sucursales" });
+    const branchButton = page.locator("button", { hasText: "Toda la Operación" });
     await expect(branchButton).toBeVisible({ timeout: 10000 });
     await branchButton.click();
 
