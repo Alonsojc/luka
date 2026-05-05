@@ -115,6 +115,7 @@ interface Branch {
   name: string;
   code: string;
   city: string;
+  branchType?: string;
 }
 
 interface Notification {
@@ -313,10 +314,52 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     router.replace("/login");
   };
 
+  const branchGroups = useMemo(() => {
+    const collator = new Intl.Collator("es-MX", { sensitivity: "base" });
+    const cityPriority = ["Querétaro", "León", "San Luis Potosí"];
+    const cityRank = (city: string) => {
+      const index = cityPriority.findIndex((priorityCity) => priorityCity === city);
+      return index === -1 ? cityPriority.length : index;
+    };
+
+    const groupedStores = new Map<string, Branch[]>();
+    const cedisBranches: Branch[] = [];
+
+    for (const branch of branches) {
+      if (branch.branchType === "CEDIS" || branch.branchType === "ALMACEN") {
+        cedisBranches.push(branch);
+        continue;
+      }
+
+      const city = branch.city || "Sin ciudad";
+      groupedStores.set(city, [...(groupedStores.get(city) ?? []), branch]);
+    }
+
+    const cityGroups = Array.from(groupedStores.entries())
+      .sort(([cityA], [cityB]) => {
+        const rankDiff = cityRank(cityA) - cityRank(cityB);
+        if (rankDiff !== 0) return rankDiff;
+        return collator.compare(cityA, cityB);
+      })
+      .map(([city, cityBranches]) => ({
+        label: city,
+        branches: [...cityBranches].sort((a, b) => collator.compare(a.name, b.name)),
+      }));
+
+    if (cedisBranches.length > 0) {
+      cityGroups.push({
+        label: "CEDIS / Operación",
+        branches: [...cedisBranches].sort((a, b) => collator.compare(a.name, b.name)),
+      });
+    }
+
+    return cityGroups;
+  }, [branches]);
+
   if (!user) return null;
 
   const allBranches = [
-    { id: "all", name: "Todas las Sucursales", code: "", city: "" },
+    { id: "all", name: "Toda la Operación", code: "", city: "", branchType: "GLOBAL" },
     ...branches,
   ];
   const currentBranch = allBranches.find((b) => b.id === selectedBranch) || allBranches[0];
@@ -458,26 +501,57 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
               </button>
               {branchOpen && (
-                <div className="absolute left-0 top-full mt-1 w-64 rounded-lg border border-border bg-card py-1 shadow-lg max-h-80 overflow-y-auto z-50">
-                  {allBranches.map((branch) => (
-                    <button
-                      key={branch.id}
-                      onClick={() => {
-                        setSelectedBranch(branch.id);
-                        setBranchOpen(false);
-                      }}
-                      className={`block w-full px-4 py-2 text-left text-sm transition-colors ${
-                        selectedBranch === branch.id
-                          ? "bg-primary/5 text-foreground font-medium"
-                          : "text-muted-foreground hover:bg-muted"
-                      }`}
-                    >
-                      <span>{branch.name}</span>
-                      {branch.city && (
-                        <span className="ml-2 text-xs text-muted-foreground">{branch.city}</span>
-                      )}
-                    </button>
+                <div className="absolute left-0 top-full z-50 mt-1 max-h-80 w-[min(20rem,calc(100vw-2rem))] overflow-y-auto rounded-lg border border-border bg-card py-1 shadow-lg">
+                  <button
+                    onClick={() => {
+                      setSelectedBranch("all");
+                      setBranchOpen(false);
+                    }}
+                    className={`flex w-full items-center justify-between gap-3 px-4 py-2 text-left text-sm transition-colors ${
+                      selectedBranch === "all"
+                        ? "bg-primary/5 text-foreground font-medium"
+                        : "text-muted-foreground hover:bg-muted"
+                    }`}
+                  >
+                    <span className="min-w-0 flex-1 truncate">Toda la Operación</span>
+                    <span className="shrink-0 text-xs text-muted-foreground">Global</span>
+                  </button>
+                  {branchGroups.map((group) => (
+                    <div key={group.label}>
+                      <div className="px-4 pb-1 pt-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                        {group.label}
+                      </div>
+                      {group.branches.map((branch) => (
+                        <button
+                          key={branch.id}
+                          onClick={() => {
+                            setSelectedBranch(branch.id);
+                            setBranchOpen(false);
+                          }}
+                          className={`flex w-full items-center justify-between gap-3 px-4 py-2 text-left text-sm transition-colors ${
+                            selectedBranch === branch.id
+                              ? "bg-primary/5 text-foreground font-medium"
+                              : "text-muted-foreground hover:bg-muted"
+                          }`}
+                        >
+                          <span className="min-w-0 flex-1 truncate">{branch.name}</span>
+                          <span className="shrink-0 text-xs text-muted-foreground">
+                            {branch.branchType === "CEDIS" || branch.branchType === "ALMACEN"
+                              ? branch.branchType
+                              : branch.city}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
                   ))}
+                  {branchGroups.length === 0 && (
+                    <button
+                      disabled
+                      className="block w-full px-4 py-3 text-left text-sm text-muted-foreground"
+                    >
+                      Sin sucursales activas
+                    </button>
+                  )}
                 </div>
               )}
             </div>
