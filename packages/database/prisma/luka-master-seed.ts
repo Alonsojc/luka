@@ -67,7 +67,27 @@ export async function seedLukaMasterData(
 
   let productsSeeded = 0;
   let recipesSeeded = 0;
-  let inventoryRowsSeeded = 0;
+  const inventoryRows: Array<{
+    branchId: string;
+    productId: string;
+    currentQuantity: number;
+    minimumStock: number;
+  }> = [];
+
+  const existingRecipes = await prisma.recipe.findMany({
+    where: {
+      organizationId,
+      corntechProductId: { in: LUKA_MASTER_PRODUCTS.map((product) => product.sku) },
+    },
+    orderBy: { createdAt: "asc" },
+    select: { id: true, corntechProductId: true },
+  });
+  const recipeIdsBySku = new Map<string, string>();
+  for (const recipe of existingRecipes) {
+    if (recipe.corntechProductId && !recipeIdsBySku.has(recipe.corntechProductId)) {
+      recipeIdsBySku.set(recipe.corntechProductId, recipe.id);
+    }
+  }
 
   for (const productData of LUKA_MASTER_PRODUCTS) {
     const categoryId = categoryIds[productData.categoryName] ?? null;
@@ -94,9 +114,6 @@ export async function seedLukaMasterData(
     });
     productsSeeded++;
 
-    const existingPresentation = await prisma.productPresentation.findFirst({
-      where: { productId: product.id, name: "Venta POS" },
-    });
     const presentationData = {
       sku: productData.sku,
       conversionFactor: 1,
@@ -106,35 +123,25 @@ export async function seedLukaMasterData(
       isDefault: true,
       isActive: true,
     };
-    if (existingPresentation) {
-      await prisma.productPresentation.update({
-        where: { id: existingPresentation.id },
-        data: presentationData,
-      });
-    } else {
-      await prisma.productPresentation.create({
-        data: {
-          productId: product.id,
-          name: "Venta POS",
-          ...presentationData,
-        },
-      });
-    }
+    await prisma.productPresentation.upsert({
+      where: { productId_name: { productId: product.id, name: "Venta POS" } },
+      update: presentationData,
+      create: {
+        productId: product.id,
+        name: "Venta POS",
+        ...presentationData,
+      },
+    });
 
     for (const branchCode of productData.branchCodes) {
       const branchId = branchIds[branchCode];
       if (!branchId) continue;
-      await prisma.branchInventory.upsert({
-        where: { branchId_productId: { branchId, productId: product.id } },
-        update: {},
-        create: {
-          branchId,
-          productId: product.id,
-          currentQuantity: 0,
-          minimumStock: 0,
-        },
+      inventoryRows.push({
+        branchId,
+        productId: product.id,
+        currentQuantity: 0,
+        minimumStock: 0,
       });
-      inventoryRowsSeeded++;
     }
 
     const recipeData = {
@@ -148,24 +155,30 @@ export async function seedLukaMasterData(
       costPerServing: productData.costPerUnit || null,
       isActive: true,
     };
-    const existingRecipe = await prisma.recipe.findFirst({
-      where: { organizationId, corntechProductId: productData.sku },
-    });
-    if (existingRecipe) {
+    const existingRecipeId = recipeIdsBySku.get(productData.sku);
+    if (existingRecipeId) {
       await prisma.recipe.update({
-        where: { id: existingRecipe.id },
+        where: { id: existingRecipeId },
         data: recipeData,
       });
     } else {
-      await prisma.recipe.create({
+      const recipe = await prisma.recipe.create({
         data: {
           organizationId,
           ...recipeData,
         },
       });
+      recipeIdsBySku.set(productData.sku, recipe.id);
     }
     recipesSeeded++;
   }
+
+  const inventoryResult = inventoryRows.length
+    ? await prisma.branchInventory.createMany({
+        data: inventoryRows,
+        skipDuplicates: true,
+      })
+    : { count: 0 };
 
   return {
     branchIds,
@@ -174,6 +187,7 @@ export async function seedLukaMasterData(
     categoriesSeeded: LUKA_MASTER_CATEGORIES.length,
     productsSeeded,
     recipesSeeded,
-    inventoryRowsSeeded,
+    inventoryRowsSeeded: inventoryRows.length,
+    inventoryRowsCreated: inventoryResult.count,
   };
 }
