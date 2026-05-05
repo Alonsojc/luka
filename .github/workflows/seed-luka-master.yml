@@ -14,6 +14,11 @@ on:
         description: "Type SEED_LUKA_MASTER_STAGING or SEED_LUKA_MASTER_PRODUCTION."
         required: true
         type: string
+      deploy_migrations:
+        description: "Apply pending Prisma migrations after backup and before seed."
+        required: true
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -81,9 +86,6 @@ jobs:
       - name: Generate Prisma client
         run: pnpm --filter @luka/database run generate
 
-      - name: Check migration status before seed
-        run: pnpm --filter @luka/database exec prisma migrate status --schema=./prisma/schema.prisma
-
       - name: Prepare pg_dump connection
         run: |
           set -euo pipefail
@@ -108,6 +110,25 @@ jobs:
           name: luka-${{ inputs.target }}-pre-master-seed-backup
           path: ${{ env.BACKUP_FILE }}
           retention-days: 14
+
+      - name: Check migration status before seed
+        id: migrate_status
+        continue-on-error: true
+        run: pnpm --filter @luka/database exec prisma migrate status --schema=./prisma/schema.prisma
+
+      - name: Stop if migrations are pending
+        if: steps.migrate_status.outcome == 'failure' && inputs.deploy_migrations != true
+        run: |
+          echo "::error::Pending migrations detected. Re-run with deploy_migrations=true after reviewing the backup artifact."
+          exit 1
+
+      - name: Deploy pending migrations
+        if: steps.migrate_status.outcome == 'failure' && inputs.deploy_migrations == true
+        run: pnpm --filter @luka/database run migrate:deploy
+
+      - name: Check migration status after deploy
+        if: steps.migrate_status.outcome == 'failure' && inputs.deploy_migrations == true
+        run: pnpm --filter @luka/database exec prisma migrate status --schema=./prisma/schema.prisma
 
       - name: Run Luka master seed
         run: pnpm --filter @luka/database seed:luka-master
