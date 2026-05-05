@@ -78,8 +78,14 @@ jobs:
 
       - name: Install PostgreSQL client
         run: |
+          set -euo pipefail
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          . /etc/os-release
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt ${VERSION_CODENAME}-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list
           sudo apt-get update
-          sudo apt-get install -y postgresql-client
+          sudo apt-get install -y postgresql-client-18
+          echo "PG_DUMP_BIN=/usr/lib/postgresql/18/bin/pg_dump" >> "$GITHUB_ENV"
 
       - run: pnpm install --frozen-lockfile
 
@@ -100,7 +106,7 @@ jobs:
           set -euo pipefail
           mkdir -p backups
           BACKUP_FILE="backups/luka-${TARGET_ENVIRONMENT}-pre-master-seed-$(date -u +'%Y%m%dT%H%M%SZ').sql.gz"
-          pg_dump --dbname="$PG_DUMP_DATABASE_URL" --no-owner --no-acl | gzip > "$BACKUP_FILE"
+          "$PG_DUMP_BIN" --dbname="$PG_DUMP_DATABASE_URL" --no-owner --no-acl | gzip > "$BACKUP_FILE"
           echo "BACKUP_FILE=$BACKUP_FILE" >> "$GITHUB_ENV"
           test -s "$BACKUP_FILE"
 
