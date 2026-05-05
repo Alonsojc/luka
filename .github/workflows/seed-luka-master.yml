@@ -142,23 +142,12 @@ jobs:
       - name: Validate seeded Luka master data
         run: |
           cd packages/database
-          node <<'JS'
-          const { PrismaClient } = require("@prisma/client");
+          cat > validate-luka-master.tmp.ts <<'TS'
+          import { PrismaClient } from "@prisma/client";
+          import { LUKA_MASTER_BRANCHES } from "./prisma/data/luka-master-data";
 
           const prisma = new PrismaClient();
-          const expectedActiveBranchCodes = [
-            "CEDIS01",
-            "QRO-LDM",
-            "QRO-JRQ",
-            "QRO-LN",
-            "QRO-ZIB",
-            "QRO-ANH",
-            "QRO-JDH",
-            "QRO-AER",
-            "LEON-JM",
-            "LEON-MOL",
-            "SLP-SLP",
-          ];
+          const expectedActiveBranchCodes = LUKA_MASTER_BRANCHES.map((branch) => branch.code);
 
           (async () => {
             const org = await prisma.organization.findFirstOrThrow({
@@ -205,4 +194,6 @@ jobs:
               console.error(error);
               process.exit(1);
             });
-          JS
+          TS
+          pnpm exec tsx validate-luka-master.tmp.ts
+          rm validate-luka-master.tmp.ts
